@@ -108,6 +108,7 @@ export const NestedAnovaCalculator = () => {
               min={2}
               max={50}
               step={1}
+              decimals={0}
             />
 
             <ControlSlider
@@ -118,6 +119,7 @@ export const NestedAnovaCalculator = () => {
               min={2}
               max={50}
               step={1}
+              decimals={0}
             />
 
             <ControlSlider
@@ -128,6 +130,7 @@ export const NestedAnovaCalculator = () => {
               min={2}
               max={6}
               step={1}
+              decimals={0}
             />
 
             <ControlSlider

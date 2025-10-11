@@ -57,6 +57,7 @@ export const MinimumDetectableEffectCalculator = () => {
                 min={2}
                 max={10}
                 step={1}
+                decimals={0}
               />
             )}
 
@@ -97,6 +98,7 @@ export const MinimumDetectableEffectCalculator = () => {
               min={2}
               max={200}
               step={1}
+              decimals={0}
             />
 
             {mde !== null && (
