@@ -14,6 +14,13 @@ interface NestedPowerResult {
   curveData: Array<{ x: number; y: number }>;
 }
 
+// Import jStat for proper noncentral F distribution
+// @ts-ignore
+import jStat from 'jstat';
+
+// Import noncentralFPower from powerCalculations
+import { noncentralFPower } from '@/utils/powerCalculations';
+
 // Calculate power for nested/hierarchical design
 function calculateNestedAnovaPower(
   nPerCluster: number,
@@ -30,11 +37,14 @@ function calculateNestedAnovaPower(
   // Between-cluster effect (main effect of treatment)
   const dfBetween1 = groups - 1;
   const dfBetween2 = groups * (clusters - 1);
-  const lambdaBetween = (clusters * nPerCluster * Math.pow(effectSize, 2)) / (2 * (1 + (nPerCluster - 1) * icc));
   
-  // Crude F approximation for power
-  const criticalFBetween = 1 + (dfBetween1 * lambdaBetween) / dfBetween2;
-  const powerBetween = Math.min(0.99, Math.max(0.05, 1 / (1 + Math.exp(-5 * (lambdaBetween / dfBetween1 - 1)))));
+  // CORRECTED: Use proper noncentral F distribution instead of logistic approximation
+  const effectiveClusters = (clusters * nPerCluster) / designEffect;
+  const lambdaBetween = (effectiveClusters * groups * effectSize * effectSize) / 2;
+  
+  // Calculate power using proper noncentral F distribution
+  const critF = jStat.centralF.inv(1 - alpha, dfBetween1, dfBetween2);
+  const powerBetween = noncentralFPower(lambdaBetween, dfBetween1, dfBetween2, critF);
   
   // Within-cluster effect (assuming some within-cluster variation)
   const lambdaWithin = effectiveN * Math.pow(effectSize, 2) / 2;
@@ -51,9 +61,13 @@ function calculateNestedAnovaPower(
   // Generate power curve by varying number of clusters
   const curveData = [];
   for (let c = 2; c <= 50; c++) {
-    const lambda = (c * nPerCluster * Math.pow(effectSize, 2)) / (2 * (1 + (nPerCluster - 1) * icc));
-    const power = Math.min(0.99, Math.max(0.05, 1 / (1 + Math.exp(-5 * (lambda / dfBetween1 - 1)))));
-    curveData.push({ x: c, y: power });
+    const designEffectC = 1 + (nPerCluster - 1) * icc;
+    const effectiveClustersC = (c * nPerCluster) / designEffectC;
+    const lambdaC = (effectiveClustersC * groups * effectSize * effectSize) / 2;
+    const dfBetween2C = groups * (c - 1);
+    const critFC = jStat.centralF.inv(1 - alpha, dfBetween1, dfBetween2C);
+    const powerC = noncentralFPower(lambdaC, dfBetween1, dfBetween2C, critFC);
+    curveData.push({ x: c, y: Math.max(0.05, Math.min(0.99, powerC)) });
   }
   
   return {

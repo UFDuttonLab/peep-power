@@ -15,7 +15,9 @@ import AboutHelp from '@/components/calculators/AboutHelp';
 import { MinimumDetectableEffectCalculator } from '@/components/calculators/MinimumDetectableEffectCalculator';
 import { NestedAnovaCalculator } from '@/components/calculators/NestedAnovaCalculator';
 import HoldMyHandCalculator from '@/components/calculators/HoldMyHandCalculator';
-import { Leaf } from 'lucide-react';
+import BayesianAssuranceCalculator from '@/components/calculators/BayesianAssuranceCalculator';
+import PriorElicitationTool from '@/components/calculators/PriorElicitationTool';
+import { Leaf, Brain, Lightbulb } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
 
 const Index = () => {
@@ -87,6 +89,14 @@ const Index = () => {
             <TabsTrigger value="replication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Replication
             </TabsTrigger>
+            <TabsTrigger value="bayesian-assurance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px]">
+              <Brain className="inline h-4 w-4 mr-1" />
+              Bayesian Assurance
+            </TabsTrigger>
+            <TabsTrigger value="prior-elicitation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[130px]">
+              <Lightbulb className="inline h-4 w-4 mr-1" />
+              Prior Elicitation
+            </TabsTrigger>
             <TabsTrigger value="about" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               About/Help
             </TabsTrigger>
@@ -146,6 +156,14 @@ const Index = () => {
 
           <TabsContent value="replication" className="mt-8 md:mt-6">
             <ReplicationChecker />
+          </TabsContent>
+
+          <TabsContent value="bayesian-assurance" className="mt-8 md:mt-6">
+            <BayesianAssuranceCalculator />
+          </TabsContent>
+
+          <TabsContent value="prior-elicitation" className="mt-8 md:mt-6">
+            <PriorElicitationTool />
           </TabsContent>
 
           <TabsContent value="about" className="mt-8 md:mt-6">

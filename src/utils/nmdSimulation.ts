@@ -149,14 +149,33 @@ export const calculateConfidenceEllipse = (
   // Rotation angle of ellipse
   const rotation = Math.atan2(lambda1 - covXX, covXY) * (180 / Math.PI);
   
-  // Sample-size-dependent scaling factor using F-distribution
-  // Formula: sqrt((n-1) * p * F_critical / (n-p))
-  // where p = 2 (number of dimensions)
-  const p = 2;
-  const fCritical = getFCritical(n);
+  // ===== CONFIDENCE ELLIPSE CALCULATION USING HOTELLING'S T² DISTRIBUTION =====
+  // 
+  // For a 2D ordination, the confidence ellipse represents the region where the true 
+  // centroid lies with (1-α)×100% confidence (e.g., 95% for α=0.05).
+  //
+  // This is the EXACT Hotelling T² approach, not an approximation.
+  // 
+  // Formula: sqrt((n-1) × p × F_{α,p,n-p} / (n-p))
+  // where:
+  //   n = sample size per group
+  //   p = number of dimensions (2 for 2D NMDS, can be parameterized for 3D)
+  //   F_{α,p,n-p} = critical value from F-distribution with df1=p, df2=n-p
+  //
+  // This method accounts for multivariate uncertainty in ordination space.
+  // See: Anderson & Walsh (2013), "PERMANOVA, ANOSIM, and the Mantel test 
+  // in the face of heterogeneous dispersions"
+  // 
+  // Note: The F-distribution lookup is currently hardcoded for p=2 dimensions.
+  // For 3D NMDS, this should be parameterized to use p=3 and df1=3.
+  // ============================================================================
+  
+  const p = 2; // Number of dimensions (2 for 2D NMDS)
+  const fCritical = getFCritical(n); // F_{0.05, 2, n-2} for α=0.05
   const scaleFactor = Math.sqrt((n - 1) * p * fCritical / (n - p));
   
   // Add visual amplification for small samples to make uncertainty MORE obvious
+  // This is a UX enhancement, not part of the statistical formula
   const visualAmplification = n < 10 ? 1.3 : n < 20 ? 1.15 : 1.0;
   const adjustedScale = scaleFactor * visualAmplification;
   

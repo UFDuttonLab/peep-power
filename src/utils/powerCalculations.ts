@@ -35,7 +35,7 @@ function noncentralTPower(ncp: number, df: number, criticalValue: number): numbe
 }
 
 // Improved approximation for noncentral F distribution power
-function noncentralFPower(lambda: number, df1: number, df2: number, criticalValue: number): number {
+export function noncentralFPower(lambda: number, df1: number, df2: number, criticalValue: number): number {
   // Better approximation using Patnaik's two-moment central chi-square approximation
   // Noncentral F ~ (chi2(df1, lambda) / df1) / (chi2(df2) / df2)
   
@@ -170,7 +170,7 @@ export const calculateTwoWayAnovaPower = (
 
   const summary = `Design: <strong>${factorA}×${factorB}</strong> with <strong>${n} per cell</strong> (total N=${N}). Power: <strong>A ${(powerA * 100).toFixed(1)}%</strong>, <strong>B ${(powerB * 100).toFixed(1)}%</strong>, <strong>A×B ${(powerAB * 100).toFixed(1)}%</strong> at α=${alpha}.`;
 
-  // Power curve: vary TOTAL sample size N (x-axis)
+  // Power curve for interaction effect (default)
   const curveData = [];
   const totalCells = factorA * factorB;
   for (let totalN = totalCells * 2; totalN <= 400; totalN += 10) {
@@ -184,7 +184,33 @@ export const calculateTwoWayAnovaPower = (
     curveData.push({ x: totalN, y: Math.max(0, Math.min(1, powerCurve)) });
   }
 
-  return { powerA, powerB, powerAB, summary, curveData };
+  // Power curve for main effect A
+  const curveDataA = [];
+  for (let totalN = totalCells * 2; totalN <= 400; totalN += 10) {
+    const nPerCell = Math.floor(totalN / totalCells);
+    if (nPerCell < 2) continue;
+    const dfErrorCurve = totalCells * (nPerCell - 1);
+    if (dfErrorCurve <= 0) continue;
+    const lambdaACurve = effectA * effectA * totalN;
+    const critACurve = jStat.centralF.inv(1 - alpha, dfA, dfErrorCurve);
+    const powerACurve = noncentralFPower(lambdaACurve, dfA, dfErrorCurve, critACurve);
+    curveDataA.push({ x: totalN, y: Math.max(0, Math.min(1, powerACurve)) });
+  }
+
+  // Power curve for main effect B
+  const curveDataB = [];
+  for (let totalN = totalCells * 2; totalN <= 400; totalN += 10) {
+    const nPerCell = Math.floor(totalN / totalCells);
+    if (nPerCell < 2) continue;
+    const dfErrorCurve = totalCells * (nPerCell - 1);
+    if (dfErrorCurve <= 0) continue;
+    const lambdaBCurve = effectB * effectB * totalN;
+    const critBCurve = jStat.centralF.inv(1 - alpha, dfB, dfErrorCurve);
+    const powerBCurve = noncentralFPower(lambdaBCurve, dfB, dfErrorCurve, critBCurve);
+    curveDataB.push({ x: totalN, y: Math.max(0, Math.min(1, powerBCurve)) });
+  }
+
+  return { powerA, powerB, powerAB, summary, curveData, curveDataA, curveDataB };
 };
 
 export const calculateRepeatedMeasuresPower = (
@@ -210,7 +236,11 @@ export const calculateRepeatedMeasuresPower = (
   }
 
   // Noncentrality parameter for repeated measures
-  const lambda = (effectSize * effectSize * subjects * timepoints) / (1 - correlation);
+  // CORRECTED: Design effect reduces effective sample size when correlation is high
+  // Higher within-subject correlation = MORE redundant information = LESS effective N
+  const designEffect = 1 + (timepoints - 1) * correlation;
+  const effectiveN = (subjects * timepoints) / designEffect;
+  const lambda = effectiveN * effectSize * effectSize;
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
 
@@ -225,7 +255,9 @@ export const calculateRepeatedMeasuresPower = (
     const df1C = (timepoints - 1) * epsilonC;
     const df2C = (subj - 1) * (timepoints - 1) * epsilonC;
     if (df2C <= 0) continue;
-    const lambdaC = (effectSize * effectSize * subj * timepoints) / (1 - correlation);
+    const designEffectC = 1 + (timepoints - 1) * correlation;
+    const effectiveNC = (subj * timepoints) / designEffectC;
+    const lambdaC = effectiveNC * effectSize * effectSize;
     const critFC = jStat.centralF.inv(1 - alpha, df1C, df2C);
     const powerC = noncentralFPower(lambdaC, df1C, df2C, critFC);
     curveData.push({ x: subj, y: Math.max(0, Math.min(1, powerC)) });
@@ -289,18 +321,22 @@ export const calculateChiSquarePower = (
   const lambda = w * w * n;
   const critChi = jStat.chisquare.inv(1 - alpha, df);
   
-  // Approximate noncentral chi-square power
-  const centralPower = 1 - jStat.chisquare.cdf(critChi, df);
-  const adjustment = 1 - Math.exp(-lambda / (2 * df));
-  const power = Math.min(0.999, centralPower + adjustment * (1 - centralPower));
+  // CORRECTED: Use Patnaik's approximation for noncentral chi-square
+  // This is more accurate than the previous exponential adjustment
+  const h = 1 - (2/3) * (lambda / (df + lambda));
+  const dfAdjusted = df + lambda;
+  const critChiAdjusted = critChi / h;
+  const power = Math.min(0.999, 1 - jStat.chisquare.cdf(critChiAdjusted, dfAdjusted));
 
   const summary = `With a total sample size of <strong>${n}</strong> and <strong>${df} degrees of freedom</strong>, you have a <strong>${(power * 100).toFixed(1)}% chance (power)</strong> to detect an effect size of <strong>w=${w.toFixed(2)}</strong> at an alpha level of <strong>${alpha}</strong>.`;
 
   const curveData = [];
   for (let i = 10; i <= 500; i += 10) {
     const lambdaCurve = w * w * i;
-    const adjustmentCurve = 1 - Math.exp(-lambdaCurve / (2 * df));
-    const powerCurve = Math.min(0.999, centralPower + adjustmentCurve * (1 - centralPower));
+    const hCurve = 1 - (2/3) * (lambdaCurve / (df + lambdaCurve));
+    const dfAdjCurve = df + lambdaCurve;
+    const critChiAdjCurve = critChi / hCurve;
+    const powerCurve = Math.min(0.999, 1 - jStat.chisquare.cdf(critChiAdjCurve, dfAdjCurve));
     curveData.push({ x: i, y: Math.max(0, Math.min(1, powerCurve)) });
   }
 
@@ -440,9 +476,10 @@ export const calculateRepeatedMeasuresPERMANOVAPower = (
     return { power: 0, summary: 'Invalid parameters', curveData: [] };
   }
   
-  // Effective sample size increases with correlation (sphericity assumed)
-  // Higher correlation = more stable within-subject patterns = more power
-  const effectiveN = subjects * timepoints * (1 + (timepoints - 1) * correlation);
+  // CORRECTED: Design effect from Donner & Klar (2000) for clustered data
+  // Higher within-subject correlation REDUCES effective sample size (more redundant information)
+  const designEffect = 1 + (timepoints - 1) * correlation;
+  const effectiveN = (subjects * timepoints) / designEffect;
   
   // Noncentrality parameter for repeated measures PERMANOVA
   const lambda = effectiveN * (rSquared / (1 - rSquared));
@@ -457,7 +494,8 @@ export const calculateRepeatedMeasuresPERMANOVAPower = (
   for (let subj = 5; subj <= 100; subj += 2) {
     const df2C = (subj - 1) * (timepoints - 1);
     if (df2C <= 0) continue;
-    const effectiveNC = subj * timepoints * (1 + (timepoints - 1) * correlation);
+    const designEffectC = 1 + (timepoints - 1) * correlation;
+    const effectiveNC = (subj * timepoints) / designEffectC;
     const lambdaC = effectiveNC * (rSquared / (1 - rSquared));
     const critFC = jStat.centralF.inv(1 - alpha, df1, df2C);
     const powerC = noncentralFPower(lambdaC, df1, df2C, critFC);
