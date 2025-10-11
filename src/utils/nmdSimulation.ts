@@ -30,6 +30,36 @@ export interface EllipseParams {
   groupName: string;
 }
 
+// F-distribution approximation for (2, n-2) degrees of freedom at α=0.05
+const getFCritical = (n: number): number => {
+  if (n < 3) return 10; // Minimum sample size
+  
+  // Simple approximation using lookup table with interpolation
+  const lookupTable = [
+    { n: 3, f: 19.00 },
+    { n: 5, f: 6.94 },
+    { n: 10, f: 4.46 },
+    { n: 15, f: 3.89 },
+    { n: 20, f: 3.55 },
+    { n: 30, f: 3.33 },
+    { n: 50, f: 3.18 },
+    { n: 100, f: 3.09 },
+    { n: 200, f: 3.04 },
+    { n: Infinity, f: 3.00 }
+  ];
+  
+  // Find bracketing values and interpolate
+  for (let i = 0; i < lookupTable.length - 1; i++) {
+    if (n <= lookupTable[i + 1].n) {
+      const lower = lookupTable[i];
+      const upper = lookupTable[i + 1];
+      const t = (n - lower.n) / (upper.n - lower.n);
+      return lower.f + t * (upper.f - lower.f);
+    }
+  }
+  return 3.00; // For very large n
+};
+
 export const generateNMDSData = (
   nPerGroup: number,
   numGroups: number,
@@ -91,9 +121,11 @@ export const calculateConfidenceEllipse = (
   points: NMDSPoint[],
   confidence: number
 ): { cx: number, cy: number, rx: number, ry: number, rotation: number } => {
+  const n = points.length;
+  
   // Calculate centroid (mean)
-  const meanX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
-  const meanY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+  const meanX = points.reduce((sum, p) => sum + p.x, 0) / n;
+  const meanY = points.reduce((sum, p) => sum + p.y, 0) / n;
   
   // Calculate covariance matrix
   let covXX = 0, covYY = 0, covXY = 0;
@@ -104,9 +136,9 @@ export const calculateConfidenceEllipse = (
     covYY += dy * dy;
     covXY += dx * dy;
   });
-  covXX /= points.length - 1;
-  covYY /= points.length - 1;
-  covXY /= points.length - 1;
+  covXX /= (n - 1);
+  covYY /= (n - 1);
+  covXY /= (n - 1);
   
   // Compute eigenvalues for principal axes
   const trace = covXX + covYY;
@@ -117,14 +149,18 @@ export const calculateConfidenceEllipse = (
   // Rotation angle of ellipse
   const rotation = Math.atan2(lambda1 - covXX, covXY) * (180 / Math.PI);
   
-  // Chi-square critical value for 2D at 95% confidence
-  const chiSquare = 5.991;
+  // Sample-size-dependent scaling factor using F-distribution
+  // Formula: sqrt((n-1) * p * F_critical / (n-p))
+  // where p = 2 (number of dimensions)
+  const p = 2;
+  const fCritical = getFCritical(n);
+  const scaleFactor = Math.sqrt((n - 1) * p * fCritical / (n - p));
   
   return {
     cx: meanX,
     cy: meanY,
-    rx: Math.sqrt(lambda1 * chiSquare),
-    ry: Math.sqrt(lambda2 * chiSquare),
+    rx: Math.sqrt(lambda1 * scaleFactor),
+    ry: Math.sqrt(lambda2 * scaleFactor),
     rotation
   };
 };
