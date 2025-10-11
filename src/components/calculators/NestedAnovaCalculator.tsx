@@ -11,7 +11,7 @@ interface NestedPowerResult {
   powerWithin: number;
   summaryBetween: string;
   summaryWithin: string;
-  curveData: Array<{ n: number; power: number }>;
+  curveData: Array<{ x: number; y: number }>;
 }
 
 // Calculate power for nested/hierarchical design
@@ -101,6 +101,7 @@ export const NestedAnovaCalculator = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <ControlSlider
+              id="nested-n-per-cluster"
               label="Observations per Cluster"
               value={nPerCluster}
               onChange={setNPerCluster}
@@ -110,6 +111,7 @@ export const NestedAnovaCalculator = () => {
             />
 
             <ControlSlider
+              id="nested-clusters"
               label="Number of Clusters per Group"
               value={clusters}
               onChange={setClusters}
@@ -119,6 +121,7 @@ export const NestedAnovaCalculator = () => {
             />
 
             <ControlSlider
+              id="nested-groups"
               label="Number of Treatment Groups"
               value={groups}
               onChange={setGroups}
@@ -128,6 +131,7 @@ export const NestedAnovaCalculator = () => {
             />
 
             <ControlSlider
+              id="nested-effect-size"
               label="Effect Size (Cohen's d)"
               value={effectSize}
               onChange={setEffectSize}
@@ -137,6 +141,7 @@ export const NestedAnovaCalculator = () => {
             />
 
             <ControlSlider
+              id="nested-icc"
               label="Intraclass Correlation (ICC)"
               value={icc}
               onChange={setIcc}
@@ -146,6 +151,7 @@ export const NestedAnovaCalculator = () => {
             />
 
             <ControlSlider
+              id="nested-alpha"
               label="Significance Level (α)"
               value={alpha}
               onChange={setAlpha}

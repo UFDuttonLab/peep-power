@@ -11,6 +11,8 @@ import EffectSizeHelper from '@/components/calculators/EffectSizeHelper';
 import EffectSizeLibrary from '@/components/calculators/EffectSizeLibrary';
 import ReplicationChecker from '@/components/calculators/ReplicationChecker';
 import AboutHelp from '@/components/calculators/AboutHelp';
+import { MinimumDetectableEffectCalculator } from '@/components/calculators/MinimumDetectableEffectCalculator';
+import { NestedAnovaCalculator } from '@/components/calculators/NestedAnovaCalculator';
 import { Leaf } from 'lucide-react';
 
 const Index = () => {
@@ -55,6 +57,12 @@ const Index = () => {
             <TabsTrigger value="microbiome" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[160px]">
               Microbiome & Community
             </TabsTrigger>
+            <TabsTrigger value="nested" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
+              Nested/Hierarchical
+            </TabsTrigger>
+            <TabsTrigger value="mde" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
+              MDE / Sample Size
+            </TabsTrigger>
             <TabsTrigger value="effect" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Effect Size
             </TabsTrigger>
@@ -95,6 +103,14 @@ const Index = () => {
 
           <TabsContent value="microbiome" className="mt-6">
             <MicrobiomeCalculator />
+          </TabsContent>
+
+          <TabsContent value="nested" className="mt-6">
+            <NestedAnovaCalculator />
+          </TabsContent>
+
+          <TabsContent value="mde" className="mt-6">
+            <MinimumDetectableEffectCalculator />
           </TabsContent>
 
           <TabsContent value="effect" className="mt-6">

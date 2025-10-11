@@ -50,6 +50,7 @@ export const MinimumDetectableEffectCalculator = () => {
 
             {testType === 'anova' && (
               <ControlSlider
+                id="mde-groups"
                 label="Number of Groups"
                 value={groups}
                 onChange={setGroups}
@@ -60,6 +61,7 @@ export const MinimumDetectableEffectCalculator = () => {
             )}
 
             <ControlSlider
+              id="mde-target-power"
               label="Target Power (1-β)"
               value={targetPower}
               onChange={setTargetPower}
@@ -69,6 +71,7 @@ export const MinimumDetectableEffectCalculator = () => {
             />
 
             <ControlSlider
+              id="mde-alpha"
               label="Significance Level (α)"
               value={alpha}
               onChange={setAlpha}
@@ -87,6 +90,7 @@ export const MinimumDetectableEffectCalculator = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <ControlSlider
+              id="mde-sample-size"
               label={testType === 'ttest' ? 'Sample Size per Group' : testType === 'anova' ? 'Sample Size per Group' : 'Total Sample Size'}
               value={n}
               onChange={setN}
@@ -121,6 +125,7 @@ export const MinimumDetectableEffectCalculator = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <ControlSlider
+              id="mde-effect-size"
               label={testType === 'correlation' ? 'Expected Correlation (r)' : 'Expected Effect Size'}
               value={givenEffect}
               onChange={setGivenEffect}
