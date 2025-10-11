@@ -50,7 +50,14 @@ function noncentralFPower(lambda: number, df1: number, df2: number, criticalValu
   
   // Add correction factor for noncentrality
   const correction = lambda / (df1 + lambda);
-  return Math.max(0, Math.min(0.999, power + correction * (1 - power)));
+  const estimatedPower = Math.max(0, Math.min(0.999, power + correction * (1 - power)));
+  
+  // Warn if approximation may be inaccurate
+  if (lambda > 30 || df2 < 15) {
+    console.warn('Noncentral F approximation may be inaccurate for lambda > 30 or df2 < 15');
+  }
+  
+  return estimatedPower;
 }
 
 export const calculateTTestPower = (
@@ -187,10 +194,9 @@ export const calculateRepeatedMeasuresPower = (
   correlation: number,
   alpha: number
 ): PowerResult => {
-  // Greenhouse-Geisser epsilon for sphericity correction
-  const epsilon = Math.max(0.5, Math.min(1.0, 
-    1 / (timepoints - 1) + (timepoints - 1) * (1 - correlation) / (timepoints * correlation + (timepoints - 1) * (1 - correlation))
-  ));
+  // For compound symmetry (constant correlation), assume sphericity
+  // Users should apply Greenhouse-Geisser or Huynh-Feldt corrections in actual analysis if sphericity is violated
+  const epsilon = 1.0;
   
   const df1 = (timepoints - 1) * epsilon;
   const df2 = (subjects - 1) * (timepoints - 1) * epsilon;
@@ -320,6 +326,65 @@ export const cohensW = (observed: number[], expected: number[]): number => {
   const n = observed.reduce((a, b) => a + b, 0);
   return Math.sqrt(chiSq / n);
 };
+
+// Calculate minimum detectable effect size for given power
+export function calculateMinimumDetectableEffect(
+  n: number,
+  targetPower: number = 0.8,
+  alpha: number = 0.05,
+  testType: 'ttest' | 'anova' | 'correlation' = 'ttest',
+  groups?: number
+): number {
+  let low = 0.01;
+  let high = 3.0;
+  
+  for (let i = 0; i < 50; i++) {
+    const mid = (low + high) / 2;
+    let power = 0;
+    
+    if (testType === 'ttest') {
+      power = calculateTTestPower(n, mid, alpha).power;
+    } else if (testType === 'anova' && groups) {
+      power = calculateOneWayAnovaPower(n, groups, mid, alpha).power;
+    } else if (testType === 'correlation') {
+      power = calculateCorrelationPower(n, mid, alpha).power;
+    }
+    
+    if (Math.abs(power - targetPower) < 0.001) return mid;
+    if (power < targetPower) low = mid; else high = mid;
+  }
+  
+  return (low + high) / 2;
+}
+
+export function calculateRequiredSampleSize(
+  effectSize: number,
+  targetPower: number = 0.8,
+  alpha: number = 0.05,
+  testType: 'ttest' | 'anova' | 'correlation' = 'ttest',
+  groups?: number
+): number {
+  let low = 2;
+  let high = 10000;
+  
+  for (let i = 0; i < 50; i++) {
+    const mid = Math.round((low + high) / 2);
+    let power = 0;
+    
+    if (testType === 'ttest') {
+      power = calculateTTestPower(mid, effectSize, alpha).power;
+    } else if (testType === 'anova' && groups) {
+      power = calculateOneWayAnovaPower(mid, groups, effectSize, alpha).power;
+    } else if (testType === 'correlation') {
+      power = calculateCorrelationPower(mid, effectSize, alpha).power;
+    }
+    
+    if (Math.abs(power - targetPower) < 0.01) return mid;
+    if (power < targetPower) low = mid + 1; else high = mid - 1;
+  }
+  
+  return Math.round((low + high) / 2);
+}
 
 export const calculatePERMANOVAPower = (
   nPerGroup: number,
