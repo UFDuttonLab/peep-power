@@ -6,6 +6,7 @@ import TwoWayAnovaCalculator from '@/components/calculators/TwoWayAnovaCalculato
 import RepeatedMeasuresCalculator from '@/components/calculators/RepeatedMeasuresCalculator';
 import CorrelationCalculator from '@/components/calculators/CorrelationCalculator';
 import ChiSquareCalculator from '@/components/calculators/ChiSquareCalculator';
+import MicrobiomeCalculator from '@/components/calculators/MicrobiomeCalculator';
 import EffectSizeHelper from '@/components/calculators/EffectSizeHelper';
 import EffectSizeLibrary from '@/components/calculators/EffectSizeLibrary';
 import ReplicationChecker from '@/components/calculators/ReplicationChecker';
@@ -51,6 +52,9 @@ const Index = () => {
             <TabsTrigger value="chisquare" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Chi-Square
             </TabsTrigger>
+            <TabsTrigger value="microbiome" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[160px]">
+              Microbiome & Community
+            </TabsTrigger>
             <TabsTrigger value="effect" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Effect Size
             </TabsTrigger>
@@ -87,6 +91,10 @@ const Index = () => {
 
           <TabsContent value="chisquare" className="mt-0">
             <ChiSquareCalculator />
+          </TabsContent>
+
+          <TabsContent value="microbiome" className="mt-0">
+            <MicrobiomeCalculator />
           </TabsContent>
 
           <TabsContent value="effect" className="mt-0">

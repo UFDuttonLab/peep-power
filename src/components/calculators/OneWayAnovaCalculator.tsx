@@ -51,20 +51,6 @@ const OneWayAnovaCalculator = () => {
 
   return (
     <div className="space-y-4">
-      <Alert variant="default" className="border-blue-500 bg-blue-50 dark:bg-blue-950/20">
-        <Dna className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertTitle>Microbiome & Community Data?</AlertTitle>
-        <AlertDescription>
-          <p className="mb-2">This calculator is for <strong>univariate responses</strong> (single measurement per sample).</p>
-          <p className="text-sm">
-            If you have <strong>microbiome data</strong> (thousands of taxa), <strong>metabarcoding</strong>, or <strong>community composition</strong>, 
-            use <strong>PERMANOVA-based power analysis</strong> instead. Effect sizes should be R² (variance explained). 
-            Typical benchmarks: small R²=0.02, medium R²=0.08, large R²=0.15. 
-            See the <strong>About/Help</strong> tab for guidance.
-          </p>
-        </AlertDescription>
-      </Alert>
-      
       <div className="grid md:grid-cols-[1fr_2fr] gap-6">
       <Card className="p-6 bg-secondary/50">
         <h2 className="text-2xl font-bold mb-6 pb-3 border-b-2 border-border">One-Way ANOVA</h2>
