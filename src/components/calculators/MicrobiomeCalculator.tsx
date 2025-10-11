@@ -6,6 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import BetaDiversityVisualizer from '@/components/BetaDiversityVisualizer';
+import EffectSizeConversionGuide from '@/components/EffectSizeConversionGuide';
 import { calculatePERMANOVAPower, calculateTTestPower } from '@/utils/powerCalculations';
 
 const MicrobiomeCalculator = () => {
@@ -406,6 +407,8 @@ const MicrobiomeCalculator = () => {
               </ul>
             </div>
           </Card>
+
+          <EffectSizeConversionGuide rSquared={betaR2} numGroups={betaGroups} />
 
           {/* Visualization */}
           <div className="space-y-4">
