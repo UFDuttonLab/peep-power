@@ -5,8 +5,10 @@ import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
 import { calculateOneWayAnovaPower } from '@/utils/powerCalculations';
-import { Download, Dna } from 'lucide-react';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { Download, Dna, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 const OneWayAnovaCalculator = () => {
   const { toast } = useToast();
@@ -48,6 +50,32 @@ const OneWayAnovaCalculator = () => {
     a.href = url;
     a.download = 'oneway-anova-power-analysis.csv';
     a.click();
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'oneway-anova',
+      parameters: { n, groups, effectSize, alpha }
+    });
+    downloadRFile(rCode, 'oneway_anova_power_analysis.R');
+    toast({
+      title: "R code exported",
+      description: "You can now run this analysis in R/RStudio",
+    });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'oneway-anova',
+      parameters: { n, groups, effectSize, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({
+        title: "Copied to clipboard",
+        description: "R code is ready to paste into RStudio",
+      });
+    }
   };
 
   return (
