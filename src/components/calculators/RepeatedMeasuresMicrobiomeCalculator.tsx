@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dna, TrendingUp, Lightbulb, Download } from 'lucide-react';
+import { Dna, TrendingUp, Lightbulb, Download, Code2, Copy } from 'lucide-react';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
@@ -16,6 +18,7 @@ import {
 } from '@/components/ui/select';
 
 const RepeatedMeasuresMicrobiomeCalculator = () => {
+  const { toast } = useToast();
   const [subjects, setSubjects] = useState(25);
   const [timepoints, setTimepoints] = useState(2);
   const [rSquared, setRSquared] = useState(0.10);
@@ -71,6 +74,32 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
     a.href = url;
     a.download = 'repeated-measures-permanova-power.csv';
     a.click();
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'repeated-permanova',
+      parameters: { subjects, timepoints, rSquared, correlation, alpha }
+    });
+    downloadRFile(rCode, 'repeated_permanova_power_analysis.R');
+    toast({
+      title: "R code exported",
+      description: "You can now run this analysis in R/RStudio",
+    });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'repeated-permanova',
+      parameters: { subjects, timepoints, rSquared, correlation, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({
+        title: "Copied to clipboard",
+        description: "R code is ready to paste into RStudio",
+      });
+    }
   };
 
   const getPowerInterpretation = (power: number) => {
@@ -268,9 +297,20 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
                   </div>
                 </Card>
 
-                <Button onClick={exportResults} variant="outline" className="w-full gap-2">
-                  <Download className="h-4 w-4" /> Export Power Curve Data
-                </Button>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button onClick={exportResults} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    CSV
+                  </Button>
+                  <Button onClick={exportToR} variant="outline" size="sm">
+                    <Code2 className="h-4 w-4 mr-1" />
+                    R Code
+                  </Button>
+                  <Button onClick={copyRCode} variant="outline" size="sm">
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
               </>
             )}
           </div>

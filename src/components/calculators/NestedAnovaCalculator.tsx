@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import { Button } from '@/components/ui/button';
-import { Download, Info } from 'lucide-react';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { Download, Info, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface NestedPowerResult {
   powerBetween: number;
@@ -80,6 +82,7 @@ function calculateNestedAnovaPower(
 }
 
 export const NestedAnovaCalculator = () => {
+  const { toast } = useToast();
   const [nPerCluster, setNPerCluster] = useState(10);
   const [clusters, setClusters] = useState(6);
   const [groups, setGroups] = useState(2);
@@ -102,6 +105,42 @@ export const NestedAnovaCalculator = () => {
     a.href = url;
     a.download = 'nested_anova_power.csv';
     a.click();
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'nested-anova',
+      parameters: { 
+        sitesPerTreatment: clusters, 
+        subplotsPerSite: nPerCluster, 
+        effectSize, 
+        alpha 
+      }
+    });
+    downloadRFile(rCode, 'nested_anova_power_analysis.R');
+    toast({
+      title: "R code exported",
+      description: "You can now run this analysis in R/RStudio",
+    });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'nested-anova',
+      parameters: { 
+        sitesPerTreatment: clusters, 
+        subplotsPerSite: nPerCluster, 
+        effectSize, 
+        alpha 
+      }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({
+        title: "Copied to clipboard",
+        description: "R code is ready to paste into RStudio",
+      });
+    }
   };
 
   if (!result) return null;
@@ -246,10 +285,20 @@ export const NestedAnovaCalculator = () => {
               xLabel="Number of Clusters per Group"
               title="Power Curve"
             />
-            <Button onClick={exportResults} variant="outline" size="sm" className="mt-4 w-full">
-              <Download className="w-4 h-4 mr-2" />
-              Download Results (CSV)
-            </Button>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <Button onClick={exportResults} variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-1" />
+                CSV
+              </Button>
+              <Button onClick={exportToR} variant="outline" size="sm">
+                <Code2 className="w-4 h-4 mr-1" />
+                R Code
+              </Button>
+              <Button onClick={copyRCode} variant="outline" size="sm">
+                <Copy className="w-4 h-4 mr-1" />
+                Copy
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

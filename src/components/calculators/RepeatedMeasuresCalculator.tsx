@@ -5,9 +5,12 @@ import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
 import { calculateRepeatedMeasuresPower } from '@/utils/powerCalculations';
-import { Download } from 'lucide-react';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { Download, Code2, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const RepeatedMeasuresCalculator = () => {
+  const { toast } = useToast();
   const [subjects, setSubjects] = useState(30);
   const [timepoints, setTimepoints] = useState(4);
   const [effectSize, setEffectSize] = useState(0.25);
@@ -49,6 +52,32 @@ const RepeatedMeasuresCalculator = () => {
     a.href = url;
     a.download = 'repeated-measures-power-analysis.csv';
     a.click();
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'repeated-measures',
+      parameters: { subjects, timepoints, effectSize, correlation, alpha }
+    });
+    downloadRFile(rCode, 'repeated_measures_power_analysis.R');
+    toast({
+      title: "R code exported",
+      description: "You can now run this analysis in R/RStudio",
+    });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'repeated-measures',
+      parameters: { subjects, timepoints, effectSize, correlation, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({
+        title: "Copied to clipboard",
+        description: "R code is ready to paste into RStudio",
+      });
+    }
   };
 
   return (
@@ -173,10 +202,20 @@ const RepeatedMeasuresCalculator = () => {
               />
             </Card>
 
-            <Button onClick={exportResults} className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Export Results (CSV)
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button onClick={exportResults} variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button onClick={exportToR} variant="outline">
+                <Code2 className="mr-2 h-4 w-4" />
+                Download R Code
+              </Button>
+              <Button onClick={copyRCode} variant="outline">
+                <Copy className="mr-2 h-4 w-4" />
+                Copy R Code
+              </Button>
+            </div>
 
             <Card className="p-6 bg-secondary/30 border-l-4 border-accent">
               <h3 className="font-bold text-lg mb-3">Study Design Guidance</h3>

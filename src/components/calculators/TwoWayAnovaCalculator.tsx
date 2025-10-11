@@ -5,10 +5,13 @@ import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
 import { calculateTwoWayAnovaPower } from '@/utils/powerCalculations';
-import { Download, Dna } from 'lucide-react';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { Download, Dna, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 const TwoWayAnovaCalculator = () => {
+  const { toast } = useToast();
   const [n, setN] = useState(20);
   const [factorA, setFactorA] = useState(3);
   const [factorB, setFactorB] = useState(2);
@@ -56,6 +59,48 @@ const TwoWayAnovaCalculator = () => {
     a.href = url;
     a.download = 'twoway-anova-power-analysis.csv';
     a.click();
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'twoway-anova',
+      parameters: { 
+        nPerCell: n, 
+        factorALevels: factorA, 
+        factorBLevels: factorB, 
+        effectSizeA: effectA, 
+        effectSizeB: effectB, 
+        effectSizeAB: effectInteraction, 
+        alpha 
+      }
+    });
+    downloadRFile(rCode, 'twoway_anova_power_analysis.R');
+    toast({
+      title: "R code exported",
+      description: "You can now run this analysis in R/RStudio",
+    });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'twoway-anova',
+      parameters: { 
+        nPerCell: n, 
+        factorALevels: factorA, 
+        factorBLevels: factorB, 
+        effectSizeA: effectA, 
+        effectSizeB: effectB, 
+        effectSizeAB: effectInteraction, 
+        alpha 
+      }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({
+        title: "Copied to clipboard",
+        description: "R code is ready to paste into RStudio",
+      });
+    }
   };
 
   return (
@@ -191,10 +236,20 @@ const TwoWayAnovaCalculator = () => {
               />
             </Card>
 
-            <Button onClick={exportResults} className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Export Results (CSV)
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button onClick={exportResults} variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button onClick={exportToR} variant="outline">
+                <Code2 className="mr-2 h-4 w-4" />
+                Download R Code
+              </Button>
+              <Button onClick={copyRCode} variant="outline">
+                <Copy className="mr-2 h-4 w-4" />
+                Copy R Code
+              </Button>
+            </div>
 
             <Card className="p-6 bg-secondary/30 border-l-4 border-accent">
               <h3 className="font-bold text-lg mb-3">Study Design Guidance</h3>

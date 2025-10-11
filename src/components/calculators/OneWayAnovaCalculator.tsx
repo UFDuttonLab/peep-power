@@ -9,6 +9,7 @@ import { Download, Dna } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const OneWayAnovaCalculator = () => {
+  const { toast } = useToast();
   const [n, setN] = useState(30);
   const [groups, setGroups] = useState(3);
   const [effectSize, setEffectSize] = useState(0.25);
@@ -161,10 +162,20 @@ const OneWayAnovaCalculator = () => {
               />
             </Card>
 
-            <Button onClick={exportResults} className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Export Results (CSV)
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button onClick={exportResults} variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button onClick={exportToR} variant="outline">
+                <Code2 className="mr-2 h-4 w-4" />
+                Download R Code
+              </Button>
+              <Button onClick={copyRCode} variant="outline">
+                <Copy className="mr-2 h-4 w-4" />
+                Copy R Code
+              </Button>
+            </div>
 
             <Card className="p-6 bg-secondary/30 border-l-4 border-accent">
               <h3 className="font-bold text-lg mb-3">Study Design Guidance</h3>

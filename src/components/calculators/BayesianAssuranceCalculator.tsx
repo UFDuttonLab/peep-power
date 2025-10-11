@@ -3,12 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Brain, Download } from 'lucide-react';
+import { Info, Brain, Download, Code2, Copy } from 'lucide-react';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { calculateBayesianAssurance, BayesianAssuranceResult } from '@/utils/bayesianPowerCalculations';
 
 export const BayesianAssuranceCalculator = () => {
+  const { toast } = useToast();
   const [effectSizeMean, setEffectSizeMean] = useState(0.5);
   const [effectSizeSD, setEffectSizeSD] = useState(0.2);
   const [targetPower, setTargetPower] = useState(0.80);
@@ -58,6 +61,48 @@ export const BayesianAssuranceCalculator = () => {
     a.href = url;
     a.download = 'bayesian-assurance-analysis.csv';
     a.click();
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'bayesian',
+      parameters: { 
+        effectMean: effectSizeMean, 
+        effectSD: effectSizeSD, 
+        targetPower, 
+        targetAssurance, 
+        testType, 
+        groups, 
+        alpha 
+      }
+    });
+    downloadRFile(rCode, 'bayesian_assurance_analysis.R');
+    toast({
+      title: "R code exported",
+      description: "You can now run this analysis in R/RStudio",
+    });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'bayesian',
+      parameters: { 
+        effectMean: effectSizeMean, 
+        effectSD: effectSizeSD, 
+        targetPower, 
+        targetAssurance, 
+        testType, 
+        groups, 
+        alpha 
+      }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({
+        title: "Copied to clipboard",
+        description: "R code is ready to paste into RStudio",
+      });
+    }
   };
   
   return (
@@ -275,10 +320,20 @@ export const BayesianAssuranceCalculator = () => {
                 </CardContent>
               </Card>
               
-              <Button onClick={exportResults} className="w-full">
-                <Download className="mr-2 h-4 w-4" />
-                Export Results (CSV)
-              </Button>
+              <div className="grid grid-cols-3 gap-2">
+                <Button onClick={exportResults} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </Button>
+                <Button onClick={exportToR} variant="outline" size="sm">
+                  <Code2 className="mr-2 h-4 w-4" />
+                  R Code
+                </Button>
+                <Button onClick={copyRCode} variant="outline" size="sm">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
+              </div>
             </>
           ) : null}
         </div>
