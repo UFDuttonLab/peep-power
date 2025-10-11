@@ -32,35 +32,35 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="ttest" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 w-full bg-secondary rounded-lg p-1 mb-8">
-            <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary rounded-lg p-2 mb-8 justify-center">
+            <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               t-test
             </TabsTrigger>
-            <TabsTrigger value="oneway" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="oneway" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
               One-Way ANOVA
             </TabsTrigger>
-            <TabsTrigger value="twoway" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="twoway" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
               Two-Way ANOVA
             </TabsTrigger>
-            <TabsTrigger value="repeated" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="repeated" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
               Repeated Measures
             </TabsTrigger>
-            <TabsTrigger value="correlation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="correlation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Correlation
             </TabsTrigger>
-            <TabsTrigger value="chisquare" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="chisquare" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Chi-Square
             </TabsTrigger>
-            <TabsTrigger value="effect" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="effect" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Effect Size
             </TabsTrigger>
-            <TabsTrigger value="library" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="library" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[110px]">
               Effect Library
             </TabsTrigger>
-            <TabsTrigger value="replication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="replication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               Replication
             </TabsTrigger>
-            <TabsTrigger value="about" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="about" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               About/Help
             </TabsTrigger>
           </TabsList>

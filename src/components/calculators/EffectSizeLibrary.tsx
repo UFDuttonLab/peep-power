@@ -173,6 +173,256 @@ const effectSizeData: EffectSizeExample[] = [
     reference: 'McKinney (2008) Landscape and Urban Planning',
     doi: '10.1016/j.landurbplan.2007.06.002',
     notes: 'Urban vs. rural comparison'
+  },
+  {
+    studyType: 'Wetland restoration',
+    responseVariable: 'Waterbird abundance',
+    taxonomicGroup: 'Birds',
+    effectSize: 0.58,
+    effectType: "Cohen's d",
+    reference: 'Jones & Schmitz (2009) Ecology',
+    doi: '10.1890/08-0586.1',
+    notes: 'Created vs. natural wetlands'
+  },
+  {
+    studyType: 'Pesticide exposure',
+    responseVariable: 'Macroinvertebrate taxa',
+    taxonomicGroup: 'Aquatic insects',
+    effectSize: 0.97,
+    effectType: "Cohen's d",
+    reference: 'Beketov et al. (2013) PNAS',
+    doi: '10.1073/pnas.1305618110',
+    notes: 'Insecticide contamination in streams'
+  },
+  {
+    studyType: 'Nitrogen enrichment',
+    responseVariable: 'Plant diversity',
+    taxonomicGroup: 'Plants',
+    effectSize: -0.64,
+    effectType: "Cohen's d",
+    reference: 'Midolo et al. (2019) Global Change Biology',
+    doi: '10.1111/gcb.14569',
+    notes: 'Negative effect: N deposition reduces diversity'
+  },
+  {
+    studyType: 'Marine protected areas',
+    responseVariable: 'Fish biomass',
+    taxonomicGroup: 'Fish',
+    effectSize: 0.82,
+    effectType: "Cohen's d",
+    reference: 'Sala & Giakoumi (2018) PNAS',
+    doi: '10.1073/pnas.1705180115',
+    notes: 'MPA vs. unprotected areas'
+  },
+  {
+    studyType: 'Coral bleaching',
+    responseVariable: 'Coral cover',
+    taxonomicGroup: 'Coral',
+    effectSize: 1.15,
+    effectType: "Cohen's d",
+    reference: 'Hughes et al. (2018) Nature',
+    doi: '10.1038/nature25733',
+    notes: 'Heat stress events'
+  },
+  {
+    studyType: 'Predator reintroduction',
+    responseVariable: 'Prey behavior',
+    taxonomicGroup: 'Mammals',
+    effectSize: 0.67,
+    effectType: "Cohen's d",
+    reference: 'Creel & Christianson (2008) Ecology',
+    doi: '10.1890/07-1519.1',
+    notes: 'Wolf effects on elk vigilance'
+  },
+  {
+    studyType: 'Road noise',
+    responseVariable: 'Bird density',
+    taxonomicGroup: 'Birds',
+    effectSize: 0.53,
+    effectType: "Cohen's d",
+    reference: 'Halfwerk & Slabbekoorn (2015) Behavioral Ecology',
+    doi: '10.1093/beheco/aru218',
+    notes: 'Traffic noise pollution'
+  },
+  {
+    studyType: 'Microplastic pollution',
+    responseVariable: 'Zooplankton feeding',
+    taxonomicGroup: 'Zooplankton',
+    effectSize: 0.71,
+    effectType: "Cohen's d",
+    reference: 'Cole et al. (2015) Environ Sci Tech',
+    doi: '10.1021/es504525u',
+    notes: 'Microplastic ingestion effects'
+  },
+  {
+    studyType: 'Wildfire',
+    responseVariable: 'Soil microbial biomass',
+    taxonomicGroup: 'Microbes',
+    effectSize: 0.49,
+    effectType: "Cohen's d",
+    reference: 'Pressler et al. (2019) Global Change Biology',
+    doi: '10.1111/gcb.14575',
+    notes: 'Post-fire soil recovery'
+  },
+  {
+    studyType: 'Ant-plant mutualism',
+    responseVariable: 'Plant herbivory',
+    taxonomicGroup: 'Plants',
+    effectSize: 0.88,
+    effectType: "Cohen's d",
+    reference: 'Rosumek et al. (2009) Ecological Entomology',
+    doi: '10.1111/j.1365-2311.2008.01079.x',
+    notes: 'Ant exclusion experiments'
+  },
+  {
+    studyType: 'Salinity increase',
+    responseVariable: 'Wetland plant cover',
+    taxonomicGroup: 'Plants',
+    effectSize: 0.78,
+    effectType: "Cohen's d",
+    reference: 'Herbert et al. (2015) Limnol Oceanogr',
+    doi: '10.1002/lno.10027',
+    notes: 'Saltwater intrusion effects'
+  },
+  {
+    studyType: 'Dam removal',
+    responseVariable: 'Salmon abundance',
+    taxonomicGroup: 'Fish',
+    effectSize: 0.91,
+    effectType: "Cohen's d",
+    reference: 'Bellmore et al. (2019) Science',
+    doi: '10.1126/sciadv.aax1213',
+    notes: 'Barrier removal for fish passage'
+  },
+  {
+    studyType: 'Soil warming',
+    responseVariable: 'Decomposition rate',
+    taxonomicGroup: 'Ecosystem function',
+    effectSize: 0.44,
+    effectType: "Cohen's d",
+    reference: 'Bradford et al. (2016) Nature Climate Change',
+    doi: '10.1038/nclimate2930',
+    notes: 'Experimental warming plots'
+  },
+  {
+    studyType: 'Artificial reef',
+    responseVariable: 'Fish recruitment',
+    taxonomicGroup: 'Fish',
+    effectSize: 0.63,
+    effectType: "Cohen's d",
+    reference: 'Becker et al. (2018) Ecological Applications',
+    doi: '10.1002/eap.1651',
+    notes: 'Reef structure deployment'
+  },
+  {
+    studyType: 'Tree diversity',
+    responseVariable: 'Insect diversity',
+    taxonomicGroup: 'Insects',
+    effectSize: 0.41,
+    effectType: "Cohen's d",
+    reference: 'Castagneyrol et al. (2014) Ecology Letters',
+    doi: '10.1111/ele.12291',
+    notes: 'Forest biodiversity experiments'
+  },
+  {
+    studyType: 'Lead contamination',
+    responseVariable: 'Bird reproduction',
+    taxonomicGroup: 'Birds',
+    effectSize: 0.89,
+    effectType: "Cohen's d",
+    reference: 'Eeva et al. (2014) Environmental Pollution',
+    doi: '10.1016/j.envpol.2013.12.014',
+    notes: 'Heavy metal pollution near smelters'
+  },
+  {
+    studyType: 'Livestock grazing',
+    responseVariable: 'Grasshopper abundance',
+    taxonomicGroup: 'Insects',
+    effectSize: 0.56,
+    effectType: "Cohen's d",
+    reference: 'Branson et al. (2006) Rangeland Ecology',
+    doi: '10.2111/05-099R1.1',
+    notes: 'Grazing intensity effects'
+  },
+  {
+    studyType: 'Coastal development',
+    responseVariable: 'Shorebird nesting',
+    taxonomicGroup: 'Birds',
+    effectSize: 0.94,
+    effectType: "Cohen's d",
+    reference: 'Defeo et al. (2009) Estuarine Coastal Shelf Sci',
+    doi: '10.1016/j.ecss.2008.09.022',
+    notes: 'Beach urbanization impacts'
+  },
+  {
+    studyType: 'Fungicide application',
+    responseVariable: 'Amphibian survival',
+    taxonomicGroup: 'Amphibians',
+    effectSize: 0.73,
+    effectType: "Cohen's d",
+    reference: 'McMahon et al. (2012) Ecology Letters',
+    doi: '10.1111/j.1461-0248.2012.01790.x',
+    notes: 'Agricultural fungicide exposure'
+  },
+  {
+    studyType: 'Beaver reintroduction',
+    responseVariable: 'Wetland area',
+    taxonomicGroup: 'Ecosystem function',
+    effectSize: 0.52,
+    effectType: "Cohen's f",
+    reference: 'Law et al. (2017) Freshwater Biology',
+    doi: '10.1111/fwb.12721',
+    notes: 'Ecosystem engineering effects'
+  },
+  {
+    studyType: 'UV radiation increase',
+    responseVariable: 'Phytoplankton growth',
+    taxonomicGroup: 'Phytoplankton',
+    effectSize: 0.61,
+    effectType: "Cohen's d",
+    reference: 'Häder et al. (2015) Photochem Photobiol Sci',
+    doi: '10.1039/c4pp90035a',
+    notes: 'Ozone depletion effects'
+  },
+  {
+    studyType: 'Biological control',
+    responseVariable: 'Pest density',
+    taxonomicGroup: 'Insects',
+    effectSize: 0.84,
+    effectType: "Cohen's d",
+    reference: 'Jonsson et al. (2008) Ecology Letters',
+    doi: '10.1111/j.1461-0248.2007.01145.x',
+    notes: 'Natural enemy release'
+  },
+  {
+    studyType: 'Mangrove restoration',
+    responseVariable: 'Crab density',
+    taxonomicGroup: 'Crustaceans',
+    effectSize: 0.69,
+    effectType: "Cohen's d",
+    reference: 'Lee et al. (2014) Restoration Ecology',
+    doi: '10.1111/rec.12052',
+    notes: 'Replanted mangrove recovery'
+  },
+  {
+    studyType: 'Invasive plant removal',
+    responseVariable: 'Native plant cover',
+    taxonomicGroup: 'Plants',
+    effectSize: 0.57,
+    effectType: "Cohen's d",
+    reference: 'Reid et al. (2009) Restoration Ecology',
+    doi: '10.1111/j.1526-100X.2008.00454.x',
+    notes: 'Invasive species management'
+  },
+  {
+    studyType: 'Soil compaction',
+    responseVariable: 'Root biomass',
+    taxonomicGroup: 'Plants',
+    effectSize: 0.76,
+    effectType: "Cohen's d",
+    reference: 'Nawaz et al. (2013) Soil & Tillage Research',
+    doi: '10.1016/j.still.2012.07.002',
+    notes: 'Mechanical soil disturbance'
   }
 ];
 

@@ -53,33 +53,167 @@ const AboutHelp = () => {
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">Available Tests</h3>
+            <h3 className="text-xl font-bold mb-3">Which Test Should I Use?</h3>
+            <p className="text-muted-foreground mb-4">
+              Choosing the right statistical test is crucial for valid results. Use this guide to 
+              select the appropriate analysis based on your research question and data structure.
+            </p>
+
+            <Card className="p-4 bg-primary/10 border-l-4 border-primary mb-4">
+              <h4 className="font-semibold mb-3">Decision Framework: Ask These Questions</h4>
+              <ol className="space-y-2 text-sm">
+                <li><strong>1. What type of data do you have?</strong>
+                  <ul className="ml-4 mt-1 space-y-1 text-muted-foreground">
+                    <li>• Continuous (measurements like weight, height, temperature) → t-test, ANOVA, correlation</li>
+                    <li>• Categorical (counts or frequencies like alive/dead, species A/B/C) → Chi-square</li>
+                  </ul>
+                </li>
+                <li><strong>2. How many groups or treatments?</strong>
+                  <ul className="ml-4 mt-1 space-y-1 text-muted-foreground">
+                    <li>• Two groups (control vs. treatment) → t-test</li>
+                    <li>• Three or more groups (multiple treatments) → One-Way ANOVA</li>
+                    <li>• Testing a relationship (no groups) → Correlation</li>
+                  </ul>
+                </li>
+                <li><strong>3. How many factors (independent variables)?</strong>
+                  <ul className="ml-4 mt-1 space-y-1 text-muted-foreground">
+                    <li>• One factor → t-test or One-Way ANOVA</li>
+                    <li>• Two factors (e.g., light AND nutrients) → Two-Way ANOVA</li>
+                  </ul>
+                </li>
+                <li><strong>4. Are measurements independent or repeated?</strong>
+                  <ul className="ml-4 mt-1 space-y-1 text-muted-foreground">
+                    <li>• Independent (different individuals/plots) → t-test or ANOVA</li>
+                    <li>• Repeated on same units over time → Repeated Measures ANOVA</li>
+                  </ul>
+                </li>
+              </ol>
+            </Card>
+
+            <h4 className="font-semibold mb-3">Common Ecological Scenarios</h4>
+            <div className="space-y-3 mb-4">
+              <Card className="p-3 bg-secondary/30">
+                <p className="text-sm font-semibold mb-1">📊 "I want to compare pollinator visits between restored vs. unrestored prairie"</p>
+                <p className="text-sm text-muted-foreground">→ <strong>t-test</strong> (2 groups, continuous data, independent samples)</p>
+              </Card>
+              <Card className="p-3 bg-secondary/30">
+                <p className="text-sm font-semibold mb-1">📊 "Does water temperature predict coral growth rate?"</p>
+                <p className="text-sm text-muted-foreground">→ <strong>Correlation</strong> (testing linear relationship between two continuous variables)</p>
+              </Card>
+              <Card className="p-3 bg-secondary/30">
+                <p className="text-sm font-semibold mb-1">📊 "Compare plant height across 5 fertilizer treatments"</p>
+                <p className="text-sm text-muted-foreground">→ <strong>One-Way ANOVA</strong> (3+ groups, one factor, continuous data)</p>
+              </Card>
+              <Card className="p-3 bg-secondary/30">
+                <p className="text-sm font-semibold mb-1">📊 "Test effects of light (low/high) AND nutrients (low/high) on algal growth"</p>
+                <p className="text-sm text-muted-foreground">→ <strong>Two-Way ANOVA</strong> (2 factors, tests main effects + interaction)</p>
+              </Card>
+              <Card className="p-3 bg-secondary/30">
+                <p className="text-sm font-semibold mb-1">📊 "Track frog body mass monthly over 6 months"</p>
+                <p className="text-sm text-muted-foreground">→ <strong>Repeated Measures ANOVA</strong> (same individuals measured multiple times)</p>
+              </Card>
+              <Card className="p-3 bg-secondary/30">
+                <p className="text-sm font-semibold mb-1">📊 "Does nest success (yes/no) differ between 3 habitat types?"</p>
+                <p className="text-sm text-muted-foreground">→ <strong>Chi-Square</strong> (categorical outcome, frequency data)</p>
+              </Card>
+            </div>
+
+            <h4 className="font-semibold mb-3">Available Tests in This Toolkit</h4>
             <div className="grid md:grid-cols-2 gap-4">
               <Card className="p-4">
                 <h4 className="font-semibold mb-2">t-test</h4>
-                <p className="text-sm text-muted-foreground">Compare means of two groups</p>
+                <p className="text-sm text-muted-foreground mb-2">Compare means of two groups</p>
+                <p className="text-xs text-muted-foreground"><strong>When:</strong> 2 independent groups, continuous data</p>
+                <p className="text-xs text-muted-foreground"><strong>Example:</strong> Invaded vs. native sites</p>
               </Card>
               <Card className="p-4">
                 <h4 className="font-semibold mb-2">One-Way ANOVA</h4>
-                <p className="text-sm text-muted-foreground">Compare means of 3+ groups</p>
+                <p className="text-sm text-muted-foreground mb-2">Compare means of 3+ groups</p>
+                <p className="text-xs text-muted-foreground"><strong>When:</strong> 3+ groups, one factor</p>
+                <p className="text-xs text-muted-foreground"><strong>Example:</strong> 4 restoration methods</p>
               </Card>
               <Card className="p-4">
                 <h4 className="font-semibold mb-2">Two-Way ANOVA</h4>
-                <p className="text-sm text-muted-foreground">Analyze two factors and their interaction</p>
+                <p className="text-sm text-muted-foreground mb-2">Analyze two factors and their interaction</p>
+                <p className="text-xs text-muted-foreground"><strong>When:</strong> 2 independent factors</p>
+                <p className="text-xs text-muted-foreground"><strong>Example:</strong> Light × Nutrients</p>
               </Card>
               <Card className="p-4">
                 <h4 className="font-semibold mb-2">Repeated Measures ANOVA</h4>
-                <p className="text-sm text-muted-foreground">Analyze changes over time</p>
+                <p className="text-sm text-muted-foreground mb-2">Analyze changes over time</p>
+                <p className="text-xs text-muted-foreground"><strong>When:</strong> Same units measured multiple times</p>
+                <p className="text-xs text-muted-foreground"><strong>Example:</strong> Monthly growth measurements</p>
               </Card>
               <Card className="p-4">
                 <h4 className="font-semibold mb-2">Correlation</h4>
-                <p className="text-sm text-muted-foreground">Test linear relationships</p>
+                <p className="text-sm text-muted-foreground mb-2">Test linear relationships</p>
+                <p className="text-xs text-muted-foreground"><strong>When:</strong> Both variables continuous</p>
+                <p className="text-xs text-muted-foreground"><strong>Example:</strong> Temperature vs. growth rate</p>
               </Card>
               <Card className="p-4">
                 <h4 className="font-semibold mb-2">Chi-Square</h4>
-                <p className="text-sm text-muted-foreground">Test categorical associations</p>
+                <p className="text-sm text-muted-foreground mb-2">Test categorical associations</p>
+                <p className="text-xs text-muted-foreground"><strong>When:</strong> Frequency/count data</p>
+                <p className="text-xs text-muted-foreground"><strong>Example:</strong> Survival (yes/no) by habitat</p>
               </Card>
             </div>
+
+            <Card className="p-4 bg-destructive/10 border-l-4 border-destructive mt-4">
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Common Mistakes to Avoid
+              </h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>❌ <strong>Using multiple t-tests for 3+ groups:</strong> This inflates Type I error. Use One-Way ANOVA instead.</li>
+                <li>❌ <strong>Using regular ANOVA for repeated measures:</strong> Violates independence assumption. Use Repeated Measures ANOVA.</li>
+                <li>❌ <strong>Using t-test for proportions/percentages:</strong> These are not normally distributed. Use Chi-Square or logistic regression.</li>
+                <li>❌ <strong>Ignoring interactions in Two-Way ANOVA:</strong> If factors interact, you can't interpret main effects alone.</li>
+                <li>❌ <strong>Using correlation to test group differences:</strong> Correlation tests relationships, not differences between groups.</li>
+              </ul>
+            </Card>
+
+            <Card className="p-4 bg-accent/20 mt-4">
+              <h4 className="font-semibold mb-2">Key Assumptions to Check</h4>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-semibold mb-1">t-test & ANOVA:</p>
+                  <ul className="text-muted-foreground space-y-1">
+                    <li>✓ Normality (or large sample n≥30)</li>
+                    <li>✓ Homogeneity of variance</li>
+                    <li>✓ Independence of observations</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">Correlation:</p>
+                  <ul className="text-muted-foreground space-y-1">
+                    <li>✓ Linear relationship</li>
+                    <li>✓ Bivariate normality</li>
+                    <li>✓ No extreme outliers</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">Chi-Square:</p>
+                  <ul className="text-muted-foreground space-y-1">
+                    <li>✓ Expected frequencies ≥5</li>
+                    <li>✓ Independence of observations</li>
+                    <li>✓ Categorical data</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">Repeated Measures:</p>
+                  <ul className="text-muted-foreground space-y-1">
+                    <li>✓ Sphericity (equal variances of differences)</li>
+                    <li>✓ Normality within subjects</li>
+                    <li>✓ No missing time points</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+
+            <p className="text-sm text-muted-foreground mt-4">
+              <strong>Still unsure?</strong> Consult a statistician or consider using non-parametric alternatives 
+              (e.g., Mann-Whitney U instead of t-test, Kruskal-Wallis instead of ANOVA) if assumptions are violated.
+            </p>
           </section>
 
           <section>
