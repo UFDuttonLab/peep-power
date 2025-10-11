@@ -94,6 +94,23 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
   if (!designType) {
     return (
       <div className="space-y-6">
+        {/* Progress breadcrumb */}
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+              1
+            </div>
+            <span className="font-medium text-foreground">Study Design</span>
+          </div>
+          <span className="text-muted-foreground">→</span>
+          <div className="flex items-center gap-2 opacity-50">
+            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center text-xs">
+              2
+            </div>
+            <span>Research Question</span>
+          </div>
+        </div>
+
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold">Study Design</h2>
           <p className="text-muted-foreground">Are your samples independent or repeated?</p>
@@ -125,6 +142,23 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
   if (designType === 'repeated') {
     return (
       <div className="space-y-6">
+        {/* Progress breadcrumb */}
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 opacity-50">
+            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs">
+              ✓
+            </div>
+            <span>Study Design</span>
+          </div>
+          <span className="text-muted-foreground">→</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+              2
+            </div>
+            <span className="font-medium text-foreground">Research Question</span>
+          </div>
+        </div>
+
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold">What is your research question?</h2>
           <p className="text-muted-foreground">Choose the analysis for repeated measures</p>
@@ -157,6 +191,23 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
 
   return (
     <div className="space-y-6">
+      {/* Progress breadcrumb */}
+      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 opacity-50">
+          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs">
+            ✓
+          </div>
+          <span>Study Design</span>
+        </div>
+        <span className="text-muted-foreground">→</span>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+            2
+          </div>
+          <span className="font-medium text-foreground">Research Question</span>
+        </div>
+      </div>
+
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">What is your research question?</h2>
         <p className="text-muted-foreground">Choose the analysis that matches your goal</p>
