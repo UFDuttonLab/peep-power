@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cohensD, cohensF, cohensW } from '@/utils/powerCalculations';
-import { Calculator } from 'lucide-react';
+import { Calculator, Lightbulb, BookOpen } from 'lucide-react';
+import EffectSizeGuidance from '../EffectSizeGuidance';
 
 const EffectSizeHelper = () => {
   // Cohen's d calculator
@@ -57,6 +58,20 @@ const EffectSizeHelper = () => {
         <p className="mb-6 text-muted-foreground">
           Calculate standardized effect sizes from your pilot data or expected values.
         </p>
+
+        <Card className="p-4 bg-accent/20 mb-6 border-l-4 border-primary">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold mb-1">Pilot Study Guide</p>
+              <p className="text-muted-foreground">
+                Even small pilot studies (5-10 per group) can provide valuable effect size estimates. 
+                Enter your pilot data below to calculate effect size, then use it in the power calculators 
+                to determine your final sample size. Visit the <strong>Effect Library</strong> tab for published examples.
+              </p>
+            </div>
+          </div>
+        </Card>
 
         <Tabs defaultValue="cohens-d" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -120,6 +135,10 @@ const EffectSizeHelper = () => {
                   </p>
                 </Card>
               )}
+
+              <div className="mt-4">
+                <EffectSizeGuidance effectType="cohens-d" />
+              </div>
             </Card>
           </TabsContent>
 

@@ -4,8 +4,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
+import EffectSizeGuidance from '../EffectSizeGuidance';
 import { calculateTTestPower } from '@/utils/powerCalculations';
-import { Download } from 'lucide-react';
+import { Download, AlertTriangle } from 'lucide-react';
 
 const TTestCalculator = () => {
   const [n, setN] = useState(50);
@@ -60,7 +61,7 @@ const TTestCalculator = () => {
             step={1}
             onChange={setN}
             decimals={0}
-            tooltip="Number of independent observations in each of the two groups."
+            tooltip="Number of INDEPENDENT experimental units (e.g., separate plots, tanks, or individuals) in each group. NOT the total number of measurements. If you have subsamples, average them within each unit first."
           />
 
           <div className="space-y-2">
@@ -85,6 +86,7 @@ const TTestCalculator = () => {
                 <SelectItem value="0.8">Large (d=0.8)</SelectItem>
               </SelectContent>
             </Select>
+            <EffectSizeGuidance effectType="cohens-d" />
           </div>
 
           <div className="space-y-2">
@@ -151,12 +153,31 @@ const TTestCalculator = () => {
 
             <Card className="p-6 bg-secondary/30 border-l-4 border-accent">
               <h3 className="font-bold text-lg mb-3">Study Design Guidance</h3>
-              <ul className="space-y-2 list-disc list-inside">
+              <ul className="space-y-2 list-disc list-inside text-sm">
                 <li><strong>Use Case:</strong> Ideal for comparing the means of two groups, such as treatment vs. control.</li>
                 <li><strong>Assumptions:</strong> Assumes data are normally distributed and have equal variances.</li>
-                <li><strong>Replication:</strong> Ensure samples are true biological replicates and independent.</li>
                 <li><strong>Balanced Design:</strong> Equal sample sizes provide the most statistical power.</li>
               </ul>
+            </Card>
+
+            <Card className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-yellow-500">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-semibold mb-1">⚠️ Critical: Avoid Pseudoreplication</p>
+                  <p className="text-muted-foreground mb-2">
+                    Your sample size (n) MUST be the number of independent experimental units, not total measurements.
+                  </p>
+                  <p className="font-medium">Example:</p>
+                  <p className="text-muted-foreground">
+                    ✗ "5 tanks with 10 fish each = n=50"<br/>
+                    ✓ "5 tanks (average 10 fish per tank) = n=5"
+                  </p>
+                  <p className="text-xs mt-2">
+                    See the <strong>Replication</strong> tab for more guidance.
+                  </p>
+                </div>
+              </div>
             </Card>
           </>
         )}

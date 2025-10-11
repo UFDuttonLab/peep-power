@@ -7,6 +7,8 @@ import RepeatedMeasuresCalculator from '@/components/calculators/RepeatedMeasure
 import CorrelationCalculator from '@/components/calculators/CorrelationCalculator';
 import ChiSquareCalculator from '@/components/calculators/ChiSquareCalculator';
 import EffectSizeHelper from '@/components/calculators/EffectSizeHelper';
+import EffectSizeLibrary from '@/components/calculators/EffectSizeLibrary';
+import ReplicationChecker from '@/components/calculators/ReplicationChecker';
 import AboutHelp from '@/components/calculators/AboutHelp';
 import { Leaf } from 'lucide-react';
 
@@ -30,7 +32,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="ttest" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 w-full bg-secondary rounded-lg p-1 mb-8">
+          <TabsList className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 w-full bg-secondary rounded-lg p-1 mb-8">
             <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               t-test
             </TabsTrigger>
@@ -51,6 +53,12 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="effect" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Effect Size
+            </TabsTrigger>
+            <TabsTrigger value="library" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Effect Library
+            </TabsTrigger>
+            <TabsTrigger value="replication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Replication
             </TabsTrigger>
             <TabsTrigger value="about" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               About/Help
@@ -83,6 +91,14 @@ const Index = () => {
 
           <TabsContent value="effect" className="mt-0">
             <EffectSizeHelper />
+          </TabsContent>
+
+          <TabsContent value="library" className="mt-0">
+            <EffectSizeLibrary />
+          </TabsContent>
+
+          <TabsContent value="replication" className="mt-0">
+            <ReplicationChecker />
           </TabsContent>
 
           <TabsContent value="about" className="mt-0">
