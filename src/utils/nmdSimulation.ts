@@ -156,11 +156,15 @@ export const calculateConfidenceEllipse = (
   const fCritical = getFCritical(n);
   const scaleFactor = Math.sqrt((n - 1) * p * fCritical / (n - p));
   
+  // Add visual amplification for small samples to make uncertainty MORE obvious
+  const visualAmplification = n < 10 ? 1.3 : n < 20 ? 1.15 : 1.0;
+  const adjustedScale = scaleFactor * visualAmplification;
+  
   return {
     cx: meanX,
     cy: meanY,
-    rx: Math.sqrt(lambda1 * scaleFactor),
-    ry: Math.sqrt(lambda2 * scaleFactor),
+    rx: Math.sqrt(lambda1 * adjustedScale),
+    ry: Math.sqrt(lambda2 * adjustedScale),
     rotation
   };
 };

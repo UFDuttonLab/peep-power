@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { generateNMDSData, NMDSPoint, EllipseParams } from '@/utils/nmdSimulation';
+import { calculatePERMANOVAPower } from '@/utils/powerCalculations';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Lightbulb } from 'lucide-react';
 
 interface Props {
   nPerGroup: number;
@@ -13,6 +16,7 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
     ellipses: [] 
   });
   const [simulationSeed, setSimulationSeed] = useState(() => Math.floor(Math.random() * 1000000));
+  const [calculatedPower, setCalculatedPower] = useState<number | null>(null);
 
   // Regenerate seed only when number of groups changes
   useEffect(() => {
@@ -24,6 +28,12 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
     const newData = generateNMDSData(nPerGroup, groups, rSquared, simulationSeed);
     setData(newData);
   }, [nPerGroup, groups, rSquared, simulationSeed]);
+
+  // Calculate statistical power
+  useEffect(() => {
+    const result = calculatePERMANOVAPower(nPerGroup, groups, rSquared, 0.05);
+    setCalculatedPower(result.power);
+  }, [nPerGroup, groups, rSquared]);
 
   const padding = 60;
   const width = 600;
@@ -89,6 +99,24 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
           </g>
         ))}
         
+        {/* Uncertainty overlay for small samples */}
+        {nPerGroup < 20 && data.ellipses.map((ellipse, i) => (
+          <ellipse
+            key={`uncertainty-${i}`}
+            cx={toSVGX(ellipse.cx)}
+            cy={toSVGY(ellipse.cy)}
+            rx={scaleX(ellipse.rx * 1.5)}
+            ry={scaleY(ellipse.ry * 1.5)}
+            transform={`rotate(${-ellipse.rotation} ${toSVGX(ellipse.cx)} ${toSVGY(ellipse.cy)})`}
+            fill={ellipse.color}
+            fillOpacity="0.05"
+            stroke={ellipse.color}
+            strokeWidth="1"
+            strokeDasharray="1,3"
+            strokeOpacity="0.3"
+          />
+        ))}
+        
         {/* Confidence ellipses */}
         {data.ellipses.map((ellipse, i) => (
           <ellipse
@@ -145,11 +173,38 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
         ))}
       </svg>
       
-      <div className="mt-3 text-xs text-muted-foreground text-center">
-        Dashed ellipses represent 95% confidence intervals around group centroids. 
-        {rSquared < 0.05 ? ' Groups show substantial overlap - low effect size.' : 
-         rSquared < 0.12 ? ' Moderate separation between groups.' : 
-         ' Clear separation - high effect size.'}
+      <div className="mt-3 space-y-2">
+        <div className="text-xs text-muted-foreground">
+          <p className="mb-1">
+            Dashed ellipses represent 95% confidence intervals. 
+            R² = {(rSquared * 100).toFixed(1)}% variance explained 
+            ({rSquared < 0.05 ? 'small' : rSquared < 0.12 ? 'moderate' : 'large'} effect size).
+          </p>
+          {calculatedPower !== null && (
+            <p className="text-xs font-semibold mt-1">
+              Statistical power with n={nPerGroup}/group: {(calculatedPower * 100).toFixed(0)}%
+              {calculatedPower < 0.6 && ' ⚠️ Low power - results may be unreliable'}
+              {calculatedPower >= 0.6 && calculatedPower < 0.8 && ' ⚠️ Moderate power'}
+              {calculatedPower >= 0.8 && ' ✓ Adequate power'}
+            </p>
+          )}
+        </div>
+        
+        {calculatedPower !== null && calculatedPower < 0.6 && (
+          <Alert className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-400">
+            <Lightbulb className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              <strong>Why does separation look clear but power is low?</strong>
+              <p className="mt-1">
+                This plot shows ONE simulated dataset. With small samples (n={nPerGroup}/group), 
+                you might get lucky and see apparent separation in your specific sample. 
+                However, with only {(calculatedPower * 100).toFixed(0)}% power, 
+                you would NOT reliably detect this effect if you repeated the study. 
+                The wide confidence ellipses show this uncertainty.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
     </div>
   );
