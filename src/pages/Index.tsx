@@ -32,7 +32,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="ttest" className="w-full">
-          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary rounded-lg p-2 mb-8 justify-center">
+          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 min-h-[60px] justify-start items-start">
             <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               t-test
             </TabsTrigger>
@@ -112,9 +112,6 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6 text-center">
           <p className="text-sm">
             © {new Date().getFullYear()} UF Dutton Lab | Statistical Power Analysis for Ecological Research
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Built for researchers, by researchers
           </p>
         </div>
       </footer>

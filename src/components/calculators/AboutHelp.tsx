@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card';
-import { BookOpen, GraduationCap, FlaskConical, Github, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { BookOpen, GraduationCap, FlaskConical, Github, AlertTriangle, CheckCircle2, Dna } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const AboutHelp = () => {
   return (
@@ -348,6 +349,166 @@ const AboutHelp = () => {
               <strong>Further Reading:</strong> Hurlbert, S.H. (1984). Pseudoreplication and the design 
               of ecological field experiments. <em>Ecological Monographs</em>, 54(2): 187-211.
             </p>
+          </section>
+
+          {/* Power Analysis for Microbiome & Community Data */}
+          <section className="pt-6 border-t-2 border-primary/20">
+            <Collapsible>
+              <CollapsibleTrigger className="flex items-center gap-3 w-full text-left hover:text-primary transition-colors">
+                <Dna className="h-6 w-6 text-blue-600" />
+                <h3 className="text-xl font-bold">Power Analysis for Microbiome & Community Data</h3>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-4 space-y-4">
+                <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500">
+                  <p className="font-semibold mb-2">⚠️ Standard power calculators on this site are NOT appropriate for microbiome data</p>
+                  <p className="text-sm text-muted-foreground">
+                    If you have thousands of taxa per sample (16S/ITS sequencing, metabarcoding, shotgun metagenomics), 
+                    you need specialized multivariate power analysis approaches.
+                  </p>
+                </Card>
+
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Why Standard Power Analysis Doesn't Work for Microbiome Data</h4>
+                  <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
+                    <li><strong>Compositional constraints:</strong> Relative abundance data sum to 1 (or 100%), creating dependencies between taxa</li>
+                    <li><strong>High dimensionality:</strong> Thousands of correlated variables (taxa) analyzed simultaneously</li>
+                    <li><strong>Sparsity & zero-inflation:</strong> Most taxa are rare or absent in most samples</li>
+                    <li><strong>Multiple testing burden:</strong> Testing thousands of taxa inflates Type I error rates dramatically</li>
+                    <li><strong>Non-independence:</strong> Taxonomic relationships and ecological interactions create complex correlation structures</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Appropriate Effect Sizes for Microbiome Studies</h4>
+                  <div className="space-y-3">
+                    <Card className="p-3 bg-secondary/30">
+                      <p className="font-semibold">1. PERMANOVA R² (Recommended for Beta Diversity)</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        <strong>What it measures:</strong> Proportion of variance in community composition explained by treatment
+                      </p>
+                      <ul className="text-sm mt-2 ml-4 space-y-1 text-muted-foreground">
+                        <li>• <strong>Small effect:</strong> R² = 0.02 (2% variance explained)</li>
+                        <li>• <strong>Medium effect:</strong> R² = 0.08 (8% variance explained)</li>
+                        <li>• <strong>Large effect:</strong> R² = 0.15-0.25 (15-25% variance explained)</li>
+                      </ul>
+                      <p className="text-xs mt-2 text-muted-foreground">
+                        Note: Microbiome effect sizes are often smaller than traditional ecological studies due to high natural variability
+                      </p>
+                    </Card>
+
+                    <Card className="p-3 bg-secondary/30">
+                      <p className="font-semibold">2. Alpha Diversity (Shannon, Simpson, Richness)</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        For comparing diversity metrics between groups, you CAN use Cohen's d from standard calculators.
+                        However, ensure you account for sequencing depth normalization (rarefaction or other methods).
+                      </p>
+                    </Card>
+
+                    <Card className="p-3 bg-secondary/30">
+                      <p className="font-semibold">3. Distance Metrics (Bray-Curtis, UniFrac)</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Report the average within-group vs. between-group distances. Power depends on the ratio and dispersion.
+                      </p>
+                    </Card>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Recommended Approaches & Tools</h4>
+                  <div className="space-y-3">
+                    <Card className="p-3 border-l-4 border-accent">
+                      <p className="font-semibold">R Packages:</p>
+                      <ul className="text-sm space-y-1 mt-1 text-muted-foreground">
+                        <li>• <code className="bg-muted px-1 rounded">micropower</code> - PERMANOVA-based power analysis for microbiome studies</li>
+                        <li>• <code className="bg-muted px-1 rounded">pwr2ppl</code> - Power analysis for complex designs including PERMANOVA</li>
+                        <li>• <code className="bg-muted px-1 rounded">vegan::adonis2()</code> - PERMANOVA to calculate R² from pilot data</li>
+                      </ul>
+                    </Card>
+
+                    <Card className="p-3 border-l-4 border-accent">
+                      <p className="font-semibold">Pilot Study Strategy:</p>
+                      <ul className="text-sm space-y-1 mt-1 text-muted-foreground">
+                        <li>• Collect <strong>minimum 5-10 samples per group</strong> in a pilot study</li>
+                        <li>• Run PERMANOVA to estimate R² effect size</li>
+                        <li>• Use R² to calculate required sample size for your full study</li>
+                        <li>• Account for sequencing depth variation (aim for 10,000+ reads per sample minimum)</li>
+                      </ul>
+                    </Card>
+
+                    <Card className="p-3 border-l-4 border-accent">
+                      <p className="font-semibold">Literature-Based Estimates:</p>
+                      <p className="text-sm mt-1 text-muted-foreground">
+                        If pilot data isn't available, consult published meta-analyses in your field. The Effect Size Library 
+                        tab includes several microbiome studies with R² values you can reference.
+                      </p>
+                    </Card>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Example Microbiome Effect Sizes from Literature</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b-2 border-border">
+                          <th className="text-left p-2">Study Type</th>
+                          <th className="text-left p-2">Comparison</th>
+                          <th className="text-left p-2">R² (PERMANOVA)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Human Gut</td>
+                          <td className="p-2">Healthy vs. IBD</td>
+                          <td className="p-2">0.08-0.25</td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Human Gut</td>
+                          <td className="p-2">Diet intervention</td>
+                          <td className="p-2">0.05-0.15</td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Soil</td>
+                          <td className="p-2">Land use (forest vs. agriculture)</td>
+                          <td className="p-2">0.15-0.30</td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Soil</td>
+                          <td className="p-2">Fertilizer treatment</td>
+                          <td className="p-2">0.08-0.18</td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Marine</td>
+                          <td className="p-2">Body site (human skin vs. mouth)</td>
+                          <td className="p-2">0.30-0.50</td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Rhizosphere</td>
+                          <td className="p-2">Plant species</td>
+                          <td className="p-2">0.10-0.22</td>
+                        </tr>
+                        <tr className="border-b border-border">
+                          <td className="p-2">Coral</td>
+                          <td className="p-2">Bleached vs. healthy</td>
+                          <td className="p-2">0.12-0.28</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <Card className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-yellow-500">
+                  <p className="font-semibold mb-2">⚠️ Key Considerations:</p>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    <li>• Microbiome effect sizes are typically SMALLER than traditional ecology due to high inter-individual variation</li>
+                    <li>• R² values above 0.20 are considered large in microbiome studies</li>
+                    <li>• Sample size requirements are often higher (30-50+ per group for R²=0.08)</li>
+                    <li>• Sequencing depth, rarefaction method, and distance metric choice all impact statistical power</li>
+                    <li>• Consider blocking by batch/plate if using multiple sequencing runs</li>
+                  </ul>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
           </section>
 
           <section>

@@ -423,6 +423,87 @@ const effectSizeData: EffectSizeExample[] = [
     reference: 'Nawaz et al. (2013) Soil & Tillage Research',
     doi: '10.1016/j.still.2012.07.002',
     notes: 'Mechanical soil disturbance'
+  },
+  // Microbiome studies (PERMANOVA R² effect sizes)
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Gut bacteria (16S)',
+    effectSize: 0.18,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Gevers et al. (2014) Cell Host Microbe',
+    doi: '10.1016/j.chom.2014.02.005',
+    notes: 'Healthy vs. IBD patients - Use multivariate power analysis (R: micropower package)'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Soil bacteria (16S)',
+    effectSize: 0.24,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Lauber et al. (2013) ISME J',
+    doi: '10.1038/ismej.2013.119',
+    notes: 'Forest vs. agricultural land - Use multivariate power analysis'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Gut bacteria (16S)',
+    effectSize: 0.12,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Wu et al. (2011) Science',
+    doi: '10.1126/science.1208344',
+    notes: 'Omnivore vs. vegan diet - Use multivariate power analysis'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Rhizosphere bacteria (16S)',
+    effectSize: 0.16,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Bulgarelli et al. (2012) Nature',
+    doi: '10.1038/nature11336',
+    notes: 'Plant species effect - Use multivariate power analysis'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Coral symbiont bacteria (16S)',
+    effectSize: 0.19,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Bourne et al. (2016) Nat Rev Microbiol',
+    doi: '10.1038/nrmicro.2016.58',
+    notes: 'Bleached vs. healthy corals - Use multivariate power analysis'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Gut bacteria (16S)',
+    effectSize: 0.28,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Dethlefsen et al. (2008) PLoS Biol',
+    doi: '10.1371/journal.pbio.0060280',
+    notes: 'Pre vs. post-antibiotic treatment - Use multivariate power analysis'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Marine sediment bacteria (16S)',
+    effectSize: 0.21,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Zinger et al. (2011) PLoS ONE',
+    doi: '10.1371/journal.pone.0024570',
+    notes: 'Depth gradient - Use multivariate power analysis'
+  },
+  {
+    studyType: 'Microbiome',
+    responseVariable: 'Beta diversity',
+    taxonomicGroup: 'Soil bacteria (16S)',
+    effectSize: 0.14,
+    effectType: 'R² (PERMANOVA)',
+    reference: 'Ramirez et al. (2010) Appl Soil Ecol',
+    doi: '10.1016/j.apsoil.2010.05.009',
+    notes: 'Control vs. NPK fertilizer treatment - Use multivariate power analysis'
   }
 ];
 
