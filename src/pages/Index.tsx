@@ -7,6 +7,7 @@ import RepeatedMeasuresCalculator from '@/components/calculators/RepeatedMeasure
 import CorrelationCalculator from '@/components/calculators/CorrelationCalculator';
 import ChiSquareCalculator from '@/components/calculators/ChiSquareCalculator';
 import MicrobiomeCalculator from '@/components/calculators/MicrobiomeCalculator';
+import RepeatedMeasuresMicrobiomeCalculator from '@/components/calculators/RepeatedMeasuresMicrobiomeCalculator';
 import EffectSizeHelper from '@/components/calculators/EffectSizeHelper';
 import EffectSizeLibrary from '@/components/calculators/EffectSizeLibrary';
 import ReplicationChecker from '@/components/calculators/ReplicationChecker';
@@ -68,6 +69,9 @@ const Index = () => {
             <TabsTrigger value="microbiome" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[160px]">
               Microbiome & Community
             </TabsTrigger>
+            <TabsTrigger value="repeated-microbiome" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[160px]">
+              Repeated Microbiome
+            </TabsTrigger>
             <TabsTrigger value="nested" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
               Nested/Hierarchical
             </TabsTrigger>
@@ -118,6 +122,10 @@ const Index = () => {
 
           <TabsContent value="microbiome" className="mt-8 md:mt-6">
             <MicrobiomeCalculator />
+          </TabsContent>
+
+          <TabsContent value="repeated-microbiome" className="mt-8 md:mt-6">
+            <RepeatedMeasuresMicrobiomeCalculator />
           </TabsContent>
 
           <TabsContent value="nested" className="mt-8 md:mt-6">

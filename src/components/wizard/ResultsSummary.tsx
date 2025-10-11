@@ -27,6 +27,7 @@ const testNames: Record<TestType, string> = {
   chisquare: 'Chi-Square Test',
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA',
+  'repeated-microbiome': 'Repeated Measures PERMANOVA',
 };
 
 const ResultsSummary = ({ testType, power, parameters, onGoToCalculator, onRestart }: ResultsSummaryProps) => {

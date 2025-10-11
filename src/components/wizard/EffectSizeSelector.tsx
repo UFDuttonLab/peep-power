@@ -46,6 +46,9 @@ const effectSizeData: EffectSizeExample[] = [
   { studyType: 'Wildfire', responseVariable: 'Soil microbial biomass', taxonomicGroup: 'Microbes', effectSize: 0.49, effectType: "Cohen's d", reference: 'Pressler et al. (2019)', notes: 'Post-fire recovery' },
   { studyType: 'Microbiome', responseVariable: 'Beta diversity', taxonomicGroup: 'Gut bacteria', effectSize: 0.18, effectType: 'R² (PERMANOVA)', reference: 'Gevers et al. (2014)', notes: 'Healthy vs. IBD' },
   { studyType: 'Microbiome', responseVariable: 'Beta diversity', taxonomicGroup: 'Soil bacteria', effectSize: 0.24, effectType: 'R² (PERMANOVA)', reference: 'Lauber et al. (2013)', notes: 'Forest vs. agricultural' },
+  { studyType: 'Microbiome', responseVariable: 'Composition change', taxonomicGroup: 'Gut bacteria', effectSize: 0.20, effectType: 'R² (PERMANOVA)', reference: 'Antibiotic studies', notes: 'Before/after antibiotics' },
+  { studyType: 'Microbiome', responseVariable: 'Composition change', taxonomicGroup: 'Gut bacteria', effectSize: 0.10, effectType: 'R² (PERMANOVA)', reference: 'Diet studies', notes: 'Diet modification' },
+  { studyType: 'Microbiome', responseVariable: 'Composition change', taxonomicGroup: 'Gut bacteria', effectSize: 0.05, effectType: 'R² (PERMANOVA)', reference: 'Probiotic studies', notes: 'Probiotic supplement' },
 ];
 
 interface EffectSizeSelectorProps {

@@ -424,3 +424,45 @@ export const calculatePERMANOVAPower = (
   
   return { power, summary, curveData };
 };
+
+export const calculateRepeatedMeasuresPERMANOVAPower = (
+  subjects: number,
+  timepoints: number,
+  rSquared: number,
+  correlation: number,
+  alpha: number
+): PowerResult => {
+  // Repeated measures PERMANOVA uses different degrees of freedom
+  const df1 = timepoints - 1;
+  const df2 = (subjects - 1) * (timepoints - 1);
+  
+  if (df2 <= 0 || rSquared >= 1 || rSquared <= 0 || subjects < 3 || timepoints < 2) {
+    return { power: 0, summary: 'Invalid parameters', curveData: [] };
+  }
+  
+  // Effective sample size increases with correlation (sphericity assumed)
+  // Higher correlation = more stable within-subject patterns = more power
+  const effectiveN = subjects * timepoints * (1 + (timepoints - 1) * correlation);
+  
+  // Noncentrality parameter for repeated measures PERMANOVA
+  const lambda = effectiveN * (rSquared / (1 - rSquared));
+  
+  const critF = jStat.centralF.inv(1 - alpha, df1, df2);
+  const power = noncentralFPower(lambda, df1, df2, critF);
+  
+  const summary = `With <strong>${subjects} subjects</strong> measured at <strong>${timepoints} timepoints</strong> (r=${correlation.toFixed(2)}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect R²=<strong>${(rSquared * 100).toFixed(2)}</strong> at α=${alpha}.`;
+  
+  // Power curve: vary number of subjects (x-axis shows subjects, not total samples)
+  const curveData = [];
+  for (let subj = 5; subj <= 100; subj += 2) {
+    const df2C = (subj - 1) * (timepoints - 1);
+    if (df2C <= 0) continue;
+    const effectiveNC = subj * timepoints * (1 + (timepoints - 1) * correlation);
+    const lambdaC = effectiveNC * (rSquared / (1 - rSquared));
+    const critFC = jStat.centralF.inv(1 - alpha, df1, df2C);
+    const powerC = noncentralFPower(lambdaC, df1, df2C, critFC);
+    curveData.push({ x: subj, y: Math.max(0, Math.min(0.999, powerC)) });
+  }
+  
+  return { power, summary, curveData };
+};

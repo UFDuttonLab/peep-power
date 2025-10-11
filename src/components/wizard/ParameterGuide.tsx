@@ -23,6 +23,7 @@ const testNames: Record<TestType, string> = {
   chisquare: 'Chi-Square Test',
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA (Microbiome)',
+  'repeated-microbiome': 'Repeated Measures PERMANOVA',
 };
 
 const testDescriptions: Record<TestType, string> = {
@@ -34,6 +35,7 @@ const testDescriptions: Record<TestType, string> = {
   chisquare: 'Testing association between categorical variables',
   correlation: 'Measuring strength of relationship between two continuous variables',
   microbiome: 'Testing differences in community composition between groups',
+  'repeated-microbiome': 'Testing community composition changes in repeated measures',
 };
 
 const ParameterGuide = ({ testType, parameters, onParameterChange, onNext }: ParameterGuideProps) => {

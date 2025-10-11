@@ -22,6 +22,7 @@ const testNames: Record<TestType, string> = {
   chisquare: 'Chi-Square Test',
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA',
+  'repeated-microbiome': 'Repeated Measures PERMANOVA',
 };
 
 const MinimumSampleSize = ({ 
@@ -44,6 +45,7 @@ const MinimumSampleSize = ({
     chisquare: 'ttest', // Approximate
     correlation: 'correlation',
     microbiome: 'anova',
+    'repeated-microbiome': 'anova',
   };
 
   const mappedTestType = testTypeMapping[testType];
