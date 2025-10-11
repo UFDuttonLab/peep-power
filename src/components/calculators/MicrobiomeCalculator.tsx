@@ -364,7 +364,7 @@ const MicrobiomeCalculator = () => {
                 label="Samples per Group"
                 value={betaN}
                 min={5}
-                max={50}
+                max={100}
                 step={1}
                 onChange={setBetaN}
                 decimals={0}
@@ -376,7 +376,7 @@ const MicrobiomeCalculator = () => {
                 label="Number of Groups"
                 value={betaGroups}
                 min={2}
-                max={4}
+                max={10}
                 step={1}
                 onChange={setBetaGroups}
                 decimals={0}
@@ -388,7 +388,7 @@ const MicrobiomeCalculator = () => {
                 label="Effect Size (R²)"
                 value={betaR2}
                 min={0.01}
-                max={0.30}
+                max={0.60}
                 step={0.01}
                 onChange={setBetaR2}
                 decimals={2}
