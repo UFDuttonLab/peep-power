@@ -13,9 +13,17 @@ import ReplicationChecker from '@/components/calculators/ReplicationChecker';
 import AboutHelp from '@/components/calculators/AboutHelp';
 import { MinimumDetectableEffectCalculator } from '@/components/calculators/MinimumDetectableEffectCalculator';
 import { NestedAnovaCalculator } from '@/components/calculators/NestedAnovaCalculator';
+import HoldMyHandCalculator from '@/components/calculators/HoldMyHandCalculator';
 import { Leaf } from 'lucide-react';
+import { TestType } from '@/components/wizard/wizardConfig';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('wizard');
+
+  const handleNavigateToCalculator = (testType: TestType) => {
+    setActiveTab(testType);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -34,8 +42,11 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="ttest" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 pb-6 sm:pb-5 min-h-[120px] sm:min-h-[100px] mb-2 justify-start items-start">
+            <TabsTrigger value="wizard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px] font-semibold">
+              🤝 Hold My Hand
+            </TabsTrigger>
             <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               t-test
             </TabsTrigger>
@@ -76,6 +87,10 @@ const Index = () => {
               About/Help
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="wizard" className="mt-8 md:mt-6">
+            <HoldMyHandCalculator onNavigateToCalculator={handleNavigateToCalculator} />
+          </TabsContent>
 
           <TabsContent value="ttest" className="mt-8 md:mt-6">
             <TTestCalculator />
