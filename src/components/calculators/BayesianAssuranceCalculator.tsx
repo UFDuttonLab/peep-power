@@ -160,8 +160,15 @@ export const BayesianAssuranceCalculator = () => {
               />
               
               <div className="text-xs text-muted-foreground p-3 bg-muted rounded">
-                <strong>Interpretation:</strong> You believe the effect size is around <strong>{effectSizeMean.toFixed(2)}</strong>, 
-                but it could reasonably be between <strong>{Math.max(0, effectSizeMean - 1.96*effectSizeSD).toFixed(2)}</strong> and <strong>{(effectSizeMean + 1.96*effectSizeSD).toFixed(2)}</strong> 
+                <strong>Interpretation:</strong> You believe the effect size is around <strong>{effectSizeMean.toFixed(2)}</strong>
+                {effectSizeSD < 0.1 ? (
+                  <span>, and you're quite confident it's between </span>
+                ) : effectSizeSD < 0.2 ? (
+                  <span>, with moderate uncertainty between </span>
+                ) : (
+                  <span>, but with substantial uncertainty it could range from </span>
+                )}
+                <strong>{Math.max(0, effectSizeMean - 1.96*effectSizeSD).toFixed(2)}</strong> to <strong>{(effectSizeMean + 1.96*effectSizeSD).toFixed(2)}</strong> 
                 (95% credible interval).
               </div>
             </CardContent>
