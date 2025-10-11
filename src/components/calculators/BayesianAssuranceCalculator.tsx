@@ -168,8 +168,8 @@ export const BayesianAssuranceCalculator = () => {
                 ) : (
                   <span>, but with substantial uncertainty it could range from </span>
                 )}
-                <strong>{Math.max(0, effectSizeMean - 1.96*effectSizeSD).toFixed(2)}</strong> to <strong>{(effectSizeMean + 1.96*effectSizeSD).toFixed(2)}</strong> 
-                (95% credible interval).
+                <strong>{Math.max(0.01, effectSizeMean - 1.96*effectSizeSD).toFixed(2)}</strong> to <strong>{(effectSizeMean + 1.96*effectSizeSD).toFixed(2)}</strong> 
+                (95% credible interval{(effectSizeMean - 1.96*effectSizeSD) < 0 ? ', truncated at 0' : ''}).
               </div>
             </CardContent>
           </Card>

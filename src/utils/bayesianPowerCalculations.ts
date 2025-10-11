@@ -67,8 +67,15 @@ export const calculateBayesianAssurance = (
     let countSuccess = 0;
     
     for (let i = 0; i < nSamples; i++) {
-      // Sample effect size from prior (use absolute value to ensure positive)
-      const sampledEffect = Math.abs(normalRandom(params.effectSizeMean, params.effectSizeSD));
+      // Sample effect size from prior (truncated at 0 for positive effects only)
+      let sampledEffect = normalRandom(params.effectSizeMean, params.effectSizeSD);
+      // Truncate at 0 (resample if negative, max 10 attempts)
+      let attempts = 0;
+      while (sampledEffect < 0 && attempts < 10) {
+        sampledEffect = normalRandom(params.effectSizeMean, params.effectSizeSD);
+        attempts++;
+      }
+      if (sampledEffect < 0) sampledEffect = 0.01; // Fallback to small positive value
       
       // Calculate power for this effect size at sample size n
       let power = 0;
