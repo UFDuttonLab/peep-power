@@ -5,6 +5,7 @@ import { Dna, BookOpen, Lightbulb, FlaskConical, TrendingUp } from 'lucide-react
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
+import BetaDiversityVisualizer from '@/components/BetaDiversityVisualizer';
 import { calculatePERMANOVAPower, calculateTTestPower } from '@/utils/powerCalculations';
 
 const MicrobiomeCalculator = () => {
@@ -20,6 +21,11 @@ const MicrobiomeCalculator = () => {
   const [alphaEffect, setAlphaEffect] = useState(0.5);
   const [alphaAlpha, setAlphaAlpha] = useState(0.05);
   const [alphaResult, setAlphaResult] = useState<any>(null);
+
+  // Beta Diversity Visualizer state
+  const [betaN, setBetaN] = useState(20);
+  const [betaGroups, setBetaGroups] = useState(2);
+  const [betaR2, setBetaR2] = useState(0.08);
 
   useEffect(() => {
     const res = calculatePERMANOVAPower(nPerGroup, groups, rSquared, alpha);
@@ -329,6 +335,95 @@ const MicrobiomeCalculator = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Beta Diversity Visualizer */}
+      <Card className="p-6 bg-gradient-to-br from-purple-500/5 to-blue-500/10 border-2 border-purple-500/20">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <FlaskConical className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          Beta Diversity Visualizer (NMDS Ordination)
+        </h2>
+        
+        <Alert variant="default" className="mb-4 bg-background/50">
+          <AlertDescription className="text-sm">
+            This interactive visualization simulates an <strong>NMDS ordination plot</strong> to show how 
+            sample size and effect size impact group separation. Confidence ellipses represent 
+            95% confidence intervals around group centroids.
+          </AlertDescription>
+        </Alert>
+
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+          {/* Controls */}
+          <Card className="p-4 bg-secondary/50">
+            <h3 className="font-semibold mb-4">Simulation Parameters</h3>
+            <div className="space-y-4">
+              <ControlSlider
+                id="beta-n"
+                label="Samples per Group"
+                value={betaN}
+                min={5}
+                max={50}
+                step={1}
+                onChange={setBetaN}
+                decimals={0}
+                tooltip="Number of samples per group. More samples = tighter ellipses."
+              />
+              
+              <ControlSlider
+                id="beta-groups"
+                label="Number of Groups"
+                value={betaGroups}
+                min={2}
+                max={4}
+                step={1}
+                onChange={setBetaGroups}
+                decimals={0}
+                tooltip="Number of treatment groups to visualize"
+              />
+              
+              <ControlSlider
+                id="beta-r2"
+                label="Effect Size (R²)"
+                value={betaR2}
+                min={0.01}
+                max={0.30}
+                step={0.01}
+                onChange={setBetaR2}
+                decimals={2}
+                tooltip="Larger R² = more separation between groups in ordination space"
+              />
+            </div>
+            
+            <div className="mt-4 p-3 bg-background/50 rounded-lg border">
+              <h4 className="text-xs font-semibold mb-2">💡 Interpretation Guide</h4>
+              <ul className="text-xs space-y-1 text-muted-foreground">
+                <li>• <strong>Overlapping ellipses:</strong> Groups are hard to distinguish</li>
+                <li>• <strong>Separated ellipses:</strong> Clear differences between groups</li>
+                <li>• <strong>Larger n:</strong> Tighter ellipses, more confidence</li>
+                <li>• <strong>Higher R²:</strong> Greater centroid separation</li>
+              </ul>
+            </div>
+          </Card>
+
+          {/* Visualization */}
+          <div className="space-y-4">
+            <BetaDiversityVisualizer
+              nPerGroup={betaN}
+              groups={betaGroups}
+              rSquared={betaR2}
+            />
+            
+            <Card className="p-4 bg-background/50">
+              <h4 className="font-semibold text-sm mb-2">About NMDS Ordination</h4>
+              <p className="text-xs text-muted-foreground">
+                Non-metric Multidimensional Scaling (NMDS) reduces high-dimensional microbiome data 
+                to 2D while preserving rank-order distances between samples. This visualization 
+                simulates how samples from different groups cluster in ordination space based on 
+                your specified effect size and sample size.
+              </p>
+            </Card>
           </div>
         </div>
       </Card>
