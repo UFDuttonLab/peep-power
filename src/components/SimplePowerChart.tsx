@@ -1,0 +1,90 @@
+interface SimplePowerChartProps {
+  data: { x: number; y: number }[];
+  currentValue: number;
+  xLabel?: string;
+  title?: string;
+}
+
+const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 'Power Curve' }: SimplePowerChartProps) => {
+  if (!data || data.length === 0) return <div className="text-muted-foreground">No data to display</div>;
+
+  const maxX = Math.max(...data.map(d => d.x));
+  const currentPoint = data.find(d => d.x === currentValue) || data[0];
+
+  return (
+    <div className="w-full h-[400px] flex flex-col">
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <div className="flex-1 relative bg-card border rounded-lg p-6">
+        <svg className="w-full h-full" viewBox="0 0 800 300">
+          {/* Grid lines */}
+          {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((y) => (
+            <line
+              key={y}
+              x1="50"
+              y1={250 - y * 200}
+              x2="750"
+              y2={250 - y * 200}
+              stroke="hsl(var(--border))"
+              strokeWidth="1"
+              strokeDasharray="2,2"
+            />
+          ))}
+          
+          {/* Axes */}
+          <line x1="50" y1="250" x2="750" y2="250" stroke="hsl(var(--foreground))" strokeWidth="2" />
+          <line x1="50" y1="50" x2="50" y2="250" stroke="hsl(var(--foreground))" strokeWidth="2" />
+          
+          {/* Y-axis labels */}
+          {[0, 20, 40, 60, 80, 100].map((label, i) => (
+            <text
+              key={label}
+              x="30"
+              y={255 - (i * 40)}
+              fontSize="12"
+              fill="hsl(var(--foreground))"
+              textAnchor="end"
+            >
+              {label}%
+            </text>
+          ))}
+          
+          {/* Power curve */}
+          <polyline
+            points={data
+              .map((d) => {
+                const x = 50 + (d.x / maxX) * 700;
+                const y = 250 - d.y * 200;
+                return `${x},${y}`;
+              })
+              .join(' ')}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="3"
+          />
+          
+          {/* Current point marker */}
+          {currentPoint && (
+            <circle
+              cx={50 + (currentValue / maxX) * 700}
+              cy={250 - currentPoint.y * 200}
+              r="6"
+              fill="hsl(var(--accent))"
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+            />
+          )}
+          
+          {/* Axis labels */}
+          <text x="400" y="285" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
+            {xLabel}
+          </text>
+          <text x="15" y="150" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 150)">
+            Power (%)
+          </text>
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+export default SimplePowerChart;

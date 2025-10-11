@@ -1,0 +1,142 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import ControlSlider from '../ControlSlider';
+import PowerChart from '../SimplePowerChart';
+import { calculateCorrelationPower } from '@/utils/powerCalculations';
+import { Download } from 'lucide-react';
+
+const CorrelationCalculator = () => {
+  const [n, setN] = useState(40);
+  const [rho, setRho] = useState(0.3);
+  const [alpha, setAlpha] = useState(0.05);
+  const [result, setResult] = useState<any>(null);
+
+  useEffect(() => {
+    const res = calculateCorrelationPower(n, rho, alpha);
+    setResult(res);
+  }, [n, rho, alpha]);
+
+  const exportResults = () => {
+    const csv = [
+      ['Sample Size', 'Power'],
+      ...result.curveData.map((d: any) => [d.x, d.y]),
+    ]
+      .map(row => row.join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'correlation-power-analysis.csv';
+    a.click();
+  };
+
+  return (
+    <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+      <Card className="p-6 bg-secondary/50">
+        <h2 className="text-2xl font-bold mb-6 pb-3 border-b-2 border-border">Correlation Analysis</h2>
+        
+        <div className="space-y-6">
+          <ControlSlider
+            id="corr-n"
+            label="Sample Size (n)"
+            value={n}
+            min={5}
+            max={200}
+            step={1}
+            onChange={setN}
+            decimals={0}
+            tooltip="Total number of paired observations."
+          />
+
+          <div className="space-y-2">
+            <ControlSlider
+              id="corr-rho"
+              label="Correlation Coefficient (ρ)"
+              value={rho}
+              min={0.05}
+              max={0.95}
+              step={0.01}
+              onChange={setRho}
+              tooltip="Expected strength and direction of the linear relationship. Small (0.1), Medium (0.3), Large (0.5)."
+            />
+            <Select onValueChange={(v) => v !== 'custom' && setRho(parseFloat(v))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select preset" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom">Custom</SelectItem>
+                <SelectItem value="0.1">Small (ρ=0.1)</SelectItem>
+                <SelectItem value="0.3">Medium (ρ=0.3)</SelectItem>
+                <SelectItem value="0.5">Large (ρ=0.5)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <ControlSlider
+              id="corr-alpha"
+              label="Alpha (α)"
+              value={alpha}
+              min={0.01}
+              max={0.10}
+              step={0.01}
+              onChange={setAlpha}
+              tooltip="The probability of a Type I error."
+            />
+            <Select value={alpha.toString()} onValueChange={(v) => setAlpha(parseFloat(v))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.01">0.01</SelectItem>
+                <SelectItem value="0.05">0.05</SelectItem>
+                <SelectItem value="0.10">0.10</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Results</h2>
+        
+        {result && (
+          <>
+            <Card className="p-6 bg-primary text-primary-foreground">
+              <div dangerouslySetInnerHTML={{ __html: result.summary }} />
+            </Card>
+
+            <Card className="p-6">
+              <PowerChart
+                data={result.curveData}
+                currentValue={n}
+                xLabel="Total Sample Size"
+                title="Power Curve: Correlation Analysis"
+              />
+            </Card>
+
+            <Button onClick={exportResults} className="w-full">
+              <Download className="mr-2 h-4 w-4" />
+              Export Results (CSV)
+            </Button>
+
+            <Card className="p-6 bg-secondary/30 border-l-4 border-accent">
+              <h3 className="font-bold text-lg mb-3">Study Design Guidance</h3>
+              <ul className="space-y-2 list-disc list-inside">
+                <li><strong>Use Case:</strong> Test for linear relationships between two continuous variables.</li>
+                <li><strong>Linearity:</strong> Pearson correlation assumes a linear relationship. Check scatterplots first.</li>
+                <li><strong>Independence:</strong> Each observation should be independent of the others.</li>
+                <li><strong>Sample Size:</strong> Larger samples needed to detect small correlations reliably.</li>
+              </ul>
+            </Card>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CorrelationCalculator;
