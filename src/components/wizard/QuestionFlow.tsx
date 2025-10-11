@@ -221,8 +221,8 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
         />
         <OptionCard
           title="Diversity Comparison"
-          description="Does alpha diversity (richness/evenness) differ between groups?"
-          onClick={() => onTestSelected('ttest')}
+          description="Does alpha diversity (richness/evenness) differ between groups? (One-way ANOVA for 2+ groups)"
+          onClick={() => onTestSelected('oneway')}
         />
       </div>
 
