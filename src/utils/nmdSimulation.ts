@@ -1,3 +1,18 @@
+// Seeded random number generator for reproducible simulations
+class SeededRandom {
+  private seed: number;
+  
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+  
+  next(): number {
+    // Linear Congruential Generator
+    this.seed = (this.seed * 1664525 + 1013904223) % 4294967296;
+    return this.seed / 4294967296;
+  }
+}
+
 export interface NMDSPoint {
   x: number;
   y: number;
@@ -18,8 +33,10 @@ export interface EllipseParams {
 export const generateNMDSData = (
   nPerGroup: number,
   numGroups: number,
-  rSquared: number
+  rSquared: number,
+  seed: number = 42
 ): { points: NMDSPoint[], ellipses: EllipseParams[] } => {
+  const rng = new SeededRandom(seed);
   // Calculate separation based on R²
   const effectMagnitude = Math.sqrt(rSquared / (1 - rSquared + 0.001));
   
@@ -40,9 +57,9 @@ export const generateNMDSData = (
   
   for (let g = 0; g < numGroups; g++) {
     for (let i = 0; i < nPerGroup; i++) {
-      // Box-Muller transform for Gaussian noise
-      const u1 = Math.random();
-      const u2 = Math.random();
+      // Box-Muller transform for Gaussian noise using seeded random
+      const u1 = rng.next();
+      const u2 = rng.next();
       const noise_x = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
       const noise_y = Math.sqrt(-2 * Math.log(u1)) * Math.sin(2 * Math.PI * u2);
       

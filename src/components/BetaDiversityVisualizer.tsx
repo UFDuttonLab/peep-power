@@ -12,11 +12,18 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
     points: [], 
     ellipses: [] 
   });
+  const [simulationSeed, setSimulationSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
+  // Regenerate seed only when number of groups changes
   useEffect(() => {
-    const newData = generateNMDSData(nPerGroup, groups, rSquared);
+    setSimulationSeed(Math.floor(Math.random() * 1000000));
+  }, [groups]);
+
+  // Generate data with stable seed
+  useEffect(() => {
+    const newData = generateNMDSData(nPerGroup, groups, rSquared, simulationSeed);
     setData(newData);
-  }, [nPerGroup, groups, rSquared]);
+  }, [nPerGroup, groups, rSquared, simulationSeed]);
 
   const padding = 60;
   const width = 600;
@@ -42,6 +49,15 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
 
   return (
     <div className="w-full bg-card border rounded-lg p-4">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-sm font-semibold text-muted-foreground">NMDS Ordination Plot</h3>
+        <button
+          onClick={() => setSimulationSeed(Math.floor(Math.random() * 1000000))}
+          className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+        >
+          Regenerate
+        </button>
+      </div>
       <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="max-w-full">
         {/* Background */}
         <rect x={padding} y={padding} width={plotWidth} height={plotHeight} 
