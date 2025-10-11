@@ -66,6 +66,14 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
           default: 2,
           fixed: false,
         };
+      case 'repeated-microbiome':
+        return {
+          title: 'How many timepoints will you measure?',
+          description: 'Enter the number of repeated measurements per subject (e.g., 2 for before/after, 4 for quarterly)',
+          prompt: 'Number of timepoints',
+          default: 2,
+          fixed: false,
+        };
       default:
         return {
           title: 'How many groups?',
@@ -115,8 +123,12 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          This should be the number of independent treatment groups or conditions you're comparing. 
-          Each group should have multiple replicate samples.
+          {testType === 'repeated-microbiome' 
+            ? 'For repeated measures, enter the number of times each subject will be measured.'
+            : testType === 'repeated'
+            ? 'For repeated measures, enter the number of times each subject will be measured.'
+            : 'This should be the number of independent treatment groups or conditions you\'re comparing. Each group should have multiple replicate samples.'
+          }
         </AlertDescription>
       </Alert>
 
@@ -141,18 +153,37 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
         <div className="bg-muted/50 rounded-lg p-4">
           <h4 className="font-medium text-sm mb-2">Quick Presets:</h4>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setGroups('2')}>
-              2 Groups
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setGroups('3')}>
-              3 Groups
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setGroups('4')}>
-              4 Groups
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setGroups('5')}>
-              5 Groups
-            </Button>
+            {testType === 'repeated-microbiome' || testType === 'repeated' ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setGroups('2')}>
+                  2 Timepoints
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGroups('3')}>
+                  3 Timepoints
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGroups('4')}>
+                  4 Timepoints
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGroups('8')}>
+                  8 Timepoints
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setGroups('2')}>
+                  2 Groups
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGroups('3')}>
+                  3 Groups
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGroups('4')}>
+                  4 Groups
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setGroups('5')}>
+                  5 Groups
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </Card>
