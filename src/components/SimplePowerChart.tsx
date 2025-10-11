@@ -9,7 +9,30 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
   if (!data || data.length === 0) return <div className="text-muted-foreground">No data to display</div>;
 
   const maxX = Math.max(...data.map(d => d.x));
-  const currentPoint = data.find(d => d.x === currentValue) || data[0];
+  
+  // Find or interpolate the current point
+  let currentY = 0;
+  const exactPoint = data.find(d => d.x === currentValue);
+  if (exactPoint) {
+    currentY = exactPoint.y;
+  } else {
+    // Interpolate between two nearest points
+    const sortedData = [...data].sort((a, b) => a.x - b.x);
+    for (let i = 0; i < sortedData.length - 1; i++) {
+      if (sortedData[i].x <= currentValue && sortedData[i + 1].x >= currentValue) {
+        const x1 = sortedData[i].x;
+        const y1 = sortedData[i].y;
+        const x2 = sortedData[i + 1].x;
+        const y2 = sortedData[i + 1].y;
+        // Linear interpolation
+        currentY = y1 + ((currentValue - x1) / (x2 - x1)) * (y2 - y1);
+        break;
+      }
+    }
+    // If currentValue is beyond the curve, use the nearest endpoint
+    if (currentValue < sortedData[0].x) currentY = sortedData[0].y;
+    if (currentValue > sortedData[sortedData.length - 1].x) currentY = sortedData[sortedData.length - 1].y;
+  }
 
   return (
     <div className="w-full h-[400px] flex flex-col">
@@ -63,16 +86,14 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
           />
           
           {/* Current point marker */}
-          {currentPoint && (
-            <circle
-              cx={50 + (currentValue / maxX) * 700}
-              cy={250 - currentPoint.y * 200}
-              r="6"
-              fill="hsl(var(--accent))"
-              stroke="hsl(var(--primary))"
-              strokeWidth="2"
-            />
-          )}
+          <circle
+            cx={50 + (currentValue / maxX) * 700}
+            cy={250 - currentY * 200}
+            r="6"
+            fill="hsl(var(--accent))"
+            stroke="hsl(var(--primary))"
+            strokeWidth="2"
+          />
           
           {/* Axis labels */}
           <text x="400" y="285" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
