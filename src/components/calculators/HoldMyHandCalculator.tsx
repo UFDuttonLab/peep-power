@@ -4,11 +4,11 @@ import { ArrowLeft } from 'lucide-react';
 import WelcomeStep from '@/components/wizard/WelcomeStep';
 import DataTypeSelector from '@/components/wizard/DataTypeSelector';
 import QuestionFlow from '@/components/wizard/QuestionFlow';
-import ParameterGuide from '@/components/wizard/ParameterGuide';
-import ResultsSummary from '@/components/wizard/ResultsSummary';
+import EffectSizeSelector from '@/components/wizard/EffectSizeSelector';
+import GroupsInput from '@/components/wizard/GroupsInput';
+import MinimumSampleSize from '@/components/wizard/MinimumSampleSize';
 import ProgressIndicator from '@/components/wizard/ProgressIndicator';
 import { WizardState, initialState, DataType, TestType } from '@/components/wizard/wizardConfig';
-import { calculateTTestPower, calculateOneWayAnovaPower, calculateCorrelationPower } from '@/utils/powerCalculations';
 
 interface HoldMyHandCalculatorProps {
   onNavigateToCalculator?: (testType: TestType) => void;
@@ -17,7 +17,7 @@ interface HoldMyHandCalculatorProps {
 const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorProps) => {
   const [state, setState] = useState<WizardState>(initialState);
 
-  const steps = ['Welcome', 'Data Type', 'Questions', 'Parameters', 'Results'];
+  const steps = ['Welcome', 'Data Type', 'Questions', 'Effect Size', 'Groups', 'Sample Size'];
 
   const handleNext = () => {
     setState((prev) => ({ ...prev, step: prev.step + 1 }));
@@ -29,12 +29,7 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
 
   const handleDataTypeSelect = (dataType: DataType) => {
     setState((prev) => ({ ...prev, dataType }));
-    // Auto-advance for correlation
-    if (dataType === 'correlation') {
-      setState((prev) => ({ ...prev, dataType, selectedTest: 'correlation', step: 3 }));
-    } else {
-      handleNext();
-    }
+    handleNext();
   };
 
   const handleTestSelected = (test: TestType) => {
@@ -42,11 +37,22 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
     handleNext();
   };
 
-  const handleParameterChange = (key: string, value: number) => {
-    setState((prev) => ({
-      ...prev,
-      parameters: { ...prev.parameters, [key]: value },
+  const handleEffectSizeSelect = (effectSize: number) => {
+    setState((prev) => ({ 
+      ...prev, 
+      selectedEffectSize: effectSize,
+      parameters: { ...prev.parameters, effectSize }
     }));
+    handleNext();
+  };
+
+  const handleGroupsSubmit = (groups: number) => {
+    setState((prev) => ({ 
+      ...prev, 
+      numGroups: groups,
+      parameters: { ...prev.parameters, groups }
+    }));
+    handleNext();
   };
 
   const handleRestart = () => {
@@ -59,34 +65,9 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
     }
   };
 
-  // Calculate power based on selected test
-  const calculatePower = (): number => {
-    const { selectedTest, parameters } = state;
-    
-    try {
-      if (selectedTest === 'ttest') {
-        const result = calculateTTestPower(parameters.n, parameters.effectSize, parameters.alpha);
-        return result.power;
-      } else if (selectedTest === 'oneway') {
-        const result = calculateOneWayAnovaPower(parameters.n, 3, parameters.effectSize, parameters.alpha);
-        return result.power;
-      } else if (selectedTest === 'correlation') {
-        const result = calculateCorrelationPower(parameters.n, parameters.effectSize, parameters.alpha);
-        return result.power;
-      }
-      // For other tests, use t-test as approximation for MVP
-      const result = calculateTTestPower(parameters.n, parameters.effectSize, parameters.alpha);
-      return result.power;
-    } catch {
-      return 0.5; // Fallback
-    }
-  };
-
-  const power = state.step === 4 ? calculatePower() : 0;
-
   return (
     <div className="max-w-5xl mx-auto">
-      {state.step > 0 && state.step < 4 && (
+      {state.step > 0 && state.step < 5 && (
         <div className="mb-6">
           <Button variant="ghost" onClick={handleBack} className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -94,7 +75,7 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
         </div>
       )}
 
-      {state.step > 0 && state.step < 5 && (
+      {state.step > 0 && state.step < 6 && (
         <ProgressIndicator currentStep={state.step} totalSteps={steps.length} steps={steps} />
       )}
 
@@ -109,19 +90,26 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
       )}
 
       {state.step === 3 && state.selectedTest && (
-        <ParameterGuide
+        <EffectSizeSelector
           testType={state.selectedTest}
-          parameters={state.parameters}
-          onParameterChange={handleParameterChange}
-          onNext={handleNext}
+          onSelect={handleEffectSizeSelect}
+          onBack={handleBack}
         />
       )}
 
-      {state.step === 4 && state.selectedTest && (
-        <ResultsSummary
+      {state.step === 4 && state.selectedTest && state.selectedEffectSize && (
+        <GroupsInput
           testType={state.selectedTest}
-          power={power}
-          parameters={state.parameters}
+          onSubmit={handleGroupsSubmit}
+          onBack={handleBack}
+        />
+      )}
+
+      {state.step === 5 && state.selectedTest && state.selectedEffectSize && state.numGroups && (
+        <MinimumSampleSize
+          testType={state.selectedTest}
+          effectSize={state.selectedEffectSize}
+          groups={state.numGroups}
           onGoToCalculator={handleGoToCalculator}
           onRestart={handleRestart}
         />

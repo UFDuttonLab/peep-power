@@ -8,6 +8,7 @@ export interface WizardState {
   subjectType: 'independent' | 'repeated' | null;
   numFactors: number | null;
   selectedTest: TestType | null;
+  selectedEffectSize: number | null;
   parameters: {
     n: number;
     effectSize: number;
@@ -23,6 +24,7 @@ export const initialState: WizardState = {
   subjectType: null,
   numFactors: null,
   selectedTest: null,
+  selectedEffectSize: null,
   parameters: {
     n: 30,
     effectSize: 0.5,
