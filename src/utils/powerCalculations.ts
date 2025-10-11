@@ -320,3 +320,42 @@ export const cohensW = (observed: number[], expected: number[]): number => {
   const n = observed.reduce((a, b) => a + b, 0);
   return Math.sqrt(chiSq / n);
 };
+
+export const calculatePERMANOVAPower = (
+  nPerGroup: number,
+  groups: number,
+  rSquared: number,
+  alpha: number
+): PowerResult => {
+  const N = nPerGroup * groups;
+  const df1 = groups - 1;
+  const df2 = N - groups;
+  
+  if (df2 <= 0 || rSquared >= 1 || rSquared <= 0 || N < groups * 2) {
+    return { power: 0, summary: 'Invalid parameters', curveData: [] };
+  }
+  
+  // Convert R² to F-statistic for PERMANOVA
+  // pseudo-F = [R²/(k-1)] / [(1-R²)/(N-k)]
+  const lambda = N * (rSquared / (1 - rSquared));
+  
+  const critF = jStat.centralF.inv(1 - alpha, df1, df2);
+  const power = noncentralFPower(lambda, df1, df2, critF);
+  
+  const summary = `For <strong>${groups} groups</strong> with <strong>${nPerGroup} per group</strong> (N=${N}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect R²=<strong>${(rSquared * 100).toFixed(1)}%</strong> variance explained at α=${alpha}.`;
+  
+  // Power curve: vary total N
+  const curveData = [];
+  for (let totalN = groups * 5; totalN <= 400; totalN += 10) {
+    const nPG = totalN / groups;
+    if (nPG < 3) continue;
+    const df2C = totalN - groups;
+    if (df2C <= 0) continue;
+    const lambdaC = totalN * (rSquared / (1 - rSquared));
+    const critFC = jStat.centralF.inv(1 - alpha, df1, df2C);
+    const powerC = noncentralFPower(lambdaC, df1, df2C, critFC);
+    curveData.push({ x: totalN, y: Math.max(0, Math.min(0.999, powerC)) });
+  }
+  
+  return { power, summary, curveData };
+};

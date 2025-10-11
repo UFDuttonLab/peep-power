@@ -1,9 +1,42 @@
-import { Card } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dna, BookOpen, Lightbulb, FlaskConical } from 'lucide-react';
+import { Dna, BookOpen, Lightbulb, FlaskConical, TrendingUp } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import ControlSlider from '@/components/ControlSlider';
+import SimplePowerChart from '@/components/SimplePowerChart';
+import { calculatePERMANOVAPower, calculateTTestPower } from '@/utils/powerCalculations';
 
 const MicrobiomeCalculator = () => {
+  // PERMANOVA calculator state
+  const [nPerGroup, setNPerGroup] = useState(20);
+  const [groups, setGroups] = useState(2);
+  const [rSquared, setRSquared] = useState(0.08);
+  const [alpha, setAlpha] = useState(0.05);
+  const [permanovaResult, setPermanovaResult] = useState<any>(null);
+
+  // Alpha Diversity calculator state
+  const [alphaN, setAlphaN] = useState(30);
+  const [alphaEffect, setAlphaEffect] = useState(0.5);
+  const [alphaAlpha, setAlphaAlpha] = useState(0.05);
+  const [alphaResult, setAlphaResult] = useState<any>(null);
+
+  useEffect(() => {
+    const res = calculatePERMANOVAPower(nPerGroup, groups, rSquared, alpha);
+    setPermanovaResult(res);
+  }, [nPerGroup, groups, rSquared, alpha]);
+
+  useEffect(() => {
+    const res = calculateTTestPower(alphaN, alphaEffect, alphaAlpha);
+    setAlphaResult(res);
+  }, [alphaN, alphaEffect, alphaAlpha]);
+
+  const getPowerInterpretation = (power: number) => {
+    if (power >= 0.8) return { text: 'Excellent', color: 'text-green-600 dark:text-green-400' };
+    if (power >= 0.6) return { text: 'Good', color: 'text-yellow-600 dark:text-yellow-400' };
+    return { text: 'Low', color: 'text-red-600 dark:text-red-400' };
+  };
+
   return (
     <div className="space-y-6">
       {/* Introduction Alert */}
@@ -23,14 +56,110 @@ const MicrobiomeCalculator = () => {
         </AlertDescription>
       </Alert>
 
-      {/* PERMANOVA Section */}
+      {/* PERMANOVA Interactive Calculator */}
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
           <FlaskConical className="h-6 w-6 text-primary" />
-          PERMANOVA Power Analysis
+          PERMANOVA Power Calculator
         </h2>
         
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6 mb-6">
+          {/* Controls */}
+          <Card className="p-4 bg-secondary/50">
+            <h3 className="font-semibold mb-4">Study Parameters</h3>
+            <div className="space-y-4">
+              <ControlSlider
+                id="permanova-n"
+                label="Sample Size per Group"
+                value={nPerGroup}
+                min={5}
+                max={100}
+                step={1}
+                onChange={setNPerGroup}
+                decimals={0}
+                tooltip="Number of biological replicates (independent samples) per treatment group"
+              />
+              
+              <ControlSlider
+                id="permanova-groups"
+                label="Number of Groups"
+                value={groups}
+                min={2}
+                max={6}
+                step={1}
+                onChange={setGroups}
+                decimals={0}
+                tooltip="Number of treatment groups or conditions to compare"
+              />
+              
+              <ControlSlider
+                id="permanova-rsq"
+                label="R² Effect Size"
+                value={rSquared}
+                min={0.01}
+                max={0.30}
+                step={0.01}
+                onChange={setRSquared}
+                decimals={2}
+                tooltip="Proportion of variance explained by your grouping variable. 0.02=small, 0.08=medium, 0.15=large"
+              />
+              
+              <ControlSlider
+                id="permanova-alpha"
+                label="Alpha Level"
+                value={alpha}
+                min={0.01}
+                max={0.10}
+                step={0.01}
+                onChange={setAlpha}
+                decimals={2}
+                tooltip="Significance level (Type I error rate). Typically 0.05"
+              />
+            </div>
+          </Card>
+
+          {/* Results */}
+          <div className="space-y-4">
+            {permanovaResult && (
+              <>
+                <Card className="p-4 bg-background">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Statistical Power</h3>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className={`h-5 w-5 ${getPowerInterpretation(permanovaResult.power).color}`} />
+                      <span className={`text-2xl font-bold ${getPowerInterpretation(permanovaResult.power).color}`}>
+                        {(permanovaResult.power * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {getPowerInterpretation(permanovaResult.power).text} power to detect the specified effect
+                  </p>
+                  <div
+                    className="text-sm"
+                    dangerouslySetInnerHTML={{ __html: permanovaResult.summary }}
+                  />
+                </Card>
+
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3">Power Curve</h3>
+                  <SimplePowerChart
+                    data={permanovaResult.curveData}
+                    currentValue={nPerGroup * groups}
+                    xLabel="Total Sample Size (N)"
+                    title="Power vs Sample Size"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    The curve shows how power changes with total sample size for the specified effect size (R²={rSquared.toFixed(2)})
+                  </p>
+                </Card>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Educational Content */}
+        <div className="space-y-4 pt-4 border-t">
           <div>
             <h3 className="font-semibold text-lg mb-2">What is PERMANOVA?</h3>
             <p className="text-sm text-muted-foreground">
@@ -61,24 +190,145 @@ const MicrobiomeCalculator = () => {
             </div>
           </div>
 
-          <div className="bg-secondary/30 p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Sample Size Estimation</h3>
-            <p className="text-sm mb-2">
-              Use R packages for PERMANOVA power analysis:
-            </p>
-            <code className="block bg-muted p-3 rounded text-xs font-mono overflow-x-auto">
-              # Install micropower package<br/>
-              install.packages("micropower")<br/>
-              library(micropower)<br/>
-              <br/>
-              # Estimate sample size<br/>
-              micropower.permanova(<br/>
-              &nbsp;&nbsp;effect.size = 0.08,  # Medium effect<br/>
-              &nbsp;&nbsp;groups = 2,          # Number of groups<br/>
-              &nbsp;&nbsp;power = 0.8,         # Desired power<br/>
-              &nbsp;&nbsp;alpha = 0.05         # Significance level<br/>
-              )
-            </code>
+          <Alert variant="default" className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
+            <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-sm">Note on Accuracy</AlertTitle>
+            <AlertDescription className="text-xs">
+              This calculator uses an approximation based on the noncentral F-distribution. 
+              Exact PERMANOVA power depends on your distance metric (Bray-Curtis, Jaccard, etc.) and data structure. 
+              We recommend conducting a pilot study to validate these estimates.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Card>
+
+      {/* Alpha Diversity Calculator */}
+      <Card className="p-6 bg-secondary/20 border-2 border-secondary">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <TrendingUp className="h-6 w-6 text-primary" />
+          Alpha Diversity Power Calculator
+        </h2>
+        
+        <Alert variant="default" className="mb-4 bg-background/50">
+          <AlertDescription className="text-sm">
+            Alpha diversity metrics (Shannon, Simpson, Observed Species) are <strong>univariate</strong>, 
+            so standard t-test power analysis applies. This calculator uses the same math as the t-test calculator.
+          </AlertDescription>
+        </Alert>
+
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+          {/* Controls */}
+          <Card className="p-4 bg-secondary/50">
+            <h3 className="font-semibold mb-4">Study Parameters</h3>
+            <div className="space-y-4">
+              <ControlSlider
+                id="alpha-n"
+                label="Sample Size per Group"
+                value={alphaN}
+                min={5}
+                max={100}
+                step={1}
+                onChange={setAlphaN}
+                decimals={0}
+                tooltip="Number of biological replicates per group"
+              />
+              
+              <ControlSlider
+                id="alpha-effect"
+                label="Cohen's d"
+                value={alphaEffect}
+                min={0.1}
+                max={2.0}
+                step={0.1}
+                onChange={setAlphaEffect}
+                decimals={1}
+                tooltip="Effect size: d=0.2 (small), d=0.5 (medium), d=0.8 (large). Calculate as (mean difference) / (pooled SD)"
+              />
+              
+              <ControlSlider
+                id="alpha-alpha"
+                label="Alpha Level"
+                value={alphaAlpha}
+                min={0.01}
+                max={0.10}
+                step={0.01}
+                onChange={setAlphaAlpha}
+                decimals={2}
+                tooltip="Significance level (Type I error rate)"
+              />
+            </div>
+
+            <div className="mt-4 p-3 bg-background/50 rounded-lg border">
+              <h4 className="text-xs font-semibold mb-2">Preset Scenarios</h4>
+              <div className="space-y-2 text-xs">
+                <button
+                  onClick={() => setAlphaEffect(0.8)}
+                  className="w-full text-left px-2 py-1 rounded hover:bg-secondary/50 transition-colors"
+                >
+                  <strong>Antibiotic treatment:</strong> d=0.8
+                </button>
+                <button
+                  onClick={() => setAlphaEffect(0.5)}
+                  className="w-full text-left px-2 py-1 rounded hover:bg-secondary/50 transition-colors"
+                >
+                  <strong>Diet change:</strong> d=0.5
+                </button>
+                <button
+                  onClick={() => setAlphaEffect(0.3)}
+                  className="w-full text-left px-2 py-1 rounded hover:bg-secondary/50 transition-colors"
+                >
+                  <strong>Probiotic supplement:</strong> d=0.3
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Results */}
+          <div className="space-y-4">
+            {alphaResult && (
+              <>
+                <Card className="p-4 bg-background">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Statistical Power</h3>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className={`h-5 w-5 ${getPowerInterpretation(alphaResult.power).color}`} />
+                      <span className={`text-2xl font-bold ${getPowerInterpretation(alphaResult.power).color}`}>
+                        {(alphaResult.power * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {getPowerInterpretation(alphaResult.power).text} power for detecting changes in diversity
+                  </p>
+                  <div
+                    className="text-sm"
+                    dangerouslySetInnerHTML={{ __html: alphaResult.summary }}
+                  />
+                </Card>
+
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3">Power Curve</h3>
+                  <SimplePowerChart
+                    data={alphaResult.curveData}
+                    currentValue={alphaN * 2}
+                    xLabel="Total Sample Size (N)"
+                    title="Power vs Sample Size"
+                  />
+                </Card>
+
+                <div className="bg-background/50 p-4 rounded-lg border">
+                  <h4 className="font-semibold text-sm mb-2">💡 Calculating Cohen's d for Alpha Diversity</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Run a pilot study to measure the standard deviation of your diversity metric. 
+                    Then: <strong>Cohen's d = (expected mean difference) / (pooled SD)</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Example: If Shannon diversity decreases from 3.5 to 3.0 (difference = 0.5) with SD = 0.8, 
+                    then d = 0.5 / 0.8 = 0.625 (medium effect).
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Card>
