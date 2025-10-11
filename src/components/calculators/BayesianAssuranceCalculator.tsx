@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ControlSlider from '@/components/ControlSlider';
-import SimplePowerChart from '@/components/SimplePowerChart';
+import BayesianAssuranceChart from '@/components/BayesianAssuranceChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Brain, Download, Code2, Copy } from 'lucide-react';
+import { Info, Brain, Download, Code2, Copy, Play } from 'lucide-react';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,10 +22,10 @@ export const BayesianAssuranceCalculator = () => {
   const [result, setResult] = useState<BayesianAssuranceResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   
-  useEffect(() => {
+  const runSimulation = () => {
     setIsCalculating(true);
     // Use setTimeout to allow UI to update before heavy calculation
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       try {
         const newResult = calculateBayesianAssurance({
           effectSizeMean,
@@ -37,15 +37,22 @@ export const BayesianAssuranceCalculator = () => {
           alpha
         });
         setResult(newResult);
+        toast({
+          title: "Simulation complete",
+          description: `Monte Carlo simulation with 5000 samples completed successfully`,
+        });
       } catch (e) {
         console.error('Bayesian calculation error:', e);
+        toast({
+          title: "Simulation failed",
+          description: "An error occurred during the calculation",
+          variant: "destructive",
+        });
       } finally {
         setIsCalculating(false);
       }
     }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [effectSizeMean, effectSizeSD, targetPower, targetAssurance, testType, groups, alpha]);
+  };
   
   const exportResults = () => {
     if (!result) return;
@@ -113,7 +120,8 @@ export const BayesianAssuranceCalculator = () => {
           <strong>Bayesian Assurance Calculator</strong>: Unlike traditional power analysis, 
           this accounts for <strong>uncertainty about the effect size</strong>. If you're not 
           100% sure what the true effect is, Bayesian assurance gives you the probability of 
-          achieving your target power. This leads to more realistic and robust sample size estimates.
+          achieving your target power. Set your parameters below, then click "Run Simulation" 
+          to perform Monte Carlo analysis (5000 samples).
         </AlertDescription>
       </Alert>
       
@@ -226,21 +234,36 @@ export const BayesianAssuranceCalculator = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <Button 
+                onClick={runSimulation} 
+                disabled={isCalculating}
+                className="w-full mt-4"
+                size="lg"
+              >
+                {isCalculating ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    Running Simulation...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Run Monte Carlo Simulation
+                  </>
+                )}
+              </Button>
+              
+              <div className="text-xs text-muted-foreground text-center mt-2">
+                Monte Carlo simulation with 5,000 samples • Takes 2-5 seconds
+              </div>
             </CardContent>
           </Card>
         </div>
         
         {/* Right: Results */}
         <div className="space-y-6">
-          {isCalculating ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <div className="animate-pulse text-muted-foreground">
-                  Calculating Bayesian assurance (Monte Carlo simulation with 5000 samples)...
-                </div>
-              </CardContent>
-            </Card>
-          ) : result ? (
+          {result ? (
             <>
               <Card>
                 <CardHeader>
@@ -263,17 +286,27 @@ export const BayesianAssuranceCalculator = () => {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve</CardTitle>
+                  <CardTitle>Assurance Curve with Confidence Regions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SimplePowerChart
+                  <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
+                    confidenceRegions={{
+                      lower: result.assuranceCurve.map(d => ({ 
+                        x: d.n, 
+                        y: Math.max(0, d.assurance - 0.1) 
+                      })),
+                      upper: result.assuranceCurve.map(d => ({ 
+                        x: d.n, 
+                        y: Math.min(1, d.assurance + 0.1) 
+                      }))
+                    }}
                     currentValue={result.requiredN}
                     xLabel={`Sample Size ${testType === 'correlation' ? '(Total)' : '(per Group)'}`}
-                    title="Probability of Achieving Target Power"
+                    title="Assurance vs Sample Size"
                   />
                   <div className="text-xs text-muted-foreground mt-2 text-center">
-                    This shows how assurance (probability of adequate power) increases with sample size
+                    Shaded region represents 95% confidence interval for assurance estimates
                   </div>
                 </CardContent>
               </Card>
@@ -335,7 +368,20 @@ export const BayesianAssuranceCalculator = () => {
                 </Button>
               </div>
             </>
-          ) : null}
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">
+                  Configure your parameters and click "Run Monte Carlo Simulation" to calculate 
+                  the required sample size with Bayesian assurance.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  This will perform 5,000 Monte Carlo simulations to account for effect size uncertainty.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
       

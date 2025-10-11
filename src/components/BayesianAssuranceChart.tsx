@@ -1,0 +1,199 @@
+interface BayesianAssuranceChartProps {
+  data: { x: number; y: number }[];
+  confidenceRegions?: {
+    lower: { x: number; y: number }[];
+    upper: { x: number; y: number }[];
+  };
+  currentValue: number;
+  xLabel?: string;
+  title?: string;
+}
+
+const BayesianAssuranceChart = ({ 
+  data, 
+  confidenceRegions,
+  currentValue, 
+  xLabel = 'Sample Size', 
+  title = 'Assurance Curve' 
+}: BayesianAssuranceChartProps) => {
+  if (!data || data.length === 0) return <div className="text-muted-foreground">No data to display</div>;
+
+  const maxX = Math.max(...data.map(d => d.x));
+  
+  // Find or interpolate the current point
+  let currentY = 0;
+  const exactPoint = data.find(d => d.x === currentValue);
+  if (exactPoint) {
+    currentY = exactPoint.y;
+  } else {
+    // Interpolate between two nearest points
+    const sortedData = [...data].sort((a, b) => a.x - b.x);
+    for (let i = 0; i < sortedData.length - 1; i++) {
+      if (sortedData[i].x <= currentValue && sortedData[i + 1].x >= currentValue) {
+        const x1 = sortedData[i].x;
+        const y1 = sortedData[i].y;
+        const x2 = sortedData[i + 1].x;
+        const y2 = sortedData[i + 1].y;
+        currentY = y1 + ((currentValue - x1) / (x2 - x1)) * (y2 - y1);
+        break;
+      }
+    }
+    if (currentValue < sortedData[0].x) currentY = sortedData[0].y;
+    if (currentValue > sortedData[sortedData.length - 1].x) currentY = sortedData[sortedData.length - 1].y;
+  }
+
+  return (
+    <div className="w-full h-[400px] flex flex-col">
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <div className="flex-1 relative bg-card border rounded-lg p-6">
+        <svg className="w-full h-full" viewBox="0 0 800 300">
+          {/* Grid lines */}
+          {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((y) => (
+            <line
+              key={y}
+              x1="50"
+              y1={250 - y * 200}
+              x2="750"
+              y2={250 - y * 200}
+              stroke="hsl(var(--border))"
+              strokeWidth="1"
+              strokeDasharray="2,2"
+            />
+          ))}
+          
+          {/* Axes */}
+          <line x1="50" y1="250" x2="750" y2="250" stroke="hsl(var(--foreground))" strokeWidth="2" />
+          <line x1="50" y1="50" x2="50" y2="250" stroke="hsl(var(--foreground))" strokeWidth="2" />
+          
+          {/* Y-axis labels */}
+          {[0, 20, 40, 60, 80, 100].map((label, i) => (
+            <text
+              key={label}
+              x="30"
+              y={255 - (i * 40)}
+              fontSize="12"
+              fill="hsl(var(--foreground))"
+              textAnchor="end"
+            >
+              {label}%
+            </text>
+          ))}
+          
+          {/* Confidence region (shaded area) */}
+          {confidenceRegions && (
+            <>
+              <defs>
+                <linearGradient id="confidenceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.1" />
+                </linearGradient>
+              </defs>
+              <path
+                d={
+                  // Draw upper curve
+                  confidenceRegions.upper
+                    .map((d, i) => {
+                      const x = 50 + (d.x / maxX) * 700;
+                      const y = 250 - d.y * 200;
+                      return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+                    })
+                    .join(' ') +
+                  // Draw lower curve in reverse
+                  ' ' +
+                  confidenceRegions.lower
+                    .slice()
+                    .reverse()
+                    .map((d) => {
+                      const x = 50 + (d.x / maxX) * 700;
+                      const y = 250 - d.y * 200;
+                      return `L ${x},${y}`;
+                    })
+                    .join(' ') +
+                  ' Z'
+                }
+                fill="url(#confidenceGradient)"
+                stroke="hsl(var(--primary))"
+                strokeWidth="1"
+                strokeDasharray="3,3"
+                strokeOpacity="0.3"
+              />
+            </>
+          )}
+          
+          {/* Main assurance curve */}
+          <polyline
+            points={data
+              .map((d) => {
+                const x = 50 + (d.x / maxX) * 700;
+                const y = 250 - d.y * 200;
+                return `${x},${y}`;
+              })
+              .join(' ')}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="3"
+          />
+          
+          {/* Target assurance line (0.8) */}
+          <line
+            x1="50"
+            y1={250 - 0.8 * 200}
+            x2="750"
+            y2={250 - 0.8 * 200}
+            stroke="hsl(var(--destructive))"
+            strokeWidth="2"
+            strokeDasharray="5,5"
+            strokeOpacity="0.6"
+          />
+          <text
+            x="755"
+            y={250 - 0.8 * 200 + 5}
+            fontSize="11"
+            fill="hsl(var(--destructive))"
+            fontWeight="600"
+          >
+            Target
+          </text>
+          
+          {/* Current point marker */}
+          <circle
+            cx={50 + (currentValue / maxX) * 700}
+            cy={250 - currentY * 200}
+            r="6"
+            fill="hsl(var(--accent))"
+            stroke="hsl(var(--primary))"
+            strokeWidth="2"
+          />
+          
+          {/* Axis labels */}
+          <text x="400" y="285" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
+            {xLabel}
+          </text>
+          <text x="15" y="150" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 150)">
+            Assurance (%)
+          </text>
+        </svg>
+        
+        {/* Legend */}
+        {confidenceRegions && (
+          <div className="mt-2 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-0.5 bg-primary"></div>
+              <span>Mean assurance</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-3 bg-primary/20 border border-primary/30 border-dashed"></div>
+              <span>95% confidence region</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-0.5 bg-destructive border-dashed" style={{ borderTop: '2px dashed' }}></div>
+              <span>Target assurance</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BayesianAssuranceChart;
