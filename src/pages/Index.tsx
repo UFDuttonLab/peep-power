@@ -23,7 +23,7 @@ const Index = () => {
             <h1 className="text-4xl font-bold">Ecological Power Analysis Toolkit</h1>
           </div>
           <p className="text-lg opacity-90 max-w-3xl mx-auto">
-            A professional tool for planning field studies, grant proposals, and experimental designs 
+            A tool for planning field studies, grant proposals, and experimental designs 
             with a focus on real ecological research scenarios
           </p>
         </div>
