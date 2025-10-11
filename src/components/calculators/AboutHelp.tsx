@@ -511,24 +511,6 @@ const AboutHelp = () => {
             </Collapsible>
           </section>
 
-          <section>
-            <div className="flex items-center gap-3 mb-3">
-              <Github className="h-6 w-6 text-primary" />
-              <h3 className="text-xl font-bold">About UF Dutton Lab</h3>
-            </div>
-            <p className="text-muted-foreground leading-relaxed">
-              This tool was developed by the Dutton Lab at the University of Florida to support ecological research 
-              and education. For questions, suggestions, or to report issues, please visit our GitHub repository.
-            </p>
-            <a 
-              href="https://ufduttonlab.github.io" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block mt-3 text-primary hover:underline font-medium"
-            >
-              Visit UF Dutton Lab →
-            </a>
-          </section>
 
           <section>
             <h3 className="text-xl font-bold mb-3">References & Further Reading</h3>
