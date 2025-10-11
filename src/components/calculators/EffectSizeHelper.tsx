@@ -5,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cohensD, cohensF, cohensW } from '@/utils/powerCalculations';
-import { Calculator, Lightbulb, BookOpen } from 'lucide-react';
+import { Calculator, Lightbulb } from 'lucide-react';
 import EffectSizeGuidance from '../EffectSizeGuidance';
+import EffectSizeConversionGuide from '../EffectSizeConversionGuide';
 
 const EffectSizeHelper = () => {
   // Cohen's d calculator
@@ -74,10 +75,11 @@ const EffectSizeHelper = () => {
         </Card>
 
         <Tabs defaultValue="cohens-d" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="cohens-d">Cohen's d</TabsTrigger>
             <TabsTrigger value="cohens-f">Cohen's f</TabsTrigger>
             <TabsTrigger value="cohens-w">Cohen's w</TabsTrigger>
+            <TabsTrigger value="conversions">Conversions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="cohens-d" className="space-y-6">
@@ -237,37 +239,15 @@ const EffectSizeHelper = () => {
               )}
             </Card>
           </TabsContent>
-        </Tabs>
 
-        <Card className="mt-6 p-6 bg-secondary/30 border-l-4 border-accent">
-          <h3 className="font-bold text-lg mb-3">Effect Size Interpretation</h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <h4 className="font-semibold mb-2">Cohen's d (t-test)</h4>
-              <ul className="space-y-1">
-                <li>Small: 0.2</li>
-                <li>Medium: 0.5</li>
-                <li>Large: 0.8</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Cohen's f (ANOVA)</h4>
-              <ul className="space-y-1">
-                <li>Small: 0.1</li>
-                <li>Medium: 0.25</li>
-                <li>Large: 0.4</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Cohen's w (χ²)</h4>
-              <ul className="space-y-1">
-                <li>Small: 0.1</li>
-                <li>Medium: 0.3</li>
-                <li>Large: 0.5</li>
-              </ul>
-            </div>
-          </div>
-        </Card>
+          <TabsContent value="conversions" className="space-y-6">
+            <EffectSizeConversionGuide 
+              rSquared={0.08} 
+              numGroups={2} 
+              showInEffectSizeTab={true} 
+            />
+          </TabsContent>
+        </Tabs>
       </Card>
     </div>
   );

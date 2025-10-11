@@ -408,7 +408,7 @@ const MicrobiomeCalculator = () => {
             </div>
           </Card>
 
-          <EffectSizeConversionGuide rSquared={betaR2} numGroups={betaGroups} />
+          <EffectSizeConversionGuide rSquared={betaR2} numGroups={betaGroups} showInEffectSizeTab={false} />
 
           {/* Visualization */}
           <div className="space-y-4">
