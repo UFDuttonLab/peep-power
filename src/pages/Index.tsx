@@ -35,7 +35,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="ttest" className="w-full">
-          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 pb-5 min-h-[100px] justify-start items-start">
+          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 pb-6 sm:pb-5 min-h-[120px] sm:min-h-[100px] mb-2 justify-start items-start">
             <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
               t-test
             </TabsTrigger>
@@ -77,55 +77,55 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="ttest" className="mt-6">
+          <TabsContent value="ttest" className="mt-8 md:mt-6">
             <TTestCalculator />
           </TabsContent>
 
-          <TabsContent value="oneway" className="mt-6">
+          <TabsContent value="oneway" className="mt-8 md:mt-6">
             <OneWayAnovaCalculator />
           </TabsContent>
 
-          <TabsContent value="twoway" className="mt-6">
+          <TabsContent value="twoway" className="mt-8 md:mt-6">
             <TwoWayAnovaCalculator />
           </TabsContent>
 
-          <TabsContent value="repeated" className="mt-6">
+          <TabsContent value="repeated" className="mt-8 md:mt-6">
             <RepeatedMeasuresCalculator />
           </TabsContent>
 
-          <TabsContent value="correlation" className="mt-6">
+          <TabsContent value="correlation" className="mt-8 md:mt-6">
             <CorrelationCalculator />
           </TabsContent>
 
-          <TabsContent value="chisquare" className="mt-6">
+          <TabsContent value="chisquare" className="mt-8 md:mt-6">
             <ChiSquareCalculator />
           </TabsContent>
 
-          <TabsContent value="microbiome" className="mt-6">
+          <TabsContent value="microbiome" className="mt-8 md:mt-6">
             <MicrobiomeCalculator />
           </TabsContent>
 
-          <TabsContent value="nested" className="mt-6">
+          <TabsContent value="nested" className="mt-8 md:mt-6">
             <NestedAnovaCalculator />
           </TabsContent>
 
-          <TabsContent value="mde" className="mt-6">
+          <TabsContent value="mde" className="mt-8 md:mt-6">
             <MinimumDetectableEffectCalculator />
           </TabsContent>
 
-          <TabsContent value="effect" className="mt-6">
+          <TabsContent value="effect" className="mt-8 md:mt-6">
             <EffectSizeHelper />
           </TabsContent>
 
-          <TabsContent value="library" className="mt-6">
+          <TabsContent value="library" className="mt-8 md:mt-6">
             <EffectSizeLibrary />
           </TabsContent>
 
-          <TabsContent value="replication" className="mt-6">
+          <TabsContent value="replication" className="mt-8 md:mt-6">
             <ReplicationChecker />
           </TabsContent>
 
-          <TabsContent value="about" className="mt-6">
+          <TabsContent value="about" className="mt-8 md:mt-6">
             <AboutHelp />
           </TabsContent>
         </Tabs>
