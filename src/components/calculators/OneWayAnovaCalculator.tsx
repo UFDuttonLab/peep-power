@@ -153,8 +153,8 @@ const OneWayAnovaCalculator = () => {
             <Card className="p-6">
               <PowerChart
                 data={result.curveData}
-                currentValue={n}
-                xLabel="Sample Size per Group"
+                currentValue={n * groups}
+                xLabel="Total Sample Size (N)"
                 title="Power Curve: One-Way ANOVA"
               />
             </Card>

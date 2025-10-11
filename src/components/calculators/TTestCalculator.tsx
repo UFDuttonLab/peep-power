@@ -138,8 +138,8 @@ const TTestCalculator = () => {
             <Card className="p-6">
               <PowerChart
                 data={result.curveData}
-                currentValue={n}
-                xLabel="Sample Size per Group"
+                currentValue={n * 2}
+                xLabel="Total Sample Size (N)"
                 title="Power Curve: Two-Sample t-test"
               />
             </Card>

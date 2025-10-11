@@ -183,8 +183,8 @@ const TwoWayAnovaCalculator = () => {
             <Card className="p-6">
               <PowerChart
                 data={result.curveData}
-                currentValue={n}
-                xLabel="n per Cell"
+                currentValue={n * factorA * factorB}
+                xLabel="Total Sample Size (N)"
                 title="Power Curve: Interaction Effect"
               />
             </Card>
