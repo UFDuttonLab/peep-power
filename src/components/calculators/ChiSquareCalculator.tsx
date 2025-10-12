@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { AlertCircle } from 'lucide-react';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
@@ -17,6 +19,7 @@ const ChiSquareCalculator = () => {
   const [w, setW] = useState(0.3);
   const [df, setDf] = useState(3);
   const [alpha, setAlpha] = useState(0.05);
+  const [assumeEqualProportions, setAssumeEqualProportions] = useState(false);
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
@@ -84,6 +87,7 @@ const ChiSquareCalculator = () => {
             onChange={setN}
             decimals={0}
             tooltip="Total number of observations across all categories."
+            warningThreshold={{ min: 20, message: "Chi-square test requires expected counts ≥5 in each cell. Total n≥20 recommended" }}
           />
 
           <div className="space-y-2">
@@ -121,6 +125,29 @@ const ChiSquareCalculator = () => {
             decimals={0}
             tooltip="For contingency table: df = (rows - 1) × (columns - 1). For goodness-of-fit: df = categories - 1."
           />
+
+          <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md">
+            <Checkbox 
+              id="equal-props" 
+              checked={assumeEqualProportions}
+              onCheckedChange={(checked) => setAssumeEqualProportions(checked as boolean)}
+            />
+            <Label 
+              htmlFor="equal-props" 
+              className="text-sm cursor-pointer flex-1"
+            >
+              Assume equal expected proportions
+            </Label>
+          </div>
+          
+          {assumeEqualProportions && (
+            <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+              <AlertDescription className="text-xs">
+                Using equal expected proportions (uniform distribution). This is common for goodness-of-fit tests 
+                where you expect all categories to occur with equal frequency.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <ControlSlider

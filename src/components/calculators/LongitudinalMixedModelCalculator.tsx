@@ -157,6 +157,10 @@ const LongitudinalMixedModelCalculator = () => {
                 onChange={setNSubjects}
                 decimals={0}
                 tooltip="Total subjects across all groups"
+                warningThreshold={{ 
+                  min: 20, 
+                  message: "Longitudinal studies need ≥20 subjects for reliable random effects estimates" 
+                }}
               />
               
               <ControlSlider

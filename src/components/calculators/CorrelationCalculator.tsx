@@ -78,6 +78,10 @@ const CorrelationCalculator = () => {
             onChange={setN}
             decimals={0}
             tooltip="Total number of paired observations."
+            warningThreshold={{ 
+              min: 30, 
+              message: "Correlations are unstable with n<30. Need n≈85 for 80% power to detect r=0.3" 
+            }}
           />
 
           <div className="space-y-2">

@@ -95,6 +95,7 @@ const OneWayAnovaCalculator = () => {
             onChange={setN}
             decimals={0}
             tooltip="Number of independent observations in each group."
+            warningThreshold={{ min: 15, message: "ANOVA requires at least 15 per group for reliable results" }}
           />
 
           <ControlSlider

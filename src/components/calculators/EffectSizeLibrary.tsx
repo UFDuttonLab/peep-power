@@ -904,7 +904,16 @@ const EffectSizeLibrary = () => {
                     <TableCell className="text-right font-bold text-primary">
                       {item.effectSize.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{item.effectType}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        item.effectType === "Cohen's d" ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                        item.effectType === "Cohen's f" ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                        item.effectType === "PERMANOVA R²" ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                        'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300'
+                      }`}>
+                        {item.effectType}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{item.reference}</span>

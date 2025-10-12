@@ -86,6 +86,7 @@ const MicrobiomeCalculator = () => {
                 onChange={setNPerGroup}
                 decimals={0}
                 tooltip="Number of biological replicates (independent samples) per treatment group"
+                warningThreshold={{ min: 15, message: "PERMANOVA needs 15+ per group for reliable multivariate community data" }}
               />
               
               <ControlSlider
