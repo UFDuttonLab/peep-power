@@ -25,9 +25,59 @@ export const ADAPTIVE_ALLOCATION_CITATIONS = {
 export const MICROBIOME_PILOT_GUIDANCE = {
   shortTerm: "For short-term studies (<3 months): collect 5-10 samples per group to estimate dispersion and mean counts. Sequence at similar depth to your planned main study.",
   longTerm: "For longitudinal studies (>3 months): collect 3-5 subjects per group across 2-3 timepoints to estimate within-subject correlation and dropout rates.",
-  betaDiversity: "For PERMANOVA/beta diversity: pilot with 8-15 samples per group. Calculate observed R² using adonis2() in vegan package. Account for within-group heterogeneity using betadisper().",
-  differentialAbundance: "For DESeq2/edgeR: pilot with 3-5 samples per group. Estimate dispersion using estimateDispersions() and effect sizes using results(). Focus on medium-abundance taxa (10-1000 mean counts).",
-  zeroInflated: "For rare/zero-inflated taxa: pilot needs larger N (10-15 per group) to reliably estimate zero-inflation rates and distinguish structural from sampling zeros."
+  longitudinal: `**Planning Longitudinal Microbiome Studies:**
+
+**Within-Subject Correlation:**
+- High correlation (ρ=0.7-0.9): Stable communities, measurements are redundant
+- Medium correlation (ρ=0.5-0.7): Moderate dynamics
+- Low correlation (ρ=0.3-0.5): Highly dynamic communities
+
+**Dropout Considerations:**
+- Plan for 10-20% dropout per timepoint
+- Increase initial n to maintain power
+- Consider mixed models for missing data
+
+**Effect Size Estimation:**
+Use Cohen's f from pilot LMM results or literature values (0.15-0.35 typical).`,
+  betaDiversity: `**From PERMANOVA Results:**
+Run permanova on pilot data:
+  library(vegan)
+  perm <- adonis2(dist_matrix ~ treatment, data=metadata)
+  R2 <- perm$R2[1]  # Extract R-squared
+
+**Typical R² values:**
+- Strong effects (antibiotics): 0.15-0.30
+- Moderate effects (diet change): 0.05-0.15  
+- Subtle effects (supplement): 0.01-0.05
+
+**If no pilot data:**
+Use conservative estimates from literature (adjust down 20-30% for planning).`,
+  differentialAbundance: `**From DESeq2/edgeR Results:**
+Run differential abundance on pilot:
+  library(DESeq2)
+  dds <- DESeq(dds)
+  res <- results(dds)
+  log2FC <- res$log2FoldChange[significant_taxa]
+  
+**Typical log2FC values:**
+- Abundant genera: 0.5-2.0 (1.4-4× change)
+- Moderate abundance: 1.5-3.0 (2.8-8× change)  
+- Rare taxa: 2.0-4.0 (4-16× change)
+
+**Dispersion estimates:**
+Check plotDispEsts(dds) - typical values 0.1-1.5.`,
+  zeroInflated: `**Zero-Inflation Assessment:**
+Calculate proportion of zeros in pilot:
+  zero_prop <- sum(counts == 0) / length(counts)
+  
+**Guidelines:**
+- <30% zeros: Standard negative binomial OK
+- 30-60% zeros: Consider zero-inflation
+- >60% zeros: Definitely use ZINB
+
+**Hurdle vs ZINB:**
+- Hurdle: Zeros from detection limits
+- ZINB: Zeros from biological absence + detection`
 };
 
 export const EFFECT_SIZE_BENCHMARKS = {

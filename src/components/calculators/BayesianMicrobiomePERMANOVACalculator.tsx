@@ -342,8 +342,9 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                 <CardContent>
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
-                    targetAssurance={targetAssurance}
-                    requiredN={result.requiredN}
+                    currentValue={result.requiredN}
+                    xLabel="Samples Per Group"
+                    title="Assurance vs Sample Size"
                   />
                 </CardContent>
               </Card>
