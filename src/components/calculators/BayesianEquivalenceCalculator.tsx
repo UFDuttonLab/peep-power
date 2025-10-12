@@ -1,0 +1,333 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Play, AlertCircle, Info, Equal } from 'lucide-react';
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { calculateEquivalenceN } from '@/utils/bayesianPowerCalculations';
+import { toast } from 'sonner';
+
+const BayesianEquivalenceCalculator = () => {
+  const [equivalenceMargin, setEquivalenceMargin] = useState(0.3);
+  const [priorMean, setPriorMean] = useState(0.1);
+  const [priorSD, setPriorSD] = useState(0.2);
+  const [targetProbability, setTargetProbability] = useState(0.95);
+  const [testType, setTestType] = useState<'ttest' | 'correlation'>('ttest');
+  const [alpha, setAlpha] = useState(0.05);
+  const [result, setResult] = useState<any>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  const runSimulation = () => {
+    setIsCalculating(true);
+    
+    setTimeout(() => {
+      try {
+        const res = calculateEquivalenceN({
+          equivalenceMargin,
+          priorEffect: { mean: priorMean, sd: priorSD },
+          targetProbability,
+          testType,
+          alpha
+        });
+        setResult(res);
+        toast.success('Equivalence analysis complete!');
+      } catch (error) {
+        toast.error('Calculation failed. Please check your parameters.');
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 100);
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Bayesian Equivalence Testing Calculator</CardTitle>
+          <CardDescription>
+            Calculate sample size to prove treatments are practically equivalent
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Alert>
+        <Equal className="h-4 w-4" />
+        <AlertDescription>
+          <strong>What is Equivalence Testing?</strong> Traditional tests ask "are groups different?" 
+          Equivalence tests ask "are groups similar enough to be practically equivalent?" This is crucial 
+          for showing no harm, conservation equivalence, or substitutability of methods.
+        </AlertDescription>
+      </Alert>
+
+      <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+        <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
+        <AlertDescription className="text-green-900 dark:text-green-100">
+          <strong>When to use:</strong> Showing conservation practices don't harm biodiversity, proving 
+          new methods equivalent to gold standard, demonstrating substitutability, bioequivalence studies.
+        </AlertDescription>
+      </Alert>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Controls */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Equivalence Parameters</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Test Type</Label>
+              <Select value={testType} onValueChange={(v: any) => setTestType(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ttest">Two-Sample t-test</SelectItem>
+                  <SelectItem value="correlation">Correlation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Equivalence Margin (ROPE): ±{equivalenceMargin.toFixed(2)}</Label>
+              <Slider
+                value={[equivalenceMargin]}
+                onValueChange={(v) => setEquivalenceMargin(v[0])}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum acceptable difference. Effects within ±{equivalenceMargin.toFixed(2)} are "equivalent"
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prior Effect Size - Mean: {priorMean.toFixed(2)}</Label>
+              <Slider
+                value={[priorMean]}
+                onValueChange={(v) => setPriorMean(v[0])}
+                min={-0.5}
+                max={0.5}
+                step={0.05}
+              />
+              <p className="text-xs text-muted-foreground">
+                Expected difference (0 = perfect equivalence)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prior Uncertainty - SD: {priorSD.toFixed(2)}</Label>
+              <Slider
+                value={[priorSD]}
+                onValueChange={(v) => setPriorSD(v[0])}
+                min={0.05}
+                max={0.8}
+                step={0.05}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Target Probability: {(targetProbability * 100).toFixed(0)}%</Label>
+              <Slider
+                value={[targetProbability * 100]}
+                onValueChange={(v) => setTargetProbability(v[0] / 100)}
+                min={80}
+                max={99}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                Pr(effect is within ROPE) ≥ this threshold
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Significance Level (α): {alpha}</Label>
+              <Select value={alpha.toString()} onValueChange={(v) => setAlpha(parseFloat(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.01">0.01</SelectItem>
+                  <SelectItem value="0.05">0.05</SelectItem>
+                  <SelectItem value="0.10">0.10</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button onClick={runSimulation} className="w-full" disabled={isCalculating}>
+              <Play className="h-4 w-4 mr-2" />
+              {isCalculating ? 'Calculating...' : 'Calculate Equivalence Design'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Results */}
+        <div className="space-y-6">
+          {result ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Required Sample Size</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center p-6 bg-primary/10 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-2">N Per Group</p>
+                    <p className="text-5xl font-bold text-primary">{result.requiredN}</p>
+                  </div>
+
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
+                  </Alert>
+
+                  <div className="p-4 bg-muted rounded-lg space-y-3">
+                    <p className="font-semibold">ROPE Analysis</p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {(result.ropeAnalysis.probInROPE * 100).toFixed(0)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">In ROPE</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                          {(result.ropeAnalysis.probBelowROPE * 100).toFixed(0)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">Below ROPE</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                          {(result.ropeAnalysis.probAboveROPE * 100).toFixed(0)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">Above ROPE</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      ROPE = Region of Practical Equivalence (±{equivalenceMargin.toFixed(2)})
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                      vs. TOST (Two One-Sided Tests)
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-800 dark:text-blue-200">TOST requires</p>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          N = {result.comparisonToTOST.tostN}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">Difference</p>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {result.comparisonToTOST.difference > 0 ? '+' : ''}{result.comparisonToTOST.difference}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Equivalence Probability Curve</CardTitle>
+                  <CardDescription>How probability changes with sample size</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={result.chart}>
+                      <defs>
+                        <linearGradient id="equivGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="n" 
+                        label={{ value: 'Sample Size Per Group', position: 'insideBottom', offset: -5 }} 
+                      />
+                      <YAxis label={{ value: 'Pr(Equivalent)', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip />
+                      <Legend />
+                      <Area 
+                        type="monotone" 
+                        dataKey="probEquivalent" 
+                        stroke="hsl(var(--chart-1))"
+                        fill="url(#equivGradient)"
+                        name="Probability of Equivalence"
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey={() => targetProbability}
+                        stroke="hsl(var(--destructive))"
+                        strokeDasharray="5 5"
+                        strokeWidth={2}
+                        name="Target Probability"
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Interpretation Guide</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="font-semibold mb-1">What is ROPE?</p>
+                    <p className="text-sm text-muted-foreground">
+                      The Region of Practical Equivalence (±{equivalenceMargin.toFixed(2)}) defines the smallest 
+                      difference you care about. Effects smaller than this are considered "equivalent" for practical purposes.
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="font-semibold mb-1">Bayesian vs TOST</p>
+                    <p className="text-sm text-muted-foreground">
+                      Bayesian approach gives direct probability statements: "95% probability effect is within ROPE". 
+                      TOST gives p-values which are harder to interpret. Bayesian approach is often more intuitive.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="font-semibold mb-1">Choosing Equivalence Margin</p>
+                    <p className="text-sm text-muted-foreground">
+                      For Cohen's d: 0.2 (small effect), 0.3 (moderate margin). For correlations: 0.1-0.2. 
+                      Should be based on smallest effect size of practical importance, not statistical convenience.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center text-muted-foreground">
+                  <Equal className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Configure parameters and click "Calculate Equivalence Design"</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <AlertDescription className="text-blue-900 dark:text-blue-100">
+          <strong>Further Reading:</strong> Kruschke (2018) "Rejecting or Accepting Parameter Values in Bayesian Estimation", 
+          Lakens (2017) "Equivalence Testing for Psychological Research"
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+};
+
+export default BayesianEquivalenceCalculator;

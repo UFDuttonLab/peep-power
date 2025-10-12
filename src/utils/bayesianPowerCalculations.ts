@@ -363,6 +363,7 @@ export const calculateBayesianSequential = (
     const trueEffect = normalRandom(params.effectSizePrior.mean, params.effectSizePrior.sd);
     let stopped = false;
     let simN = params.maxN;
+    let finalPower = 0;
     
     for (let lookIdx = 0; lookIdx < interimSizes.length; lookIdx++) {
       const n = interimSizes[lookIdx];
@@ -380,6 +381,7 @@ export const calculateBayesianSequential = (
         power = 0;
       }
       
+      finalPower = power;
       const successProb = power;
       
       if ((params.stoppingRule === 'futility' || params.stoppingRule === 'both') && 
@@ -398,7 +400,7 @@ export const calculateBayesianSequential = (
       }
     }
     
-    if (!stopped && power >= params.targetPower) powerCount++;
+    if (!stopped && finalPower >= params.targetPower) powerCount++;
     totalN += simN;
   }
   

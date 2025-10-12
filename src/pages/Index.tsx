@@ -20,6 +20,14 @@ import { NestedAnovaCalculator } from '@/components/calculators/NestedAnovaCalcu
 import HoldMyHandCalculator from '@/components/calculators/HoldMyHandCalculator';
 import BayesianAssuranceCalculator from '@/components/calculators/BayesianAssuranceCalculator';
 import PriorElicitationTool from '@/components/calculators/PriorElicitationTool';
+import BayesianSequentialCalculator from '@/components/calculators/BayesianSequentialCalculator';
+import BayesianReplicationCalculator from '@/components/calculators/BayesianReplicationCalculator';
+import BayesianInformationDesignCalculator from '@/components/calculators/BayesianInformationDesignCalculator';
+import BayesianHierarchicalCalculator from '@/components/calculators/BayesianHierarchicalCalculator';
+import BayesianAdaptiveAllocationCalculator from '@/components/calculators/BayesianAdaptiveAllocationCalculator';
+import BayesianEquivalenceCalculator from '@/components/calculators/BayesianEquivalenceCalculator';
+import BayesianModelComparisonCalculator from '@/components/calculators/BayesianModelComparisonCalculator';
+import BayesianCalibrationCalculator from '@/components/calculators/BayesianCalibrationCalculator';
 import { Leaf, Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
 
@@ -248,14 +256,16 @@ const Index = () => {
           <TabsContent value="bayesian" className="mt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
-                <TabsTrigger value="bayesian-assurance" className="data-[state=active]:bg-background">
-                  <Brain className="inline h-4 w-4 mr-1" />
-                  Bayesian Assurance
-                </TabsTrigger>
-                <TabsTrigger value="prior-elicitation" className="data-[state=active]:bg-background">
-                  <Lightbulb className="inline h-4 w-4 mr-1" />
-                  Prior Elicitation
-                </TabsTrigger>
+                <TabsTrigger value="bayesian-assurance" className="data-[state=active]:bg-background">Assurance</TabsTrigger>
+                <TabsTrigger value="prior-elicitation" className="data-[state=active]:bg-background">Prior Elicitation</TabsTrigger>
+                <TabsTrigger value="sequential" className="data-[state=active]:bg-background">Sequential</TabsTrigger>
+                <TabsTrigger value="replication" className="data-[state=active]:bg-background">Replication</TabsTrigger>
+                <TabsTrigger value="information" className="data-[state=active]:bg-background">Information Design</TabsTrigger>
+                <TabsTrigger value="hierarchical" className="data-[state=active]:bg-background">Hierarchical</TabsTrigger>
+                <TabsTrigger value="adaptive" className="data-[state=active]:bg-background">Adaptive</TabsTrigger>
+                <TabsTrigger value="equivalence" className="data-[state=active]:bg-background">Equivalence</TabsTrigger>
+                <TabsTrigger value="model-comparison" className="data-[state=active]:bg-background">Model Comparison</TabsTrigger>
+                <TabsTrigger value="calibration" className="data-[state=active]:bg-background">Calibration</TabsTrigger>
               </TabsList>
 
               <TabsContent value="bayesian-assurance" className="mt-6">
@@ -263,6 +273,30 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="prior-elicitation" className="mt-6">
                 <PriorElicitationTool />
+              </TabsContent>
+              <TabsContent value="sequential" className="mt-6">
+                <BayesianSequentialCalculator />
+              </TabsContent>
+              <TabsContent value="replication" className="mt-6">
+                <BayesianReplicationCalculator />
+              </TabsContent>
+              <TabsContent value="information" className="mt-6">
+                <BayesianInformationDesignCalculator />
+              </TabsContent>
+              <TabsContent value="hierarchical" className="mt-6">
+                <BayesianHierarchicalCalculator />
+              </TabsContent>
+              <TabsContent value="adaptive" className="mt-6">
+                <BayesianAdaptiveAllocationCalculator />
+              </TabsContent>
+              <TabsContent value="equivalence" className="mt-6">
+                <BayesianEquivalenceCalculator />
+              </TabsContent>
+              <TabsContent value="model-comparison" className="mt-6">
+                <BayesianModelComparisonCalculator />
+              </TabsContent>
+              <TabsContent value="calibration" className="mt-6">
+                <BayesianCalibrationCalculator />
               </TabsContent>
             </Tabs>
           </TabsContent>
