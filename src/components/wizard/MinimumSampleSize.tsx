@@ -227,11 +227,51 @@ const MinimumSampleSize = ({
     requiredNPerGroup = Math.max(low, 5); // Ensure minimum of 5 per group
     
     const requiredN = requiredNPerGroup;
+    
+    // Calculate actual N for each power target instead of using multipliers
     const budgetScenarios = [
-      { label: 'Tight Budget', multiplier: 0.6, note: 'Lower power (~65%), higher risk of missing real effects' },
-      { label: 'Recommended', multiplier: 1.0, note: '80% power - standard for most studies' },
-      { label: 'Well-Funded', multiplier: 1.4, note: '90% power - ideal if resources allow' },
-    ];
+      { label: 'Tight Budget', targetPower: 0.65 },
+      { label: 'Recommended', targetPower: 0.80 },
+      { label: 'Well-Funded', targetPower: 0.90 },
+    ].map(scenario => {
+      // Binary search for N at this power level
+      let low = 5, high = 500;
+      let scenarioN = requiredN;
+      
+      for (let iter = 0; iter < 50; iter++) {
+        const mid = Math.floor((low + high) / 2);
+        const N = mid * groups;
+        const df1 = groups - 1;
+        const df2 = N - groups;
+        
+        if (df2 <= 0) {
+          low = mid + 1;
+          continue;
+        }
+        
+        const lambda = N * (effectSize / (1 - effectSize));
+        const criticalValue = 2.0 + (0.5 * df1);
+        const approxPower = 1 - Math.exp(-lambda / (criticalValue * df2));
+        
+        if (Math.abs(approxPower - scenario.targetPower) < 0.02) {
+          scenarioN = mid;
+          break;
+        }
+        
+        if (approxPower < scenario.targetPower) {
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      scenarioN = Math.max(low, 5);
+      
+      return {
+        label: scenario.label,
+        n: scenarioN,
+        note: `${(scenario.targetPower * 100).toFixed(0)}% power to detect your effect`
+      };
+    });
 
     const sizeInfo = getSizeCategory(requiredN);
 
@@ -268,24 +308,21 @@ const MinimumSampleSize = ({
             <TrendingUp className="h-5 w-5 text-primary" />
             <h3 className="font-semibold">Budget Planning Options</h3>
           </div>
-          <div className="space-y-3">
-            {budgetScenarios.map((scenario) => {
-              const scenarioN = Math.ceil(requiredN * scenario.multiplier);
-              return (
-                <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="font-semibold">{scenario.label}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">n = {scenarioN}</div>
-                      <div className="text-xs text-muted-foreground">per group</div>
-                    </div>
+        <div className="space-y-3">
+            {budgetScenarios.map((scenario) => (
+              <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <div className="font-semibold">{scenario.label}</div>
+                    <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">n = {scenario.n}</div>
+                    <div className="text-xs text-muted-foreground">per group</div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -436,6 +473,16 @@ const MinimumSampleSize = ({
             frequency of at least 5 for reliable results.
           </AlertDescription>
         </Alert>
+        
+        {effectSize > 0.5 && (
+          <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Large effect size (w={effectSize.toFixed(2)}):</strong> Cohen's w values above 0.5 are very large. 
+              Typical values are 0.1 (small), 0.3 (medium), 0.5 (large). Verify this is appropriate for your study.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="flex gap-4">
           <Button onClick={onGoToCalculator} size="lg" className="flex-1 gap-2">
@@ -478,12 +525,26 @@ const MinimumSampleSize = ({
     requiredN = ANOVA_MIN_PER_GROUP;
   }
 
-  // Calculate budget estimates
+  // Calculate actual N for each power target instead of using multipliers
   const budgetScenarios = [
-    { label: 'Tight Budget', multiplier: 0.6, note: 'Lower power (~65%), higher risk of missing real effects' },
-    { label: 'Recommended', multiplier: 1.0, note: '80% power - standard for most studies' },
-    { label: 'Well-Funded', multiplier: 1.4, note: '90% power - ideal if resources allow' },
-  ];
+    { label: 'Tight Budget', targetPower: 0.65 },
+    { label: 'Recommended', targetPower: 0.80 },
+    { label: 'Well-Funded', targetPower: 0.90 },
+  ].map(scenario => {
+    const scenarioN = calculateRequiredSampleSize(
+      effectSize,
+      scenario.targetPower,
+      alpha,
+      mappedTestType,
+      groups
+    );
+    
+    return {
+      label: scenario.label,
+      n: Math.max(scenarioN, testType === 'oneway' || testType === 'twoway' || testType === 'repeated' ? ANOVA_MIN_PER_GROUP : scenarioN),
+      note: `${(scenario.targetPower * 100).toFixed(0)}% power to detect your effect`
+    };
+  });
 
   const sizeInfo = getSizeCategory(requiredN);
 
@@ -503,7 +564,12 @@ const MinimumSampleSize = ({
             <div className="text-5xl font-bold mb-2">{requiredN}</div>
             <p className="text-lg font-medium">samples per group</p>
             <p className="text-sm text-muted-foreground mt-2">
-              For effect size {effectSize} with {groups} groups
+              For effect size {
+                testType === 'ttest' ? `d=${effectSize.toFixed(2)}` :
+                (testType === 'oneway' || testType === 'twoway') ? `f=${effectSize.toFixed(2)}` :
+                testType === 'repeated' ? `f=${effectSize.toFixed(2)}` :
+                effectSize.toFixed(2)
+              } with {groups} {testType === 'repeated' ? 'timepoints' : 'groups'}
             </p>
           </div>
           <Alert className="text-left">
@@ -542,23 +608,20 @@ const MinimumSampleSize = ({
           <h3 className="font-semibold">Budget Planning Options</h3>
         </div>
         <div className="space-y-3">
-          {budgetScenarios.map((scenario) => {
-            const scenarioN = Math.ceil(requiredN * scenario.multiplier);
-            return (
-              <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="font-semibold">{scenario.label}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">n = {scenarioN}</div>
-                    <div className="text-xs text-muted-foreground">per group</div>
-                  </div>
+          {budgetScenarios.map((scenario) => (
+            <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <div className="font-semibold">{scenario.label}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">n = {scenario.n}</div>
+                  <div className="text-xs text-muted-foreground">per group</div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </Card>
 
@@ -566,7 +629,9 @@ const MinimumSampleSize = ({
         <h3 className="font-semibold">Study Design Summary</h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">Number of Groups</p>
+            <p className="text-sm text-muted-foreground">
+              {testType === 'repeated' ? 'Number of Timepoints' : 'Number of Groups'}
+            </p>
             <p className="text-xl font-bold">{groups}</p>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg">
@@ -584,12 +649,23 @@ const MinimumSampleSize = ({
         </div>
       </Card>
 
-      {requiredN > 100 && (
+      {(requiredN * groups > 100 || (testType !== 'repeated' && requiredN > 50)) && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Note:</strong> Large sample sizes may be logistically challenging. Consider if a smaller 
+            <strong>Note:</strong> Large sample sizes ({testType === 'repeated' ? `${requiredN * groups} total measurements` : `${requiredN} per group`}) may be logistically challenging. Consider if a smaller 
             effect size would still be biologically meaningful, or explore alternative designs.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Validation warnings for unrealistic effect sizes */}
+      {testType === 'ttest' && Math.abs(effectSize) > 1.5 && (
+        <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Very large effect size (d={effectSize.toFixed(2)}):</strong> Cohen's d values above 1.5 are extremely rare in most fields. 
+            Typical values are 0.2 (small), 0.5 (medium), 0.8 (large). Please verify this is realistic for your study.
           </AlertDescription>
         </Alert>
       )}

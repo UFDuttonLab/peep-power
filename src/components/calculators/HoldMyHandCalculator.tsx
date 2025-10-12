@@ -52,7 +52,11 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
                effectType === "Cohen's d") {
       // Convert Cohen's d to Cohen's f for ANOVA: f = d/2 (for 2 groups)
       convertedEffect = effectSize / 2;
-      console.warn(`Converted Cohen's d=${effectSize.toFixed(2)} to Cohen's f=${convertedEffect.toFixed(3)} for ANOVA`);
+      if (state.numGroups && state.numGroups > 2) {
+        console.warn(`Cohen's d to f conversion (f=d/2) is only exact for 2 groups. For ${state.numGroups} groups, this is an approximation assuming all pairs have similar effect sizes.`);
+      } else {
+        console.warn(`Converted Cohen's d=${effectSize.toFixed(2)} to Cohen's f=${convertedEffect.toFixed(3)} for ANOVA`);
+      }
     } else if ((state.selectedTest === 'oneway' || state.selectedTest === 'twoway') && 
                effectType === 'R² (PERMANOVA)') {
       // Convert R² to Cohen's f: f = √(R²/(1-R²))

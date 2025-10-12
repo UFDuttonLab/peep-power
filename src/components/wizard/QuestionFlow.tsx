@@ -220,16 +220,6 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
           onClick={() => onTestSelected('microbiome')}
         />
         <OptionCard
-          title="Specific Taxa Differences"
-          description="Which taxa are differentially abundant? (DESeq2/edgeR)"
-          onClick={() => onTestSelected('deseq')}
-        />
-        <OptionCard
-          title="Rare Taxa Analysis"
-          description="Detecting rare taxa with many zeros (Zero-Inflated models)"
-          onClick={() => onTestSelected('zinb')}
-        />
-        <OptionCard
           title="Diversity Comparison"
           description="Does alpha diversity differ between groups? (One-way ANOVA)"
           onClick={() => onTestSelected('oneway')}
