@@ -71,7 +71,7 @@ const BayesianAssuranceChart = ({
               key={label}
               x="30"
               y={355 - (i * 60)}
-              fontSize="12"
+              fontSize="24"
               fill="hsl(var(--foreground))"
               textAnchor="end"
             >
@@ -148,7 +148,7 @@ const BayesianAssuranceChart = ({
           <text
             x="755"
             y={350 - 0.8 * 300 + 5}
-            fontSize="11"
+            fontSize="22"
             fill="hsl(var(--destructive))"
             fontWeight="600"
           >
@@ -166,10 +166,10 @@ const BayesianAssuranceChart = ({
           />
           
           {/* Axis labels */}
-          <text x="400" y="395" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
+          <text x="400" y="395" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
             {xLabel}
           </text>
-          <text x="15" y="210" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 210)">
+          <text x="15" y="210" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 210)">
             Assurance (%)
           </text>
         </svg>

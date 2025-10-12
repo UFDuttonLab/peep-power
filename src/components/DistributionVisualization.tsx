@@ -84,12 +84,14 @@ const DistributionVisualization = ({
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis 
               dataKey="count" 
-              label={{ value: 'Count', position: 'insideBottom', offset: -5 }}
+              label={{ value: 'Count', position: 'insideBottom', offset: -5, style: { fontSize: 28, fontWeight: 600 } }}
               stroke="hsl(var(--foreground))"
+              tick={{ fontSize: 24 }}
             />
             <YAxis 
-              label={{ value: 'Probability', angle: -90, position: 'insideLeft' }}
+              label={{ value: 'Probability', angle: -90, position: 'insideLeft', style: { fontSize: 28, fontWeight: 600 } }}
               stroke="hsl(var(--foreground))"
+              tick={{ fontSize: 24 }}
             />
             <Tooltip 
               contentStyle={{ 
@@ -121,12 +123,14 @@ const DistributionVisualization = ({
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis 
             dataKey="count" 
-            label={{ value: 'Count', position: 'insideBottom', offset: -5 }}
+            label={{ value: 'Count', position: 'insideBottom', offset: -5, style: { fontSize: 28, fontWeight: 600 } }}
             stroke="hsl(var(--foreground))"
+            tick={{ fontSize: 24 }}
           />
           <YAxis 
-            label={{ value: 'Probability', angle: -90, position: 'insideLeft' }}
+            label={{ value: 'Probability', angle: -90, position: 'insideLeft', style: { fontSize: 28, fontWeight: 600 } }}
             stroke="hsl(var(--foreground))"
+            tick={{ fontSize: 24 }}
           />
           <Tooltip 
             contentStyle={{ 

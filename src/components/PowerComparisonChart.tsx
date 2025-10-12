@@ -28,14 +28,16 @@ const PowerComparisonChart = ({
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis 
             dataKey="x" 
-            label={{ value: xLabel, position: 'insideBottom', offset: -5 }}
+            label={{ value: xLabel, position: 'insideBottom', offset: -5, style: { fontSize: 28, fontWeight: 600 } }}
             stroke="hsl(var(--foreground))"
+            tick={{ fontSize: 24 }}
           />
           <YAxis 
-            label={{ value: 'Statistical Power', angle: -90, position: 'insideLeft' }}
+            label={{ value: 'Statistical Power', angle: -90, position: 'insideLeft', style: { fontSize: 28, fontWeight: 600 } }}
             domain={[0, 1]}
             tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
             stroke="hsl(var(--foreground))"
+            tick={{ fontSize: 24 }}
           />
           <Tooltip 
             formatter={(value: number) => `${(value * 100).toFixed(1)}%`}

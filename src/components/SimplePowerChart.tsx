@@ -63,7 +63,7 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
               key={label}
               x="30"
               y={355 - (i * 60)}
-              fontSize="12"
+              fontSize="24"
               fill="hsl(var(--foreground))"
               textAnchor="end"
             >
@@ -96,10 +96,10 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
           />
           
           {/* Axis labels */}
-          <text x="400" y="395" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
+          <text x="400" y="395" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
             {xLabel}
           </text>
-          <text x="15" y="210" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 210)">
+          <text x="15" y="210" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 210)">
             Power (%)
           </text>
         </svg>

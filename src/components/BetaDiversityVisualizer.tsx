@@ -153,11 +153,11 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
         
         {/* Axes labels */}
         <text x={width/2} y={height - 20} textAnchor="middle" 
-          fontSize="14" fill="hsl(var(--foreground))" fontWeight="600">
+          fontSize="28" fill="hsl(var(--foreground))" fontWeight="600">
           NMDS1
         </text>
         <text x={20} y={height/2} textAnchor="middle" 
-          fontSize="14" fill="hsl(var(--foreground))" fontWeight="600"
+          fontSize="28" fill="hsl(var(--foreground))" fontWeight="600"
           transform={`rotate(-90 20 ${height/2})`}>
           NMDS2
         </text>
@@ -166,7 +166,7 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
         {data.ellipses.map((ellipse, i) => (
           <g key={`legend-${i}`} transform={`translate(${width - 120}, ${30 + i * 25})`}>
             <circle cx="10" cy="0" r="6" fill={ellipse.color} opacity="0.7" />
-            <text x="25" y="4" fontSize="12" fill="hsl(var(--foreground))">
+            <text x="25" y="4" fontSize="24" fill="hsl(var(--foreground))">
               {ellipse.groupName}
             </text>
           </g>
