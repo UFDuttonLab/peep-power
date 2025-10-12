@@ -1,5 +1,5 @@
 export type DataType = 'continuous' | 'categorical' | 'microbiome' | 'correlation' | null;
-export type TestType = 'ttest' | 'oneway' | 'twoway' | 'repeated' | 'nested' | 'chisquare' | 'correlation' | 'microbiome' | 'repeated-microbiome';
+export type TestType = 'ttest' | 'oneway' | 'twoway' | 'repeated' | 'nested' | 'chisquare' | 'correlation' | 'microbiome' | 'repeated-microbiome' | 'deseq' | 'zinb' | 'lmm-microbiome';
 
 export interface WizardState {
   step: number;

@@ -8,6 +8,9 @@ import CorrelationCalculator from '@/components/calculators/CorrelationCalculato
 import ChiSquareCalculator from '@/components/calculators/ChiSquareCalculator';
 import MicrobiomeCalculator from '@/components/calculators/MicrobiomeCalculator';
 import RepeatedMeasuresMicrobiomeCalculator from '@/components/calculators/RepeatedMeasuresMicrobiomeCalculator';
+import DifferentialAbundanceCalculator from '@/components/calculators/DifferentialAbundanceCalculator';
+import ZeroInflatedCalculator from '@/components/calculators/ZeroInflatedCalculator';
+import LongitudinalMixedModelCalculator from '@/components/calculators/LongitudinalMixedModelCalculator';
 import EffectSizeHelper from '@/components/calculators/EffectSizeHelper';
 import EffectSizeLibrary from '@/components/calculators/EffectSizeLibrary';
 import ReplicationChecker from '@/components/calculators/ReplicationChecker';
@@ -36,6 +39,9 @@ const Index = () => {
       'nested': 'stats',
       'microbiome': 'microbiome',
       'repeated-microbiome': 'microbiome',
+      'deseq': 'microbiome',
+      'zinb': 'microbiome',
+      'lmm-microbiome': 'microbiome',
     };
     
     const category = categoryMap[testType];
@@ -176,6 +182,15 @@ const Index = () => {
                 <TabsTrigger value="repeated-microbiome" className="data-[state=active]:bg-background">
                   Repeated Measures
                 </TabsTrigger>
+                <TabsTrigger value="deseq" className="data-[state=active]:bg-background">
+                  Differential Abundance
+                </TabsTrigger>
+                <TabsTrigger value="zinb" className="data-[state=active]:bg-background">
+                  Zero-Inflated
+                </TabsTrigger>
+                <TabsTrigger value="lmm-microbiome" className="data-[state=active]:bg-background">
+                  Longitudinal (LMM)
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="microbiome" className="mt-6">
@@ -183,6 +198,15 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="repeated-microbiome" className="mt-6">
                 <RepeatedMeasuresMicrobiomeCalculator />
+              </TabsContent>
+              <TabsContent value="deseq" className="mt-6">
+                <DifferentialAbundanceCalculator />
+              </TabsContent>
+              <TabsContent value="zinb" className="mt-6">
+                <ZeroInflatedCalculator />
+              </TabsContent>
+              <TabsContent value="lmm-microbiome" className="mt-6">
+                <LongitudinalMixedModelCalculator />
               </TabsContent>
             </Tabs>
           </TabsContent>
