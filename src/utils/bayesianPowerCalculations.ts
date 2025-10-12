@@ -959,22 +959,43 @@ export const calculateAdaptiveAllocation = (
     
     const simAllocations = params.treatments.map(() => 0);
     
+    // Track posterior updates for Thompson sampling
+    const posteriorMeans = params.priors.map(p => p.mean);
+    const posteriorSDs = params.priors.map(p => p.sd);
+    const observedData = params.treatments.map(() => ({ sum: 0, count: 0 }));
+    
     for (let n = 0; n < params.maxN; n++) {
       let selectedTreatment = 0;
       
       if (n < burnIn || params.allocationRule === 'equal') {
         selectedTreatment = n % params.treatments.length;
       } else if (params.allocationRule === 'thompson') {
-        const sampledEffects = params.priors.map((prior, i) => 
-          normalRandom(prior.mean, prior.sd)
+        // Sample from current posterior distributions
+        const sampledEffects = posteriorMeans.map((mean, i) => 
+          normalRandom(mean, posteriorSDs[i])
         );
         selectedTreatment = sampledEffects.indexOf(Math.max(...sampledEffects));
       } else {
-        const means = params.priors.map(p => p.mean);
-        selectedTreatment = means.indexOf(Math.max(...means));
+        selectedTreatment = posteriorMeans.indexOf(Math.max(...posteriorMeans));
       }
       
       simAllocations[selectedTreatment]++;
+      
+      // Update posterior with new observation (Bayesian updating)
+      const observedOutcome = normalRandom(trueEffects[selectedTreatment], 1.0);
+      observedData[selectedTreatment].sum += observedOutcome;
+      observedData[selectedTreatment].count += 1;
+      
+      // Posterior update: prior + data
+      const priorPrecision = 1 / (params.priors[selectedTreatment].sd ** 2);
+      const dataPrecision = observedData[selectedTreatment].count;
+      const posteriorPrecision = priorPrecision + dataPrecision;
+      
+      posteriorMeans[selectedTreatment] = 
+        (priorPrecision * params.priors[selectedTreatment].mean + 
+         dataPrecision * (observedData[selectedTreatment].sum / observedData[selectedTreatment].count)) / 
+        posteriorPrecision;
+      posteriorSDs[selectedTreatment] = Math.sqrt(1 / posteriorPrecision);
     }
     
     for (let i = 0; i < params.treatments.length; i++) {
@@ -1097,7 +1118,11 @@ export const calculateEquivalenceN = (
     for (let i = 0; i < nSims; i++) {
       const sampledEffect = normalRandom(params.priorEffect.mean, params.priorEffect.sd);
       
-      const posteriorPrecision = 1 / (params.priorEffect.sd * params.priorEffect.sd) + n;
+      // Posterior precision accounts for both prior and data (assuming unit variance)
+      const dataVariance = 1.0;
+      const priorPrecision = 1 / (params.priorEffect.sd * params.priorEffect.sd);
+      const dataPrecision = n / dataVariance;
+      const posteriorPrecision = priorPrecision + dataPrecision;
       const posteriorSD = Math.sqrt(1 / posteriorPrecision);
       
       const probInRope = jStat.normal.cdf(params.equivalenceMargin, sampledEffect, posteriorSD) -
@@ -1159,7 +1184,10 @@ export const calculateEquivalenceN = (
     }
   }
   
-  const posteriorPrecision = 1 / (params.priorEffect.sd * params.priorEffect.sd) + requiredN;
+  const dataVariance = 1.0;
+  const priorPrecision = 1 / (params.priorEffect.sd * params.priorEffect.sd);
+  const dataPrecision = requiredN / dataVariance;
+  const posteriorPrecision = priorPrecision + dataPrecision;
   const posteriorSD = Math.sqrt(1 / posteriorPrecision);
   const posteriorProbEquivalent = jStat.normal.cdf(params.equivalenceMargin, params.priorEffect.mean, posteriorSD) -
                                     jStat.normal.cdf(-params.equivalenceMargin, params.priorEffect.mean, posteriorSD);
@@ -1224,9 +1252,12 @@ export const calculateModelComparisonN = (
       for (let i = 0; i < 100; i++) {
         const sampledEffect = normalRandom(model.prior.mean, model.prior.sd);
         
-        const dataLikelihood = Math.exp(-0.5 * Math.pow(sampledEffect, 2) * n);
-        const complexityPenalty = Math.exp(-model.complexity * 0.5);
-        const posterior = model.priorProbability * dataLikelihood * complexityPenalty;
+        // BIC approximation: BF ≈ exp((BIC_null - BIC_model)/2)
+        // For normal model: log(L) ≈ -0.5 * n * (effect² + log(2π))
+        const logLikelihood = -0.5 * n * (Math.pow(sampledEffect, 2) + Math.log(2 * Math.PI));
+        const bic = model.complexity * Math.log(n) - 2 * logLikelihood;
+        const dataLikelihood = Math.exp(-bic / 2);
+        const posterior = model.priorProbability * dataLikelihood;
         
         probSum += posterior;
       }
@@ -1261,9 +1292,12 @@ export const calculateModelComparisonN = (
     
     for (let i = 0; i < nSims; i++) {
       const sampledEffect = normalRandom(model.prior.mean, model.prior.sd);
-      const dataLikelihood = Math.exp(-0.5 * Math.pow(sampledEffect, 2) * requiredN);
-      const complexityPenalty = Math.exp(-model.complexity * 0.5);
-      const posterior = model.priorProbability * dataLikelihood * complexityPenalty;
+      
+      // BIC approximation for final calculation
+      const logLikelihood = -0.5 * requiredN * (Math.pow(sampledEffect, 2) + Math.log(2 * Math.PI));
+      const bic = model.complexity * Math.log(requiredN) - 2 * logLikelihood;
+      const dataLikelihood = Math.exp(-bic / 2);
+      const posterior = model.priorProbability * dataLikelihood;
       probSum += posterior;
     }
     
