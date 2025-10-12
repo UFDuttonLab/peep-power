@@ -24,6 +24,9 @@ const testNames: Record<TestType, string> = {
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA (Microbiome)',
   'repeated-microbiome': 'Repeated Measures PERMANOVA',
+  deseq: 'Differential Abundance (DESeq2)',
+  zinb: 'Zero-Inflated Negative Binomial',
+  'lmm-microbiome': 'Longitudinal Mixed Model',
 };
 
 const testDescriptions: Record<TestType, string> = {
@@ -36,6 +39,9 @@ const testDescriptions: Record<TestType, string> = {
   correlation: 'Measuring strength of relationship between two continuous variables',
   microbiome: 'Testing differences in community composition between groups',
   'repeated-microbiome': 'Testing community composition changes in repeated measures',
+  deseq: 'Detecting differentially abundant taxa (DESeq2/edgeR)',
+  zinb: 'Analyzing rare taxa with high zero-inflation',
+  'lmm-microbiome': 'Complex longitudinal microbiome studies with covariates',
 };
 
 const ParameterGuide = ({ testType, parameters, onParameterChange, onNext }: ParameterGuideProps) => {

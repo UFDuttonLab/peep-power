@@ -246,8 +246,9 @@ const LongitudinalMixedModelCalculator = () => {
 
           <SimplePowerChart
             data={generatePowerCurve()}
-            currentN={nSubjects}
-            currentPower={power}
+            currentValue={nSubjects}
+            xLabel="Number of Subjects"
+            title="Power vs Sample Size"
           />
 
           <TimelineVisualization

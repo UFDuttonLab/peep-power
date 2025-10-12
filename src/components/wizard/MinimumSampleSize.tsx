@@ -23,6 +23,9 @@ const testNames: Record<TestType, string> = {
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA',
   'repeated-microbiome': 'Repeated Measures PERMANOVA',
+  deseq: 'Differential Abundance (DESeq2)',
+  zinb: 'Zero-Inflated Negative Binomial',
+  'lmm-microbiome': 'Longitudinal Mixed Model',
 };
 
 const MinimumSampleSize = ({ 
@@ -337,6 +340,9 @@ const MinimumSampleSize = ({
     correlation: 'correlation',
     microbiome: 'anova', // This won't be reached due to special handling above
     'repeated-microbiome': 'anova',
+    deseq: 'anova', // Approximate as ANOVA for basic calculation
+    zinb: 'anova', // Approximate as ANOVA for basic calculation
+    'lmm-microbiome': 'anova', // Approximate as ANOVA for basic calculation
   };
 
   const mappedTestType = testTypeMapping[testType];

@@ -28,6 +28,9 @@ const testNames: Record<TestType, string> = {
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA',
   'repeated-microbiome': 'Repeated Measures PERMANOVA',
+  deseq: 'Differential Abundance (DESeq2)',
+  zinb: 'Zero-Inflated Negative Binomial',
+  'lmm-microbiome': 'Longitudinal Mixed Model',
 };
 
 const ResultsSummary = ({ testType, power, parameters, onGoToCalculator, onRestart }: ResultsSummaryProps) => {

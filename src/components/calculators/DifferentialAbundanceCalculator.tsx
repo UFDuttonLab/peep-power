@@ -281,8 +281,9 @@ const DifferentialAbundanceCalculator = () => {
 
           <SimplePowerChart
             data={generatePowerCurve()}
-            currentN={n}
-            currentPower={power}
+            currentValue={n}
+            xLabel="Samples per Group"
+            title="Power vs Sample Size"
           />
 
           <DistributionVisualization
