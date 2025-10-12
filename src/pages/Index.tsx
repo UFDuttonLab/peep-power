@@ -28,6 +28,9 @@ import BayesianAdaptiveAllocationCalculator from '@/components/calculators/Bayes
 import BayesianEquivalenceCalculator from '@/components/calculators/BayesianEquivalenceCalculator';
 import BayesianModelComparisonCalculator from '@/components/calculators/BayesianModelComparisonCalculator';
 import BayesianCalibrationCalculator from '@/components/calculators/BayesianCalibrationCalculator';
+import BayesianMicrobiomePERMANOVACalculator from '@/components/calculators/BayesianMicrobiomePERMANOVACalculator';
+import BayesianDifferentialAbundanceCalculator from '@/components/calculators/BayesianDifferentialAbundanceCalculator';
+import BayesianLongitudinalMicrobiomeCalculator from '@/components/calculators/BayesianLongitudinalMicrobiomeCalculator';
 import { Leaf, Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
 
@@ -183,7 +186,7 @@ const Index = () => {
           {/* Microbiome Category */}
           <TabsContent value="microbiome" className="mt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
+               <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
                 <TabsTrigger value="microbiome" className="data-[state=active]:bg-background">
                   Independent Samples
                 </TabsTrigger>
@@ -198,6 +201,15 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger value="lmm-microbiome" className="data-[state=active]:bg-background">
                   Longitudinal (LMM)
+                </TabsTrigger>
+                <TabsTrigger value="bayesian-permanova" className="data-[state=active]:bg-background">
+                  Bayesian PERMANOVA
+                </TabsTrigger>
+                <TabsTrigger value="bayesian-deseq" className="data-[state=active]:bg-background">
+                  Bayesian DESeq
+                </TabsTrigger>
+                <TabsTrigger value="bayesian-lmm" className="data-[state=active]:bg-background">
+                  Bayesian LMM
                 </TabsTrigger>
               </TabsList>
 
@@ -215,6 +227,15 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="lmm-microbiome" className="mt-6">
                 <LongitudinalMixedModelCalculator />
+              </TabsContent>
+              <TabsContent value="bayesian-permanova" className="mt-6">
+                <BayesianMicrobiomePERMANOVACalculator />
+              </TabsContent>
+              <TabsContent value="bayesian-deseq" className="mt-6">
+                <BayesianDifferentialAbundanceCalculator />
+              </TabsContent>
+              <TabsContent value="bayesian-lmm" className="mt-6">
+                <BayesianLongitudinalMicrobiomeCalculator />
               </TabsContent>
             </Tabs>
           </TabsContent>

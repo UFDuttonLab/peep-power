@@ -9,7 +9,8 @@ export interface RCodeParams {
             'deseq' | 'zinb' | 'lmm-microbiome' | 
             'bayesian-sequential' | 'bayesian-replication' | 'bayesian-information' |
             'bayesian-hierarchical' | 'bayesian-adaptive' | 'bayesian-equivalence' |
-            'bayesian-model-comparison' | 'bayesian-calibration';
+            'bayesian-model-comparison' | 'bayesian-calibration' |
+            'bayesian-microbiome-deseq' | 'bayesian-microbiome-lmm';
   parameters: Record<string, any>;
 }
 
@@ -59,6 +60,10 @@ export const generateRCode = (params: RCodeParams): string => {
       return generateModelComparisonRCode(parameters);
     case 'bayesian-calibration':
       return generateCalibrationRCode(parameters);
+    case 'bayesian-microbiome-deseq':
+      return generateBayesianRCode(parameters);
+    case 'bayesian-microbiome-lmm':
+      return generateBayesianRCode(parameters);
     default:
       return '# Unknown test type';
   }
