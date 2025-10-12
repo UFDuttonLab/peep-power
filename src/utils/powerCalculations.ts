@@ -424,7 +424,15 @@ export function calculateRequiredSampleSize(
     } else if (testType === 'anova' && groups) {
       power = calculateOneWayAnovaPower(mid, groups, effectSize, alpha).power;
     } else if (testType === 'correlation') {
-      power = calculateCorrelationPower(mid, effectSize, alpha).power;
+      const rho = effectSize;
+      const z = 0.5 * Math.log((1 + rho) / (1 - rho));
+      const se = 1 / Math.sqrt(mid - 3);
+      const zCrit = jStat.normal.inv(1 - alpha / 2, 0, 1);
+      const ncp = Math.abs(z) / se;
+      power = 1 - jStat.normal.cdf(zCrit - ncp, 0, 1) + jStat.normal.cdf(-zCrit - ncp, 0, 1);
+    } else if (testType === 'chisquare' && groups) {
+      const df = groups - 1;
+      power = calculateChiSquarePower(mid, effectSize, df, alpha).power;
     }
     
     if (Math.abs(power - targetPower) < 0.01) return mid;
@@ -433,9 +441,13 @@ export function calculateRequiredSampleSize(
   
   let result = Math.round((low + high) / 2);
   
-  // Enforce statistical validity minimums for ANOVA
+  // Enforce statistical validity minimums
   if (testType === 'anova' && result < 15) {
     result = 15; // ANOVA requires minimum 15 per group for reliable results
+  }
+  
+  if (testType === 'chisquare' && result < 5) {
+    result = 5; // Chi-square requires minimum 5 expected frequency per cell
   }
   
   return result;

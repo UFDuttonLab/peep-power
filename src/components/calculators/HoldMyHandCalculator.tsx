@@ -38,11 +38,38 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
     handleNext();
   };
 
-  const handleEffectSizeSelect = (effectSize: number) => {
+  const handleEffectSizeSelect = (effectSize: number, effectType: string) => {
+    let convertedEffect = effectSize;
+    
+    // Convert effect sizes based on test type if needed
+    if ((state.selectedTest === 'microbiome' || state.selectedTest === 'repeated-microbiome') && 
+        (effectType === "Cohen's d" || effectType === "Cohen's f")) {
+      // Convert to R² for PERMANOVA: R² ≈ f² / (1 + f²)
+      const f = effectType === "Cohen's d" ? effectSize / 2 : effectSize;
+      convertedEffect = (f * f) / (1 + f * f);
+      console.warn(`Converted ${effectType}=${effectSize.toFixed(2)} to R²=${convertedEffect.toFixed(3)} for PERMANOVA`);
+    } else if ((state.selectedTest === 'oneway' || state.selectedTest === 'twoway') && 
+               effectType === "Cohen's d") {
+      // Convert Cohen's d to Cohen's f for ANOVA: f = d/2 (for 2 groups)
+      convertedEffect = effectSize / 2;
+      console.warn(`Converted Cohen's d=${effectSize.toFixed(2)} to Cohen's f=${convertedEffect.toFixed(3)} for ANOVA`);
+    } else if ((state.selectedTest === 'oneway' || state.selectedTest === 'twoway') && 
+               effectType === 'R² (PERMANOVA)') {
+      // Convert R² to Cohen's f: f = √(R²/(1-R²))
+      convertedEffect = Math.sqrt(effectSize / (1 - effectSize));
+      console.warn(`Converted R²=${effectSize.toFixed(3)} to Cohen's f=${convertedEffect.toFixed(3)} for ANOVA`);
+    } else if ((state.selectedTest === 'microbiome' || state.selectedTest === 'repeated-microbiome') && 
+               effectType !== 'R² (PERMANOVA)') {
+      // If user enters a custom value for microbiome without specifying R², assume it's already R²
+      if (effectSize > 0.5) {
+        console.warn(`Large effect size ${effectSize} for microbiome - if this is Cohen's d/f, it will be misinterpreted as R²`);
+      }
+    }
+    
     setState((prev) => ({ 
       ...prev, 
-      selectedEffectSize: effectSize,
-      parameters: { ...prev.parameters, effectSize }
+      selectedEffectSize: convertedEffect,
+      parameters: { ...prev.parameters, effectSize: convertedEffect }
     }));
     handleNext();
   };

@@ -53,7 +53,7 @@ const effectSizeData: EffectSizeExample[] = [
 
 interface EffectSizeSelectorProps {
   testType: TestType;
-  onSelect: (effectSize: number) => void;
+  onSelect: (effectSize: number, effectType: string) => void;
   onBack: () => void;
 }
 
@@ -79,7 +79,7 @@ const EffectSizeSelector = ({ testType, onSelect, onBack }: EffectSizeSelectorPr
   const handleCustomSubmit = () => {
     const value = parseFloat(customEffectSize);
     if (!isNaN(value) && value > 0 && value <= 3) {
-      onSelect(value);
+      onSelect(value, "Cohen's d");
     }
   };
 
@@ -137,7 +137,7 @@ const EffectSizeSelector = ({ testType, onSelect, onBack }: EffectSizeSelectorPr
               {filteredData.map((item, idx) => (
                 <button
                   key={idx}
-                  onClick={() => onSelect(Math.abs(item.effectSize))}
+                  onClick={() => onSelect(Math.abs(item.effectSize), item.effectType)}
                   className="w-full p-4 text-left hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex justify-between items-start gap-4">

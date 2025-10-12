@@ -23,7 +23,6 @@ const testNames: Record<TestType, string> = {
   oneway: 'One-Way ANOVA',
   twoway: 'Two-Way ANOVA',
   repeated: 'Repeated Measures ANOVA',
-  nested: 'Nested ANOVA',
   chisquare: 'Chi-Square Test',
   correlation: 'Correlation Test',
   microbiome: 'PERMANOVA',
