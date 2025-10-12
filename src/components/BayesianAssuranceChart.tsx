@@ -46,7 +46,7 @@ const BayesianAssuranceChart = ({
     <div className="w-full h-[500px] flex flex-col">
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <div className="flex-1 relative bg-card border rounded-lg p-6">
-        <svg className="w-full h-full" viewBox="-20 0 840 420">
+        <svg className="w-full h-full" viewBox="-40 0 860 420">
           {/* Grid lines */}
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((y) => (
             <line
@@ -169,7 +169,7 @@ const BayesianAssuranceChart = ({
           <text x="400" y="395" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
             {xLabel}
           </text>
-          <text x="5" y="210" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 5 210)">
+          <text x="-10" y="210" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 -10 210)">
             Assurance (%)
           </text>
         </svg>

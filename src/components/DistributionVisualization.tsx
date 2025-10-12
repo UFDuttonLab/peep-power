@@ -80,7 +80,7 @@ const DistributionVisualization = ({
       <Card className="p-4 min-h-[450px]">
         <h3 className="text-sm font-semibold mb-3">Distribution Comparison</h3>
         <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={data.slice(0, 30)}>
+          <BarChart data={data.slice(0, 30)} margin={{ left: 40, right: 20, top: 20, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis 
               dataKey="count" 
@@ -119,7 +119,7 @@ const DistributionVisualization = ({
     <Card className="p-4 min-h-[450px]">
       <h3 className="text-sm font-semibold mb-3">Expected Distribution</h3>
       <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={data.slice(0, 30)}>
+        <BarChart data={data.slice(0, 30)} margin={{ left: 40, right: 20, top: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis 
             dataKey="count" 
