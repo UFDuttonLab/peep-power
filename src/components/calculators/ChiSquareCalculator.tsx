@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
 import { calculateChiSquarePower } from '@/utils/powerCalculations';
@@ -21,6 +23,9 @@ const ChiSquareCalculator = () => {
     const res = calculateChiSquarePower(n, w, df, alpha);
     setResult(res);
   }, [n, w, df, alpha]);
+
+  const lambda = w * w * n;
+  const showLambdaWarning = lambda > 30 || df < 5;
 
   const exportResults = () => {
     const csv = [
@@ -143,6 +148,17 @@ const ChiSquareCalculator = () => {
       </Card>
 
       <div className="space-y-6">
+        {showLambdaWarning && (
+          <Alert variant="warning">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>⚠️ Large Effect Warning:</strong> The non-centrality parameter (λ={lambda.toFixed(1)}) is large
+              {df < 5 && ' and df is small'}. Power approximation may be less accurate. 
+              Consider simulation-based methods or consult the R export code.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <h2 className="text-2xl font-bold">Results</h2>
         
         {result && (

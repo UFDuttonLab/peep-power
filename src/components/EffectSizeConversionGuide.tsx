@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ChevronDown, BookOpen, AlertTriangle, Info, Calculator as CalcIcon } from "lucide-react";
+import { ChevronDown, BookOpen, AlertTriangle, Info, Calculator as CalcIcon, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -309,9 +309,17 @@ export default function EffectSizeConversionGuide({
                   <p className="font-medium text-primary">Cohen's d (Univariate)</p>
                   <p className="text-muted-foreground">Measures the standardized mean difference between groups for a single variable. Common in t-tests and simple comparisons.</p>
                 </div>
-                <div className="p-3 bg-secondary/5 rounded-md border border-secondary/10">
-                  <p className="font-medium text-secondary-foreground">R² (Multivariate)</p>
-                  <p className="text-muted-foreground">Measures the proportion of total variance explained by group differences across multiple variables. Used in PERMANOVA and NMDS.</p>
+                 <div className="p-3 bg-secondary/5 rounded-md border border-secondary/10">
+                  <p className="font-medium text-secondary-foreground">R² (PERMANOVA - Multivariate)</p>
+                  <p className="text-muted-foreground">Proportion of multivariate variance explained by groups. Used in PERMANOVA and NMDS ordinations.</p>
+                  <Alert className="mt-2" variant="warning">
+                    <AlertCircle className="h-3 w-3" />
+                    <AlertDescription className="text-xs">
+                      <strong>Caveat:</strong> PERMANOVA R² → Cohen's d/f conversions are heuristic only. 
+                      Multivariate variance explained doesn't directly translate to univariate effect sizes. 
+                      Use with caution and prefer PERMANOVA-specific tools.
+                    </AlertDescription>
+                  </Alert>
                 </div>
               </div>
             </div>

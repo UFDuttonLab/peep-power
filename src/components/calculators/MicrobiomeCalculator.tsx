@@ -102,14 +102,14 @@ const MicrobiomeCalculator = () => {
               
               <ControlSlider
                 id="permanova-rsq"
-                label="R² Effect Size"
+                label="R² (Variance Explained)"
                 value={rSquared}
                 min={0.01}
                 max={0.30}
                 step={0.01}
                 onChange={setRSquared}
                 decimals={2}
-                tooltip="Proportion of variance explained by your grouping variable. 0.02=small, 0.08=medium, 0.15=large"
+                tooltip="R² = Proportion of multivariate variance explained by grouping variable. Microbiome context: 0.02=small, 0.08=medium, 0.15=large"
               />
               
               <ControlSlider

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ControlSlider from '@/components/ControlSlider';
@@ -258,7 +258,12 @@ const LongitudinalMixedModelCalculator = () => {
               <div className="flex items-start gap-4 mb-4">
                 <Icon className={`h-8 w-8 ${interpretation.color}`} />
                 <div>
-                  <h3 className="text-2xl font-bold">Statistical Power: {(power * 100).toFixed(1)}%</h3>
+                  <h3 className="text-2xl font-bold">
+                    Statistical Power: {(power * 100).toFixed(1)}%
+                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                      (approximation)
+                    </span>
+                  </h3>
                   <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
                 </div>
               </div>
@@ -409,6 +414,50 @@ const LongitudinalMixedModelCalculator = () => {
               <li>• SAS PROC MIXED for comprehensive LMM analysis</li>
               <li>• Python statsmodels.MixedLM for mixed models</li>
             </ul>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="approximation">
+          <AccordionTrigger>Understanding LMM Power Approximations</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3 text-sm">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Why approximations?</strong> Exact power for LMM with random slopes,
+                  unequal spacing, and dropout requires simulation. This calculator provides
+                  a <em>rough estimate</em> using a design effect approach.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="space-y-2">
+                <p><strong>When approximation is adequate:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Balanced design with equal timepoints</li>
+                  <li>Compound symmetry correlation</li>
+                  <li>Small random slope variance (&lt;0.3)</li>
+                  <li>Low dropout (&lt;15%)</li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <p><strong>When simulation is required:</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Large random slope variance (&gt;0.5)</li>
+                  <li>High dropout (&gt;20%)</li>
+                  <li>Irregular measurement intervals</li>
+                  <li>Multiple nested random effects</li>
+                </ul>
+              </div>
+              
+              <Alert className="bg-primary/5 border-primary/20">
+                <AlertDescription>
+                  <strong>Recommended workflow:</strong> Use this calculator for quick
+                  planning, then validate with R simulation (export button above) before
+                  finalizing your sample size.
+                </AlertDescription>
+              </Alert>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

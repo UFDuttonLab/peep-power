@@ -118,7 +118,7 @@ const OneWayAnovaCalculator = () => {
               max={1.0}
               step={0.01}
               onChange={setEffectSize}
-              tooltip="Standardized measure of dispersion of group means. Small (0.1), Medium (0.25), Large (0.4)."
+              tooltip="Cohen's f: relates to η² (eta-squared) via f = √(η²/(1-η²)). Small (0.10), Medium (0.25), Large (0.40)."
             />
             <Select onValueChange={(v) => v !== 'custom' && setEffectSize(parseFloat(v))}>
               <SelectTrigger>

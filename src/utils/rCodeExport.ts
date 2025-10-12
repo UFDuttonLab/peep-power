@@ -1347,10 +1347,12 @@ simulate_lmm_power <- function(n_subj, n_time, effect_f, corr, slope_var, dropou
 estimated_power <- simulate_lmm_power(n_subjects, n_timepoints, effect_size,
                                       within_corr, random_slope_var, dropout_rate, alpha)
 
-cat("\\n=== Results ===\\n")
-cat("Power:", round(estimated_power, 3), "\\n")
+cat("\\n=== Simulation Results ===\\n")
+cat("Estimated Power:", round(estimated_power, 3), "\\n")
 cat("Interpretation:", ifelse(estimated_power >= 0.8, "Excellent",
-                              ifelse(estimated_power >= 0.6, "Moderate", "Low")), "\\n\\n")
+                              ifelse(estimated_power >= 0.6, "Moderate", "Low")), "\\n")
+cat("\\nNote: Web calculator approximation was ${(params.power * 100).toFixed(1)}%\\n")
+cat("The simulation-based estimate is more accurate for complex designs.\\n\\n")
 
 # ====================================================
 # Generate Power Curve

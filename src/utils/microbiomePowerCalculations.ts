@@ -114,7 +114,15 @@ export const calculateLMMPower = (
   const fCrit = jStat.centralF.inv(1 - alpha, df1, df2);
   
   // Power using noncentral F distribution approximation
-  // For simplicity, we'll use a normal approximation to the noncentral F
+  // NOTE: This is a ROUGH approximation using normal approximation to noncentral F
+  // For precise power in complex LMM designs, use simulation-based methods
+  // (e.g., simr package in R, as provided in the R code export)
+  // 
+  // Approximation accuracy decreases with:
+  // - Large random slope variance (>0.5)
+  // - High dropout rates (>20%)
+  // - Small sample sizes (<20 subjects)
+  // - Complex covariance structures beyond compound symmetry
   const noncentralMean = df1 + adjustedLambda;
   const noncentralVar = 2 * df1 + 4 * adjustedLambda;
   const threshold = fCrit * df1;
