@@ -17,13 +17,31 @@ import { NestedAnovaCalculator } from '@/components/calculators/NestedAnovaCalcu
 import HoldMyHandCalculator from '@/components/calculators/HoldMyHandCalculator';
 import BayesianAssuranceCalculator from '@/components/calculators/BayesianAssuranceCalculator';
 import PriorElicitationTool from '@/components/calculators/PriorElicitationTool';
-import { Leaf, Brain, Lightbulb } from 'lucide-react';
+import { Leaf, Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
 
 const Index = () => {
+  const [categoryTab, setCategoryTab] = useState('start');
   const [activeTab, setActiveTab] = useState('wizard');
 
   const handleNavigateToCalculator = (testType: TestType) => {
+    // Map test types to their categories
+    const categoryMap: Record<string, string> = {
+      'ttest': 'stats',
+      'oneway': 'stats',
+      'twoway': 'stats',
+      'repeated': 'stats',
+      'correlation': 'stats',
+      'chisquare': 'stats',
+      'nested': 'stats',
+      'microbiome': 'microbiome',
+      'repeated-microbiome': 'microbiome',
+    };
+    
+    const category = categoryMap[testType];
+    if (category) {
+      setCategoryTab(category);
+    }
     setActiveTab(testType);
   };
 
@@ -45,131 +63,192 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 pb-6 sm:pb-5 min-h-[120px] sm:min-h-[100px] mb-2 justify-start items-start">
-            <TabsTrigger value="wizard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px] font-semibold">
-              🤝 Hold My Hand
+        {/* Category Level Tabs */}
+        <Tabs value={categoryTab} onValueChange={setCategoryTab} className="w-full">
+          <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 mb-4 justify-center">
+            <TabsTrigger 
+              value="start" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px] font-semibold"
+            >
+              <HandHeart className="inline h-4 w-4 mr-2" />
+              Get Started
             </TabsTrigger>
-            <TabsTrigger value="ttest" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              t-test
+            <TabsTrigger 
+              value="stats" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px]"
+            >
+              <FlaskConical className="inline h-4 w-4 mr-2" />
+              Statistical Tests
             </TabsTrigger>
-            <TabsTrigger value="oneway" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
-              One-Way ANOVA
+            <TabsTrigger 
+              value="microbiome" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px]"
+            >
+              <Dna className="inline h-4 w-4 mr-2" />
+              Microbiome
             </TabsTrigger>
-            <TabsTrigger value="twoway" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
-              Two-Way ANOVA
+            <TabsTrigger 
+              value="tools" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px]"
+            >
+              <Wrench className="inline h-4 w-4 mr-2" />
+              Planning Tools
             </TabsTrigger>
-            <TabsTrigger value="repeated" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
-              Repeated Measures
+            <TabsTrigger 
+              value="bayesian" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px]"
+            >
+              <Brain className="inline h-4 w-4 mr-2" />
+              Bayesian
             </TabsTrigger>
-            <TabsTrigger value="correlation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              Correlation
-            </TabsTrigger>
-            <TabsTrigger value="chisquare" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              Chi-Square
-            </TabsTrigger>
-            <TabsTrigger value="microbiome" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[160px]">
-              Microbiome & Community
-            </TabsTrigger>
-            <TabsTrigger value="repeated-microbiome" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[160px]">
-              Repeated Microbiome
-            </TabsTrigger>
-            <TabsTrigger value="nested" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[120px]">
-              Nested/Hierarchical
-            </TabsTrigger>
-            <TabsTrigger value="mde" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              MDE / Sample Size
-            </TabsTrigger>
-            <TabsTrigger value="effect" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              Effect Size
-            </TabsTrigger>
-            <TabsTrigger value="library" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[110px]">
-              Effect Library
-            </TabsTrigger>
-            <TabsTrigger value="replication" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              Replication
-            </TabsTrigger>
-            <TabsTrigger value="bayesian-assurance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[140px]">
-              <Brain className="inline h-4 w-4 mr-1" />
-              Bayesian Assurance
-            </TabsTrigger>
-            <TabsTrigger value="prior-elicitation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[130px]">
-              <Lightbulb className="inline h-4 w-4 mr-1" />
-              Prior Elicitation
-            </TabsTrigger>
-            <TabsTrigger value="about" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]">
-              About/Help
+            <TabsTrigger 
+              value="about" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-normal text-center min-w-[100px]"
+            >
+              <HelpCircle className="inline h-4 w-4 mr-2" />
+              About
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="wizard" className="mt-8 md:mt-6">
+          {/* Get Started Category */}
+          <TabsContent value="start" className="mt-0">
             <HoldMyHandCalculator onNavigateToCalculator={handleNavigateToCalculator} />
           </TabsContent>
 
-          <TabsContent value="ttest" className="mt-8 md:mt-6">
-            <TTestCalculator />
+          {/* Statistical Tests Category */}
+          <TabsContent value="stats" className="mt-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
+                <TabsTrigger value="ttest" className="data-[state=active]:bg-background">
+                  t-test
+                </TabsTrigger>
+                <TabsTrigger value="oneway" className="data-[state=active]:bg-background">
+                  One-Way ANOVA
+                </TabsTrigger>
+                <TabsTrigger value="twoway" className="data-[state=active]:bg-background">
+                  Two-Way ANOVA
+                </TabsTrigger>
+                <TabsTrigger value="repeated" className="data-[state=active]:bg-background">
+                  Repeated Measures
+                </TabsTrigger>
+                <TabsTrigger value="correlation" className="data-[state=active]:bg-background">
+                  Correlation
+                </TabsTrigger>
+                <TabsTrigger value="chisquare" className="data-[state=active]:bg-background">
+                  Chi-Square
+                </TabsTrigger>
+                <TabsTrigger value="nested" className="data-[state=active]:bg-background">
+                  Nested/Hierarchical
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="ttest" className="mt-6">
+                <TTestCalculator />
+              </TabsContent>
+              <TabsContent value="oneway" className="mt-6">
+                <OneWayAnovaCalculator />
+              </TabsContent>
+              <TabsContent value="twoway" className="mt-6">
+                <TwoWayAnovaCalculator />
+              </TabsContent>
+              <TabsContent value="repeated" className="mt-6">
+                <RepeatedMeasuresCalculator />
+              </TabsContent>
+              <TabsContent value="correlation" className="mt-6">
+                <CorrelationCalculator />
+              </TabsContent>
+              <TabsContent value="chisquare" className="mt-6">
+                <ChiSquareCalculator />
+              </TabsContent>
+              <TabsContent value="nested" className="mt-6">
+                <NestedAnovaCalculator />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="oneway" className="mt-8 md:mt-6">
-            <OneWayAnovaCalculator />
+          {/* Microbiome Category */}
+          <TabsContent value="microbiome" className="mt-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
+                <TabsTrigger value="microbiome" className="data-[state=active]:bg-background">
+                  Independent Samples
+                </TabsTrigger>
+                <TabsTrigger value="repeated-microbiome" className="data-[state=active]:bg-background">
+                  Repeated Measures
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="microbiome" className="mt-6">
+                <MicrobiomeCalculator />
+              </TabsContent>
+              <TabsContent value="repeated-microbiome" className="mt-6">
+                <RepeatedMeasuresMicrobiomeCalculator />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="twoway" className="mt-8 md:mt-6">
-            <TwoWayAnovaCalculator />
+          {/* Planning Tools Category */}
+          <TabsContent value="tools" className="mt-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
+                <TabsTrigger value="mde" className="data-[state=active]:bg-background">
+                  MDE / Sample Size
+                </TabsTrigger>
+                <TabsTrigger value="effect" className="data-[state=active]:bg-background">
+                  Effect Size Calculator
+                </TabsTrigger>
+                <TabsTrigger value="library" className="data-[state=active]:bg-background">
+                  Effect Library
+                </TabsTrigger>
+                <TabsTrigger value="replication" className="data-[state=active]:bg-background">
+                  Replication Checker
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="mde" className="mt-6">
+                <MinimumDetectableEffectCalculator />
+              </TabsContent>
+              <TabsContent value="effect" className="mt-6">
+                <EffectSizeHelper />
+              </TabsContent>
+              <TabsContent value="library" className="mt-6">
+                <EffectSizeLibrary />
+              </TabsContent>
+              <TabsContent value="replication" className="mt-6">
+                <ReplicationChecker />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="repeated" className="mt-8 md:mt-6">
-            <RepeatedMeasuresCalculator />
+          {/* Bayesian Category */}
+          <TabsContent value="bayesian" className="mt-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="flex flex-wrap gap-2 w-full bg-muted p-2 mb-4 justify-start">
+                <TabsTrigger value="bayesian-assurance" className="data-[state=active]:bg-background">
+                  <Brain className="inline h-4 w-4 mr-1" />
+                  Bayesian Assurance
+                </TabsTrigger>
+                <TabsTrigger value="prior-elicitation" className="data-[state=active]:bg-background">
+                  <Lightbulb className="inline h-4 w-4 mr-1" />
+                  Prior Elicitation
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="bayesian-assurance" className="mt-6">
+                <BayesianAssuranceCalculator />
+              </TabsContent>
+              <TabsContent value="prior-elicitation" className="mt-6">
+                <PriorElicitationTool />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="correlation" className="mt-8 md:mt-6">
-            <CorrelationCalculator />
-          </TabsContent>
-
-          <TabsContent value="chisquare" className="mt-8 md:mt-6">
-            <ChiSquareCalculator />
-          </TabsContent>
-
-          <TabsContent value="microbiome" className="mt-8 md:mt-6">
-            <MicrobiomeCalculator />
-          </TabsContent>
-
-          <TabsContent value="repeated-microbiome" className="mt-8 md:mt-6">
-            <RepeatedMeasuresMicrobiomeCalculator />
-          </TabsContent>
-
-          <TabsContent value="nested" className="mt-8 md:mt-6">
-            <NestedAnovaCalculator />
-          </TabsContent>
-
-          <TabsContent value="mde" className="mt-8 md:mt-6">
-            <MinimumDetectableEffectCalculator />
-          </TabsContent>
-
-          <TabsContent value="effect" className="mt-8 md:mt-6">
-            <EffectSizeHelper />
-          </TabsContent>
-
-          <TabsContent value="library" className="mt-8 md:mt-6">
-            <EffectSizeLibrary />
-          </TabsContent>
-
-          <TabsContent value="replication" className="mt-8 md:mt-6">
-            <ReplicationChecker />
-          </TabsContent>
-
-          <TabsContent value="bayesian-assurance" className="mt-8 md:mt-6">
-            <BayesianAssuranceCalculator />
-          </TabsContent>
-
-          <TabsContent value="prior-elicitation" className="mt-8 md:mt-6">
-            <PriorElicitationTool />
-          </TabsContent>
-
-          <TabsContent value="about" className="mt-8 md:mt-6">
+          {/* About Category */}
+          <TabsContent value="about" className="mt-0">
             <AboutHelp />
           </TabsContent>
         </Tabs>
+
       </main>
 
       {/* Footer */}
