@@ -72,6 +72,25 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
     }
   };
 
+  const exportToCSV = () => {
+    if (!result) return;
+    const csv = [
+      ['Sample Size', 'Assurance'],
+      ...result.assuranceCurve.map((d) => [d.n, d.assurance]),
+    ]
+      .map((row) => row.join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bayesian_permanova_assurance.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "CSV exported", description: "Assurance curve data downloaded" });
+  };
+
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'bayesian',
@@ -331,6 +350,10 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   </Alert>
 
                   <div className="grid grid-cols-3 gap-2 mt-4">
+                    <Button onClick={exportToCSV} variant="outline" size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
                     <Button onClick={exportToR} variant="outline" size="sm">
                       <Code2 className="mr-2 h-4 w-4" />
                       R Code

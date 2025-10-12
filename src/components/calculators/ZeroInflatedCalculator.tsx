@@ -28,6 +28,25 @@ const ZeroInflatedCalculator = () => {
   
   const foldChange = Math.pow(2, log2FC);
 
+  const exportToCSV = () => {
+    const powerCurve = generatePowerCurve();
+    const csv = [
+      ['Sample Size', 'Power'],
+      ...powerCurve.map((d) => [d.x, d.y]),
+    ]
+      .map((row) => row.join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'zero_inflated_power.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "CSV exported", description: "Power curve data downloaded" });
+  };
+
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'zinb',
@@ -336,6 +355,24 @@ const ZeroInflatedCalculator = () => {
                 <p className="text-xs text-muted-foreground">
                   High zero-inflation reduces effective sample size for the count model
                 </p>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Export Results</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <Button onClick={exportToCSV} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </Button>
+                <Button onClick={exportToR} variant="outline" size="sm">
+                  <Code2 className="mr-2 h-4 w-4" />
+                  R Code
+                </Button>
+                <Button onClick={copyRCode} variant="outline" size="sm">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
               </div>
             </Card>
           </div>

@@ -764,8 +764,235 @@ cat("\\nReference: Anderson et al. (2008) Ecol Lett 11:683-693\\n")
 };
 
 const generateBayesianRCode = (params: any): string => {
-  const { effectMean, effectSD, targetPower, targetAssurance, testType, groups, alpha } = params;
+  const { effectMean, effectSD, targetPower, targetAssurance, testType, groups, alpha, log2FCMean, log2FCSD, dispersion, baseMean, numTests, effectSizeMean, nTimepoints, withinCorr, dropoutRate } = params;
   
+  // Handle PERMANOVA specifically
+  if (testType === 'permanova') {
+    return `# Bayesian Assurance for PERMANOVA
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages(c("vegan", "pwr"))
+
+library(vegan)
+library(pwr)
+
+# Parameters
+r_squared_mean <- ${effectMean}  # Expected R² (variance explained)
+r_squared_sd <- ${effectSD}  # Uncertainty in R²
+target_power <- ${targetPower}
+target_assurance <- ${targetAssurance}
+alpha <- ${alpha}
+num_groups <- ${groups}
+
+cat("\\n=== Bayesian PERMANOVA Assurance Analysis ===\\n")
+cat("Prior: R² ~ N(", r_squared_mean, ",", r_squared_sd, ")\\n")
+cat("Target power:", target_power, "\\n")
+cat("Target assurance:", target_assurance, "\\n\\n")
+
+set.seed(123)
+
+# Calculate assurance for PERMANOVA
+calculate_permanova_assurance <- function(n, r_sq_mean, r_sq_sd, target_pwr, alpha, k) {
+  nsim <- 5000
+  r_sq_samples <- pmax(0.001, rnorm(nsim, mean = r_sq_mean, sd = r_sq_sd))
+  
+  powers <- numeric(nsim)
+  for (i in 1:nsim) {
+    # Convert R² to f² for power calculation
+    f_sq <- r_sq_samples[i] / (1 - r_sq_samples[i])
+    
+    # PERMANOVA power approximation
+    df_treatment <- k - 1
+    df_error <- k * (n - 1)
+    ncp <- n * k * f_sq
+    f_crit <- qf(1 - alpha, df_treatment, df_error)
+    powers[i] <- 1 - pf(f_crit, df_treatment, df_error, ncp = ncp)
+  }
+  
+  assurance <- mean(powers >= target_pwr)
+  return(list(assurance = assurance, powers = powers))
+}
+
+# Find required sample size
+n_range <- seq(5, 200, by = 3)
+assurance_values <- numeric(length(n_range))
+
+for (i in seq_along(n_range)) {
+  result <- calculate_permanova_assurance(n_range[i], r_squared_mean, r_squared_sd,
+                                         target_power, alpha, num_groups)
+  assurance_values[i] <- result$assurance
+  cat(".")
+}
+
+required_n <- n_range[which(assurance_values >= target_assurance)[1]]
+cat("\\n\\nRequired sample size per group:", required_n, "\\n")
+
+# Plot assurance curve
+plot(n_range, assurance_values, type = "l", lwd = 2, col = "blue",
+     xlab = "Samples per Group", ylab = "Assurance",
+     main = "PERMANOVA Assurance Curve", ylim = c(0, 1))
+abline(h = target_assurance, lty = 2, col = "red")
+abline(v = required_n, lty = 2, col = "green")
+
+# Export results
+write.csv(data.frame(Sample_Size = n_range, Assurance = assurance_values),
+          "permanova_assurance.csv", row.names = FALSE)
+
+cat("\\nResults exported to: permanova_assurance.csv\\n")
+`;
+  }
+  
+  // Handle differential abundance (DESeq2-style) for Bayesian
+  if (log2FCMean !== undefined && dispersion !== undefined) {
+    return `# Bayesian Assurance for Differential Abundance (DESeq2/edgeR)
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("DESeq2")  # From Bioconductor
+
+library(DESeq2)
+
+# Parameters
+log2fc_mean <- ${log2FCMean}
+log2fc_sd <- ${log2FCSD}
+dispersion <- ${dispersion}
+base_mean <- ${baseMean}
+target_power <- ${targetPower}
+target_assurance <- ${targetAssurance}
+alpha <- ${alpha}
+num_tests <- ${numTests}
+alpha_adj <- alpha / num_tests  # Bonferroni correction
+
+cat("\\n=== Bayesian DESeq2 Assurance Analysis ===\\n")
+cat("Prior: log2FC ~ N(", log2fc_mean, ",", log2fc_sd, ")\\n")
+cat("Number of taxa:", num_tests, "\\n")
+cat("Adjusted alpha:", alpha_adj, "\\n\\n")
+
+set.seed(123)
+
+# Calculate assurance
+calculate_deseq_assurance <- function(n, fc_mean, fc_sd, disp, mu, alpha_level, target_pwr) {
+  nsim <- 1000
+  fc_samples <- pmax(0.1, rnorm(nsim, mean = fc_mean, sd = fc_sd))
+  
+  powers <- numeric(nsim)
+  for (i in 1:nsim) {
+    # Wald test SE for negative binomial
+    se <- sqrt((disp / (n * mu)) + (disp / (n * mu)))
+    z_stat <- abs(fc_samples[i]) / se
+    z_crit <- qnorm(1 - alpha_level/2)
+    powers[i] <- pnorm(z_stat - z_crit) + pnorm(-z_stat - z_crit)
+  }
+  
+  assurance <- mean(powers >= target_pwr)
+  return(list(assurance = assurance, powers = powers))
+}
+
+# Find required sample size
+n_range <- seq(5, 150, by = 5)
+assurance_values <- numeric(length(n_range))
+
+for (i in seq_along(n_range)) {
+  result <- calculate_deseq_assurance(n_range[i], log2fc_mean, log2fc_sd,
+                                     dispersion, base_mean, alpha_adj, target_power)
+  assurance_values[i] <- result$assurance
+  cat(".")
+}
+
+required_n <- n_range[which(assurance_values >= target_assurance)[1]]
+cat("\\n\\nRequired sample size per group:", required_n, "\\n")
+
+# Plot
+plot(n_range, assurance_values, type = "l", lwd = 2, col = "blue",
+     xlab = "Samples per Group", ylab = "Assurance",
+     main = "DESeq2 Assurance Curve", ylim = c(0, 1))
+abline(h = target_assurance, lty = 2, col = "red")
+abline(v = required_n, lty = 2, col = "green")
+
+write.csv(data.frame(Sample_Size = n_range, Assurance = assurance_values),
+          "deseq_assurance.csv", row.names = FALSE)
+`;
+  }
+  
+  // Handle longitudinal microbiome (LMM)
+  if (nTimepoints !== undefined && withinCorr !== undefined) {
+    return `# Bayesian Assurance for Longitudinal Microbiome (LMM)
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages(c("lme4", "lmerTest"))
+
+library(lme4)
+library(lmerTest)
+
+# Parameters
+effect_mean <- ${effectSizeMean}  # Time × treatment effect
+effect_sd <- ${effectSD}
+n_timepoints <- ${nTimepoints}
+within_corr <- ${withinCorr}
+dropout_rate <- ${dropoutRate}
+target_power <- ${targetPower}
+target_assurance <- ${targetAssurance}
+alpha <- ${alpha}
+
+cat("\\n=== Bayesian LMM Assurance Analysis ===\\n")
+cat("Prior: Effect size ~ N(", effect_mean, ",", effect_sd, ")\\n")
+cat("Timepoints:", n_timepoints, "\\n")
+cat("Within-subject correlation:", within_corr, "\\n\\n")
+
+set.seed(123)
+
+# Calculate assurance
+calculate_lmm_assurance <- function(n, es_mean, es_sd, tp, corr, dropout, alpha_level, target_pwr) {
+  nsim <- 1000
+  es_samples <- pmax(0.05, rnorm(nsim, mean = es_mean, sd = es_sd))
+  
+  powers <- numeric(nsim)
+  for (i in 1:nsim) {
+    # Account for dropout and correlation
+    effective_n <- n * (1 - dropout)^(tp - 1)
+    design_effect <- 1 + (tp - 1) * corr
+    adjusted_n <- effective_n / design_effect
+    
+    # Power for interaction
+    ncp <- es_samples[i] * sqrt(adjusted_n * tp / 2)
+    powers[i] <- 1 - pnorm(qnorm(1 - alpha_level/2) - ncp)
+  }
+  
+  assurance <- mean(powers >= target_pwr)
+  return(list(assurance = assurance, powers = powers))
+}
+
+# Find required sample size
+n_range <- seq(3, 90, by = 3)
+assurance_values <- numeric(length(n_range))
+
+for (i in seq_along(n_range)) {
+  result <- calculate_lmm_assurance(n_range[i], effect_mean, effect_sd,
+                                   n_timepoints, within_corr, dropout_rate,
+                                   alpha, target_power)
+  assurance_values[i] <- result$assurance
+  cat(".")
+}
+
+required_n <- n_range[which(assurance_values >= target_assurance)[1]]
+cat("\\n\\nRequired starting subjects:", required_n, "\\n")
+cat("Expected final N:", round(required_n * (1 - dropout_rate)^(n_timepoints - 1)), "\\n")
+
+# Plot
+plot(n_range, assurance_values, type = "l", lwd = 2, col = "blue",
+     xlab = "Starting Subjects", ylab = "Assurance",
+     main = "LMM Assurance Curve", ylim = c(0, 1))
+abline(h = target_assurance, lty = 2, col = "red")
+abline(v = required_n, lty = 2, col = "green")
+
+write.csv(data.frame(Sample_Size = n_range, Assurance = assurance_values),
+          "lmm_assurance.csv", row.names = FALSE)
+`;
+  }
+  
+  // Default Bayesian for other cases
   return `# Bayesian Assurance (Hybrid-Bayesian Power) Analysis
 # Generated from Ecological Power Analysis Tool
 

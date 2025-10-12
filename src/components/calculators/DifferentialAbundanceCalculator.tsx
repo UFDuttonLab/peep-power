@@ -27,6 +27,25 @@ const DifferentialAbundanceCalculator = () => {
   const foldChange = Math.pow(2, log2FC);
   const adjustedAlpha = useFDR ? adjustAlphaForBonferroni(alpha, numTests) : alpha;
 
+  const exportToCSV = () => {
+    const powerCurve = generatePowerCurve();
+    const csv = [
+      ['Sample Size', 'Power'],
+      ...powerCurve.map((d) => [d.x, d.y]),
+    ]
+      .map((row) => row.join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'differential_abundance_power.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "CSV exported", description: "Power curve data downloaded" });
+  };
+
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'deseq',
@@ -335,6 +354,24 @@ const DifferentialAbundanceCalculator = () => {
               <p className="text-xs text-muted-foreground mt-4">
                 Power decreases as you test more taxa due to multiple testing correction
               </p>
+            </Card>
+
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Export Results</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <Button onClick={exportToCSV} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </Button>
+                <Button onClick={exportToR} variant="outline" size="sm">
+                  <Code2 className="mr-2 h-4 w-4" />
+                  R Code
+                </Button>
+                <Button onClick={copyRCode} variant="outline" size="sm">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
+              </div>
             </Card>
           </div>
         </div>
