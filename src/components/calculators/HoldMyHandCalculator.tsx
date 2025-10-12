@@ -8,6 +8,7 @@ import QuestionFlow from '@/components/wizard/QuestionFlow';
 import EffectSizeSelector from '@/components/wizard/EffectSizeSelector';
 import GroupsInput from '@/components/wizard/GroupsInput';
 import MinimumSampleSize from '@/components/wizard/MinimumSampleSize';
+import { MicrobiomeParameters, MicrobiomeParams } from '@/components/wizard/MicrobiomeParameters';
 import ProgressIndicator from '@/components/wizard/ProgressIndicator';
 import { WizardState, initialState, DataType, TestType } from '@/components/wizard/wizardConfig';
 
@@ -16,7 +17,10 @@ interface HoldMyHandCalculatorProps {
 }
 
 const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorProps) => {
-  const [state, setState] = useState<WizardState>(initialState);
+  const [state, setState] = useState<WizardState & { microbiomeParams?: MicrobiomeParams }>({
+    ...initialState,
+    microbiomeParams: undefined,
+  });
 
   const steps = ['Welcome', 'Data Type', 'Questions', 'Effect Size', 'Groups', 'Sample Size'];
 
@@ -79,12 +83,30 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
   };
 
   const handleGroupsSubmit = (groups: number) => {
+    // Check if this test type needs microbiome-specific parameters
+    if (state.selectedTest === 'deseq' || state.selectedTest === 'zinb' || state.selectedTest === 'lmm-microbiome') {
+      setState((prev) => ({ 
+        ...prev, 
+        numGroups: groups,
+        parameters: { ...prev.parameters, groups },
+        step: 4.5 // Insert microbiome parameter step
+      }));
+    } else {
+      setState((prev) => ({ 
+        ...prev, 
+        numGroups: groups,
+        parameters: { ...prev.parameters, groups }
+      }));
+      handleNext();
+    }
+  };
+
+  const handleMicrobiomeParamsComplete = (params: MicrobiomeParams) => {
     setState((prev) => ({ 
       ...prev, 
-      numGroups: groups,
-      parameters: { ...prev.parameters, groups }
+      microbiomeParams: params,
+      step: 5
     }));
-    handleNext();
   };
 
   const handleRestart = () => {
@@ -137,12 +159,23 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
         />
       )}
 
+      {state.step === 4.5 && state.selectedTest && state.numGroups &&
+        (state.selectedTest === 'deseq' || state.selectedTest === 'zinb' || state.selectedTest === 'lmm-microbiome') && (
+        <MicrobiomeParameters
+          testType={state.selectedTest}
+          numGroups={state.numGroups}
+          onComplete={handleMicrobiomeParamsComplete}
+          onBack={handleBack}
+        />
+      )}
+
       {state.step === 5 && state.selectedTest && state.selectedEffectSize && state.numGroups && (
         <>
           <MinimumSampleSize
             testType={state.selectedTest}
             effectSize={state.selectedEffectSize}
             groups={state.numGroups}
+            microbiomeParams={state.microbiomeParams}
             onGoToCalculator={handleGoToCalculator}
             onRestart={handleRestart}
           />

@@ -164,7 +164,7 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
           <p className="text-muted-foreground">Choose the analysis for repeated measures</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <OptionCard
             title="Community Composition Over Time"
             description="Does community composition change over time/conditions? (Repeated Measures PERMANOVA)"
@@ -174,6 +174,11 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
             title="Diversity Changes"
             description="Does alpha diversity change over time? (Repeated Measures ANOVA)"
             onClick={() => onTestSelected('repeated')}
+          />
+          <OptionCard
+            title="Taxa Abundance Changes"
+            description="How do specific taxa change over time? (Linear Mixed Models)"
+            onClick={() => onTestSelected('lmm-microbiome')}
           />
         </div>
 
@@ -213,18 +218,35 @@ const MicrobiomeFlow = ({ onTestSelected }: { onTestSelected: (test: TestType) =
         <p className="text-muted-foreground">Choose the analysis that matches your goal</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <OptionCard
-          title="Community Composition"
-          description="Do community compositions differ between groups? (PERMANOVA)"
-          onClick={() => onTestSelected('microbiome')}
-        />
-        <OptionCard
-          title="Diversity Comparison"
-          description="Does alpha diversity differ between groups? (One-way ANOVA)"
-          onClick={() => onTestSelected('oneway')}
-        />
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <OptionCard
+            title="Community Composition"
+            description="Do community compositions differ between groups? (PERMANOVA)"
+            onClick={() => onTestSelected('microbiome')}
+          />
+          <OptionCard
+            title="Diversity Comparison"
+            description="Does alpha diversity differ between groups? (One-way ANOVA)"
+            onClick={() => onTestSelected('oneway')}
+          />
+          <OptionCard
+            title="Differential Abundance"
+            description="Which specific taxa differ between groups? (DESeq2/edgeR)"
+            onClick={() => onTestSelected('deseq')}
+          />
+        </div>
+        
+        <Card className="p-4 bg-muted/50 border-primary/20 mt-4">
+          <p className="text-sm">
+            <strong>Lots of zeros?</strong> If your data has many zero counts (&gt;40%),{' '}
+            <button
+              className="text-primary underline hover:no-underline font-medium"
+              onClick={() => onTestSelected('zinb')}
+            >
+              use Zero-Inflated models instead
+            </button>
+          </p>
+        </Card>
 
       <Button
         variant="ghost"

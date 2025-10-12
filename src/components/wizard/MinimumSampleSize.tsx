@@ -4,12 +4,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, AlertTriangle, TrendingUp, RotateCcw, ArrowRight } from 'lucide-react';
 import { TestType } from './wizardConfig';
 import { calculateRequiredSampleSize } from '@/utils/powerCalculations';
-import { calculateLMMPower } from '@/utils/microbiomePowerCalculations';
+import { 
+  calculateLMMPower,
+  calculateRequiredSampleSizeNB,
+  calculateRequiredSampleSizeLMM,
+  calculateZINBPower,
+  cohensDToLog2FC
+} from '@/utils/microbiomePowerCalculations';
+import { MicrobiomeParams } from './MicrobiomeParameters';
 
 interface MinimumSampleSizeProps {
   testType: TestType;
   effectSize: number;
   groups: number;
+  microbiomeParams?: MicrobiomeParams;
   onGoToCalculator: () => void;
   onRestart: () => void;
 }
@@ -32,6 +40,7 @@ const MinimumSampleSize = ({
   testType, 
   effectSize, 
   groups,
+  microbiomeParams,
   onGoToCalculator, 
   onRestart 
 }: MinimumSampleSizeProps) => {
@@ -45,6 +54,372 @@ const MinimumSampleSize = ({
     if (n <= 50) return { level: 'moderate', color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-950/20' };
     return { level: 'large', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/20' };
   };
+  
+  // DESeq2 Differential Abundance Analysis
+  if (testType === 'deseq') {
+    const { dispersion = 0.5, baseMean = 100, numTests = 100 } = microbiomeParams || {};
+    const log2FC = cohensDToLog2FC(effectSize);
+    
+    const budgetScenarios = [
+      { label: 'Tight Budget', targetPower: 0.65, color: 'bg-yellow-50 dark:bg-yellow-950/20' },
+      { label: 'Recommended', targetPower: 0.80, color: 'bg-green-50 dark:bg-green-950/20' },
+      { label: 'Well-Funded', targetPower: 0.90, color: 'bg-blue-50 dark:bg-blue-950/20' },
+    ].map(scenario => ({
+      ...scenario,
+      n: calculateRequiredSampleSizeNB(scenario.targetPower, log2FC, dispersion, baseMean, alpha, numTests)
+    }));
+    
+    const requiredN = budgetScenarios[1].n;
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">Your Minimum Sample Size</h2>
+          <p className="text-muted-foreground">DESeq2 Differential Abundance Analysis</p>
+        </div>
+
+        <Card className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-background shadow-lg">
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <div className="text-5xl font-bold mb-2">{requiredN}</div>
+              <p className="text-lg font-medium">samples per group</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                For log₂FC = {log2FC.toFixed(2)} with {numTests} taxa tested
+              </p>
+            </div>
+            <Alert className="text-left bg-background/80">
+              <AlertDescription>
+                This gives you <strong>80% power</strong> to detect a <strong>{Math.pow(2, Math.abs(log2FC)).toFixed(2)}-fold change</strong>
+                {' '}in abundance at FDR-adjusted α = {(alpha / numTests).toFixed(4)} (Bonferroni).
+              </AlertDescription>
+            </Alert>
+          </div>
+        </Card>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold">Budget Scenarios</h3>
+          {budgetScenarios.map((scenario, idx) => (
+            <Card key={idx} className={scenario.color}>
+              <div className="p-4 flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{scenario.label}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(scenario.targetPower * 100).toFixed(0)}% power
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{scenario.n}</p>
+                  <p className="text-sm text-muted-foreground">per group</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total: {scenario.n * groups}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Multiple testing correction:</strong> Testing {numTests} taxa requires stringent correction,
+            increasing required sample size. Consider pre-filtering low-abundance taxa (&lt;10 reads across samples)
+            to reduce the number of tests.
+          </AlertDescription>
+        </Alert>
+
+        <Card className="p-6 space-y-4">
+          <h3 className="font-semibold">Study Design Summary</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Test</p>
+              <p className="font-medium">DESeq2 Negative Binomial</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Total Samples</p>
+              <p className="font-medium">{requiredN * groups}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Effect Size (log₂FC)</p>
+              <p className="font-medium">{log2FC.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Number of Groups</p>
+              <p className="font-medium">{groups}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Dispersion</p>
+              <p className="font-medium">{dispersion.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Base Mean</p>
+              <p className="font-medium">{baseMean}</p>
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button onClick={onRestart} variant="outline" className="flex-1 gap-2">
+            <RotateCcw className="h-5 w-5" /> Start Over
+          </Button>
+          <Button onClick={onGoToCalculator} className="flex-1 gap-2">
+            Explore Advanced Options <ArrowRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Zero-Inflated Negative Binomial Analysis
+  if (testType === 'zinb') {
+    const { dispersion = 0.5, baseMean = 100, zeroInflation = 0.5, numTests = 100 } = microbiomeParams || {};
+    const log2FC = cohensDToLog2FC(effectSize);
+    
+    const calculateZINBN = (targetPower: number): number => {
+      let low = 5, high = 500;
+      for (let iter = 0; iter < 50; iter++) {
+        const mid = Math.floor((low + high) / 2);
+        const power = calculateZINBPower(mid, zeroInflation, baseMean, dispersion, log2FC, alpha / numTests, 'both');
+        
+        if (Math.abs(power - targetPower) < 0.02) return mid;
+        if (power < targetPower) low = mid + 1;
+        else high = mid - 1;
+      }
+      return Math.max(low, 10);
+    };
+    
+    const budgetScenarios = [
+      { label: 'Tight Budget', targetPower: 0.65, color: 'bg-yellow-50 dark:bg-yellow-950/20' },
+      { label: 'Recommended', targetPower: 0.80, color: 'bg-green-50 dark:bg-green-950/20' },
+      { label: 'Well-Funded', targetPower: 0.90, color: 'bg-blue-50 dark:bg-blue-950/20' },
+    ].map(scenario => ({
+      ...scenario,
+      n: calculateZINBN(scenario.targetPower)
+    }));
+    
+    const requiredN = budgetScenarios[1].n;
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">Your Minimum Sample Size</h2>
+          <p className="text-muted-foreground">Zero-Inflated Negative Binomial Model</p>
+        </div>
+
+        <Card className="p-8 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-background shadow-lg">
+              <CheckCircle2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <div className="text-5xl font-bold mb-2">{requiredN}</div>
+              <p className="text-lg font-medium">samples per group</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                For log₂FC = {log2FC.toFixed(2)} with {(zeroInflation * 100).toFixed(0)}% zero-inflation
+              </p>
+            </div>
+            <Alert className="text-left bg-background/80">
+              <AlertDescription>
+                This gives you <strong>80% power</strong> to detect changes in both count and zero-inflation
+                components with {numTests} taxa tested.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </Card>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold">Budget Scenarios</h3>
+          {budgetScenarios.map((scenario, idx) => (
+            <Card key={idx} className={scenario.color}>
+              <div className="p-4 flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{scenario.label}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(scenario.targetPower * 100).toFixed(0)}% power
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{scenario.n}</p>
+                  <p className="text-sm text-muted-foreground">per group</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total: {scenario.n * groups}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>High zero-inflation detected:</strong> With {(zeroInflation * 100).toFixed(0)}% zeros,
+            ZINB models are appropriate. However, if zeros are primarily due to low sequencing depth rather
+            than biological absence, consider rarefaction or filtering instead.
+          </AlertDescription>
+        </Alert>
+
+        <Card className="p-6 space-y-4">
+          <h3 className="font-semibold">Study Design Summary</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Model</p>
+              <p className="font-medium">Zero-Inflated Negative Binomial</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Total Samples</p>
+              <p className="font-medium">{requiredN * groups}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Zero-Inflation</p>
+              <p className="font-medium">{(zeroInflation * 100).toFixed(0)}%</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Dispersion</p>
+              <p className="font-medium">{dispersion.toFixed(2)}</p>
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button onClick={onRestart} variant="outline" className="flex-1 gap-2">
+            <RotateCcw className="h-5 w-5" /> Start Over
+          </Button>
+          <Button onClick={onGoToCalculator} className="flex-1 gap-2">
+            Explore Advanced Options <ArrowRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Linear Mixed Model for Longitudinal Microbiome
+  if (testType === 'lmm-microbiome') {
+    const { withinCorr = 0.5, randomSlopeVar = 0.1, dropoutRate = 0.1 } = microbiomeParams || {};
+    const nTimepoints = groups;
+    const nCovariates = 1;
+    
+    let cohensF = effectSize;
+    if (effectSize < 0.1) {
+      cohensF = Math.sqrt(effectSize / (1 - effectSize));
+    }
+    
+    const budgetScenarios = [
+      { label: 'Tight Budget', targetPower: 0.65, color: 'bg-yellow-50 dark:bg-yellow-950/20' },
+      { label: 'Recommended', targetPower: 0.80, color: 'bg-green-50 dark:bg-green-950/20' },
+      { label: 'Well-Funded', targetPower: 0.90, color: 'bg-blue-50 dark:bg-blue-950/20' },
+    ].map(scenario => ({
+      ...scenario,
+      n: calculateRequiredSampleSizeLMM(scenario.targetPower, nTimepoints, cohensF, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha)
+    }));
+    
+    const requiredN = budgetScenarios[1].n;
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">Your Minimum Sample Size</h2>
+          <p className="text-muted-foreground">Linear Mixed Model (Longitudinal Taxa)</p>
+        </div>
+
+        <Card className="p-8 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-background shadow-lg">
+              <CheckCircle2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <div className="text-5xl font-bold mb-2">{requiredN}</div>
+              <p className="text-lg font-medium">subjects needed</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Measured at {nTimepoints} timepoints (total: {requiredN * nTimepoints} samples)
+              </p>
+            </div>
+            <Alert className="text-left bg-background/80">
+              <AlertDescription>
+                This gives you <strong>80% power</strong> to detect a <strong>time × group interaction</strong>
+                {' '}(Cohen's f = {cohensF.toFixed(2)}), accounting for within-subject correlation (ρ={withinCorr.toFixed(2)})
+                {' '}and {(dropoutRate * 100).toFixed(0)}% dropout.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </Card>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold">Budget Scenarios</h3>
+          {budgetScenarios.map((scenario, idx) => (
+            <Card key={idx} className={scenario.color}>
+              <div className="p-4 flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{scenario.label}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(scenario.targetPower * 100).toFixed(0)}% power
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">{scenario.n}</p>
+                  <p className="text-sm text-muted-foreground">subjects</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total samples: {scenario.n * nTimepoints}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Dropout considerations:</strong> With {(dropoutRate * 100).toFixed(0)}% expected dropout,
+            consider recruiting {Math.ceil(requiredN * 1.1)} subjects initially to maintain target power.
+            Use intention-to-treat analysis and multiple imputation for missing data.
+          </AlertDescription>
+        </Alert>
+
+        <Card className="p-6 space-y-4">
+          <h3 className="font-semibold">Study Design Summary</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Model</p>
+              <p className="font-medium">Linear Mixed Model</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Subjects Needed</p>
+              <p className="font-medium">{requiredN}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Number of Timepoints</p>
+              <p className="font-medium">{nTimepoints}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Total Measurements</p>
+              <p className="font-medium">{requiredN * nTimepoints}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Within-Subject Correlation</p>
+              <p className="font-medium">{withinCorr.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Random Slope Variance</p>
+              <p className="font-medium">{randomSlopeVar.toFixed(2)}</p>
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button onClick={onRestart} variant="outline" className="flex-1 gap-2">
+            <RotateCcw className="h-5 w-5" /> Start Over
+          </Button>
+          <Button onClick={onGoToCalculator} className="flex-1 gap-2">
+            Explore Advanced Options <ArrowRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   // Special handling for repeated-microbiome using LMM power calculation
   if (testType === 'repeated-microbiome') {
