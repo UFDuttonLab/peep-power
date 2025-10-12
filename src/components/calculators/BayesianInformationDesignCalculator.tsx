@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Plus, Trash2, AlertCircle, Info, Target } from 'lucide-react';
+import { Play, Plus, Trash2, AlertCircle, Info, Target, Download, Code2, Copy } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calculateInformationBasedDesign } from '@/utils/bayesianPowerCalculations';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const BayesianInformationDesignCalculator = () => {
+  const { toast } = useToast();
   const [priorMean, setPriorMean] = useState(0.5);
   const [priorSD, setPriorSD] = useState(0.3);
   const [testType, setTestType] = useState<'ttest' | 'anova'>('ttest');
@@ -38,7 +40,7 @@ const BayesianInformationDesignCalculator = () => {
     if (designs.length > 2) {
       setDesigns(designs.filter((_, i) => i !== index));
     } else {
-      toast.error('Need at least 2 designs to compare');
+      toast({ title: "Error", description: "Need at least 2 designs to compare", variant: "destructive" });
     }
   };
 
@@ -61,13 +63,47 @@ const BayesianInformationDesignCalculator = () => {
           objective
         });
         setResult(res);
-        toast.success('Design comparison complete!');
+        toast({ title: "Success", description: "Design comparison complete!" });
       } catch (error) {
-        toast.error('Analysis failed. Please check your parameters.');
+        toast({ title: "Error", description: "Analysis failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
     }, 100);
+  };
+
+  const exportToCSV = () => {
+    if (!result) return;
+    const csvData = result.rankedDesigns.map((d: any) => 
+      `${d.name},${d.rank},${d.expectedInfo},${d.costPerInfo},${d.posteriorSD},${d.uncertaintyReduction}`
+    ).join('\n');
+    const blob = new Blob([`Design,Rank,Info,Cost per Info,Posterior SD,Uncertainty Reduction\n${csvData}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'design_comparison.csv';
+    a.click();
+    toast({ title: "CSV exported", description: "Data downloaded successfully" });
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-information',
+      parameters: { priorMean, priorSD, testType, groups, objective, designs }
+    });
+    downloadRFile(rCode, 'information_design.R');
+    toast({ title: "R code exported", description: "Ready to run in RStudio" });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-information',
+      parameters: { priorMean, priorSD, testType, groups, objective, designs }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
+    }
   };
 
   return (
@@ -257,6 +293,21 @@ const BayesianInformationDesignCalculator = () => {
                     <Info className="h-4 w-4" />
                     <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                   </Alert>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button onClick={exportToCSV} variant="outline" size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                    <Button onClick={exportToR} variant="outline" size="sm">
+                      <Code2 className="mr-2 h-4 w-4" />
+                      R Code
+                    </Button>
+                    <Button onClick={copyRCode} variant="outline" size="sm">
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 

@@ -5,11 +5,13 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Plus, Trash2, Info, Scale } from 'lucide-react';
-import { toast } from 'sonner';
+import { Play, Plus, Trash2, Info, Scale, Download, Code2, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { calculateModelComparisonN } from '@/utils/bayesianPowerCalculations';
 
 const BayesianModelComparisonCalculator = () => {
+  const { toast } = useToast();
   const [models, setModels] = useState([
     { name: 'Null Model', prior: { mean: 0, sd: 0.1 }, priorProbability: 0.3, complexity: 1 },
     { name: 'Small Effect', prior: { mean: 0.3, sd: 0.2 }, priorProbability: 0.4, complexity: 2 },
@@ -27,13 +29,47 @@ const BayesianModelComparisonCalculator = () => {
       try {
         const res = calculateModelComparisonN({ models, nPerGroup, testType: 'ttest', alpha, targetBayesFactor: targetBF });
         setResult(res);
-        toast.success('Model comparison calculated!');
+        toast({ title: "Success", description: "Model comparison calculated!" });
       } catch (error) {
-        toast.error('Calculation failed.');
+        toast({ title: "Error", description: "Calculation failed.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
     }, 100);
+  };
+
+  const exportToCSV = () => {
+    if (!result) return;
+    const csvData = models.map((m, i) => 
+      `${m.name},${m.prior.mean},${m.prior.sd},${m.priorProbability},${m.complexity}`
+    ).join('\n');
+    const blob = new Blob([`Model,Prior Mean,Prior SD,Prior Prob,Complexity\n${csvData}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'model_comparison.csv';
+    a.click();
+    toast({ title: "CSV exported", description: "Data downloaded successfully" });
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-model-comparison',
+      parameters: { models, nPerGroup, targetBF, alpha }
+    });
+    downloadRFile(rCode, 'model_comparison.R');
+    toast({ title: "R code exported", description: "Ready to run in RStudio" });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-model-comparison',
+      parameters: { models, nPerGroup, targetBF, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
+    }
   };
 
   return (
@@ -86,6 +122,21 @@ const BayesianModelComparisonCalculator = () => {
                   <Info className="h-4 w-4" />
                   <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                 </Alert>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <Button onClick={exportToCSV} variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    CSV
+                  </Button>
+                  <Button onClick={exportToR} variant="outline" size="sm">
+                    <Code2 className="mr-2 h-4 w-4" />
+                    R Code
+                  </Button>
+                  <Button onClick={copyRCode} variant="outline" size="sm">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (

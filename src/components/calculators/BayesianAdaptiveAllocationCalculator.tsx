@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Plus, Trash2, AlertCircle, Info, Zap } from 'lucide-react';
+import { Play, Plus, Trash2, AlertCircle, Info, Zap, Download, Code2, Copy } from 'lucide-react';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calculateAdaptiveAllocation } from '@/utils/bayesianPowerCalculations';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const BayesianAdaptiveAllocationCalculator = () => {
+  const { toast } = useToast();
   const [treatments, setTreatments] = useState(['Control', 'Treatment A', 'Treatment B']);
   const [priors, setPriors] = useState([
     { mean: 0.3, sd: 0.2 },
@@ -30,7 +32,7 @@ const BayesianAdaptiveAllocationCalculator = () => {
       setTreatments([...treatments, `Treatment ${String.fromCharCode(64 + treatments.length)}`]);
       setPriors([...priors, { mean: 0.5, sd: 0.2 }]);
     } else {
-      toast.error('Maximum 5 treatments supported');
+      toast({ title: "Error", description: "Maximum 5 treatments supported", variant: "destructive" });
     }
   };
 
@@ -39,7 +41,7 @@ const BayesianAdaptiveAllocationCalculator = () => {
       setTreatments(treatments.filter((_, i) => i !== index));
       setPriors(priors.filter((_, i) => i !== index));
     } else {
-      toast.error('Need at least 2 treatments');
+      toast({ title: "Error", description: "Need at least 2 treatments", variant: "destructive" });
     }
   };
 
@@ -70,13 +72,47 @@ const BayesianAdaptiveAllocationCalculator = () => {
           testType: 'anova'
         });
         setResult(res);
-        toast.success('Adaptive allocation calculated!');
+        toast({ title: "Success", description: "Adaptive allocation calculated!" });
       } catch (error) {
-        toast.error('Calculation failed. Please check your parameters.');
+        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
     }, 100);
+  };
+
+  const exportToCSV = () => {
+    if (!result) return;
+    const csvData = result.expectedAllocations.map((a: any) => 
+      `${a.treatment},${a.n},${a.proportion}`
+    ).join('\n');
+    const blob = new Blob([`Treatment,N,Proportion\n${csvData}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'adaptive_allocation.csv';
+    a.click();
+    toast({ title: "CSV exported", description: "Data downloaded successfully" });
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-adaptive',
+      parameters: { treatments, priors, maxN, targetPower, alpha, allocationRule }
+    });
+    downloadRFile(rCode, 'adaptive_allocation.R');
+    toast({ title: "R code exported", description: "Ready to run in RStudio" });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-adaptive',
+      parameters: { treatments, priors, maxN, targetPower, alpha, allocationRule }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
+    }
   };
 
   return (
@@ -265,6 +301,21 @@ const BayesianAdaptiveAllocationCalculator = () => {
                     <Info className="h-4 w-4" />
                     <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                   </Alert>
+
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <Button onClick={exportToCSV} variant="outline" size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                    <Button onClick={exportToR} variant="outline" size="sm">
+                      <Code2 className="mr-2 h-4 w-4" />
+                      R Code
+                    </Button>
+                    <Button onClick={copyRCode} variant="outline" size="sm">
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
 
                   <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
                     <p className="font-semibold text-green-900 dark:text-green-100 mb-2">

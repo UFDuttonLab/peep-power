@@ -5,12 +5,14 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, AlertCircle, Info, Network } from 'lucide-react';
+import { Play, AlertCircle, Info, Network, Download, Code2, Copy } from 'lucide-react';
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calculateHierarchicalPower } from '@/utils/bayesianPowerCalculations';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const BayesianHierarchicalCalculator = () => {
+  const { toast } = useToast();
   const [effectMean, setEffectMean] = useState(0.5);
   const [effectSD, setEffectSD] = useState(0.2);
   const [nClusters, setNClusters] = useState(10);
@@ -41,13 +43,47 @@ const BayesianHierarchicalCalculator = () => {
           alpha
         });
         setResult(res);
-        toast.success('Hierarchical design calculated!');
+        toast({ title: "Success", description: "Hierarchical design calculated!" });
       } catch (error) {
-        toast.error('Calculation failed. Please check your parameters.');
+        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
     }, 100);
+  };
+
+  const exportToCSV = () => {
+    if (!result) return;
+    const csvData = result.sensitivityToICC.map((row: any) => 
+      `${row.icc},${row.requiredClusters},${row.designEffect}`
+    ).join('\n');
+    const blob = new Blob([`ICC,Required Clusters,Design Effect\n${csvData}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'hierarchical_design.csv';
+    a.click();
+    toast({ title: "CSV exported", description: "Data downloaded successfully" });
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-hierarchical',
+      parameters: { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, groups, targetPower, alpha }
+    });
+    downloadRFile(rCode, 'hierarchical_power.R');
+    toast({ title: "R code exported", description: "Ready to run in RStudio" });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-hierarchical',
+      parameters: { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, groups, targetPower, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
+    }
   };
 
   return (
@@ -253,6 +289,21 @@ const BayesianHierarchicalCalculator = () => {
                     <Info className="h-4 w-4" />
                     <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                   </Alert>
+
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <Button onClick={exportToCSV} variant="outline" size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                    <Button onClick={exportToR} variant="outline" size="sm">
+                      <Code2 className="mr-2 h-4 w-4" />
+                      R Code
+                    </Button>
+                    <Button onClick={copyRCode} variant="outline" size="sm">
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
 
                   <div className="p-4 bg-muted rounded-lg space-y-2">
                     <p className="font-semibold">Design Effect</p>

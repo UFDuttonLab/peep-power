@@ -5,12 +5,14 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, AlertCircle, Info, Equal } from 'lucide-react';
+import { Play, AlertCircle, Info, Equal, Download, Code2, Copy } from 'lucide-react';
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { calculateEquivalenceN } from '@/utils/bayesianPowerCalculations';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const BayesianEquivalenceCalculator = () => {
+  const { toast } = useToast();
   const [equivalenceMargin, setEquivalenceMargin] = useState(0.3);
   const [priorMean, setPriorMean] = useState(0.1);
   const [priorSD, setPriorSD] = useState(0.2);
@@ -33,13 +35,45 @@ const BayesianEquivalenceCalculator = () => {
           alpha
         });
         setResult(res);
-        toast.success('Equivalence analysis complete!');
+        toast({ title: "Success", description: "Equivalence analysis complete!" });
       } catch (error) {
-        toast.error('Calculation failed. Please check your parameters.');
+        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
     }, 100);
+  };
+
+  const exportToCSV = () => {
+    if (!result) return;
+    const csvData = result.chart.map((row: any) => `${row.n},${row.probEquivalent}`).join('\n');
+    const blob = new Blob([`Sample Size,Prob Equivalent\n${csvData}`], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'equivalence_analysis.csv';
+    a.click();
+    toast({ title: "CSV exported", description: "Data downloaded successfully" });
+  };
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-equivalence',
+      parameters: { equivalenceMargin, priorMean, priorSD, targetProbability, testType, alpha }
+    });
+    downloadRFile(rCode, 'equivalence_testing.R');
+    toast({ title: "R code exported", description: "Ready to run in RStudio" });
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'bayesian-equivalence',
+      parameters: { equivalenceMargin, priorMean, priorSD, targetProbability, testType, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
+    }
   };
 
   return (
@@ -182,6 +216,21 @@ const BayesianEquivalenceCalculator = () => {
                     <Info className="h-4 w-4" />
                     <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                   </Alert>
+
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <Button onClick={exportToCSV} variant="outline" size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                    <Button onClick={exportToR} variant="outline" size="sm">
+                      <Code2 className="mr-2 h-4 w-4" />
+                      R Code
+                    </Button>
+                    <Button onClick={copyRCode} variant="outline" size="sm">
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy
+                    </Button>
+                  </div>
 
                   <div className="p-4 bg-muted rounded-lg space-y-3">
                     <p className="font-semibold">ROPE Analysis</p>
