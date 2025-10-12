@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ControlSlider from '@/components/ControlSlider';
 import BayesianAssuranceChart from '@/components/BayesianAssuranceChart';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Brain, Download, Code2, Copy, Play } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info, Brain, Download, Code2, Copy, Play, Dna, AlertCircle } from 'lucide-react';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,7 +16,7 @@ export const BayesianAssuranceCalculator = () => {
   const [effectSizeSD, setEffectSizeSD] = useState(0.2);
   const [targetPower, setTargetPower] = useState(0.80);
   const [targetAssurance, setTargetAssurance] = useState(0.80);
-  const [testType, setTestType] = useState<'ttest' | 'anova' | 'correlation'>('ttest');
+  const [testType, setTestType] = useState<'ttest' | 'anova' | 'correlation' | 'permanova'>('ttest');
   const [groups, setGroups] = useState(2);
   const [alpha, setAlpha] = useState(0.05);
   const [result, setResult] = useState<BayesianAssuranceResult | null>(null);
@@ -33,7 +33,7 @@ export const BayesianAssuranceCalculator = () => {
           targetPower,
           targetAssurance,
           testType,
-          groups: testType === 'anova' ? groups : undefined,
+          groups: (testType === 'anova' || testType === 'permanova') ? groups : undefined,
           alpha
         });
         setResult(newResult);
@@ -124,6 +124,18 @@ export const BayesianAssuranceCalculator = () => {
           to perform Monte Carlo analysis (5000 samples).
         </AlertDescription>
       </Alert>
+
+      {testType === 'permanova' && (
+        <Alert className="bg-purple-50 dark:bg-purple-950/20 border-purple-500">
+          <Dna className="h-4 w-4" />
+          <AlertTitle>Microbiome-Specific Guidance</AlertTitle>
+          <AlertDescription>
+            PERMANOVA effect sizes (R²) are typically smaller than univariate analyses. 
+            R² = 0.08 (8% variance explained) is considered a <strong>medium effect</strong> in microbiome research. 
+            High within-group variability means you need larger sample sizes than traditional physiology studies.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Controls */}
@@ -142,10 +154,18 @@ export const BayesianAssuranceCalculator = () => {
                 label="Expected Effect Size (Mean)"
                 value={effectSizeMean}
                 onChange={setEffectSizeMean}
-                min={0.1}
-                max={2.0}
-                step={0.05}
-                tooltip={testType === 'correlation' ? 'Expected correlation coefficient (r)' : testType === 'ttest' ? "Cohen's d: 0.2=small, 0.5=medium, 0.8=large" : "Cohen's f: 0.1=small, 0.25=medium, 0.4=large"}
+                min={testType === 'correlation' ? -0.99 : testType === 'permanova' ? 0.01 : 0.1}
+                max={testType === 'correlation' ? 0.99 : testType === 'permanova' ? 0.30 : 2.0}
+                step={testType === 'permanova' ? 0.01 : 0.05}
+                tooltip={
+                  testType === 'correlation' 
+                    ? 'Expected correlation coefficient (r)' 
+                    : testType === 'permanova'
+                    ? "R² (variance explained): 0.02=small, 0.08=medium, 0.15=large"
+                    : testType === 'ttest' 
+                    ? "Cohen's d: 0.2=small, 0.5=medium, 0.8=large" 
+                    : "Cohen's f: 0.1=small, 0.25=medium, 0.4=large"
+                }
               />
               
               <ControlSlider
@@ -153,24 +173,76 @@ export const BayesianAssuranceCalculator = () => {
                 label="Uncertainty (Standard Deviation)"
                 value={effectSizeSD}
                 onChange={setEffectSizeSD}
-                min={0.05}
-                max={0.5}
-                step={0.05}
+                min={0.01}
+                max={testType === 'permanova' ? 0.1 : 0.5}
+                step={0.01}
                 tooltip="How uncertain are you? Larger SD = more uncertainty = larger required sample size"
               />
               
               <div className="text-xs text-muted-foreground p-3 bg-muted rounded">
-                <strong>Interpretation:</strong> You believe the effect size is around <strong>{effectSizeMean.toFixed(2)}</strong>
-                {effectSizeSD < 0.1 ? (
-                  <span>, and you're quite confident it's between </span>
-                ) : effectSizeSD < 0.2 ? (
-                  <span>, with moderate uncertainty between </span>
+                {testType === 'permanova' ? (
+                  <>
+                    <strong>Interpretation:</strong> You believe your treatment explains around{' '}
+                    <strong>{(effectSizeMean * 100).toFixed(1)}%</strong> of the variance in community composition 
+                    (R²={effectSizeMean.toFixed(3)})
+                    {effectSizeSD < 0.05 ? (
+                      <span>, with high confidence between </span>
+                    ) : (
+                      <span>, but with uncertainty ranging from </span>
+                    )}
+                    <strong>{Math.max(0.001, effectSizeMean - 1.96*effectSizeSD).toFixed(3)}</strong> to{' '}
+                    <strong>{Math.min(0.95, effectSizeMean + 1.96*effectSizeSD).toFixed(3)}</strong> (95% CI).
+                  </>
                 ) : (
-                  <span>, but with substantial uncertainty it could range from </span>
+                  <>
+                    <strong>Interpretation:</strong> You believe the effect size is around <strong>{effectSizeMean.toFixed(2)}</strong>
+                    {effectSizeSD < 0.1 ? (
+                      <span>, and you're quite confident it's between </span>
+                    ) : effectSizeSD < 0.2 ? (
+                      <span>, with moderate uncertainty between </span>
+                    ) : (
+                      <span>, but with substantial uncertainty it could range from </span>
+                    )}
+                    <strong>{Math.max(0.01, effectSizeMean - 1.96*effectSizeSD).toFixed(2)}</strong> to <strong>{(effectSizeMean + 1.96*effectSizeSD).toFixed(2)}</strong> 
+                    (95% credible interval{(effectSizeMean - 1.96*effectSizeSD) < 0 ? ', truncated at 0' : ''}).
+                  </>
                 )}
-                <strong>{Math.max(0.01, effectSizeMean - 1.96*effectSizeSD).toFixed(2)}</strong> to <strong>{(effectSizeMean + 1.96*effectSizeSD).toFixed(2)}</strong> 
-                (95% credible interval{(effectSizeMean - 1.96*effectSizeSD) < 0 ? ', truncated at 0' : ''}).
               </div>
+              
+              {testType === 'permanova' && (
+                <div className="mt-3 p-3 bg-background/50 rounded-lg border">
+                  <h4 className="text-xs font-semibold mb-2">Common Microbiome Scenarios</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setEffectSizeMean(0.15); setEffectSizeSD(0.05); }}
+                      className="text-xs"
+                    >
+                      Strong (R²=0.15)
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setEffectSizeMean(0.08); setEffectSizeSD(0.03); }}
+                      className="text-xs"
+                    >
+                      Moderate (R²=0.08)
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setEffectSizeMean(0.03); setEffectSizeSD(0.02); }}
+                      className="text-xs"
+                    >
+                      Subtle (R²=0.03)
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Strong: antibiotics/major treatment | Moderate: diet change | Subtle: supplement
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -211,11 +283,12 @@ export const BayesianAssuranceCalculator = () => {
                     <SelectItem value="ttest">Two-Sample T-Test</SelectItem>
                     <SelectItem value="anova">One-Way ANOVA</SelectItem>
                     <SelectItem value="correlation">Correlation</SelectItem>
+                    <SelectItem value="permanova">PERMANOVA (Microbiome)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
-              {testType === 'anova' && (
+              {(testType === 'anova' || testType === 'permanova') && (
                 <ControlSlider
                   id="groups"
                   label="Number of Groups"
@@ -283,7 +356,7 @@ export const BayesianAssuranceCalculator = () => {
                       {result.requiredN}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {testType === 'ttest' ? 'per group' : testType === 'anova' ? 'per group' : 'total'}
+                      {testType === 'correlation' ? 'total' : 'per group'}
                     </div>
                   </div>
                   

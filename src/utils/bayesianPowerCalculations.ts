@@ -6,7 +6,8 @@ import jStat from 'jstat';
 import {
   calculateTTestPower,
   calculateOneWayAnovaPower,
-  calculateCorrelationPower
+  calculateCorrelationPower,
+  calculatePERMANOVAPower
 } from './powerCalculations';
 
 export interface BayesianAssuranceInput {
@@ -14,8 +15,8 @@ export interface BayesianAssuranceInput {
   effectSizeSD: number;         // Prior uncertainty (SD)
   targetPower: number;          // e.g., 0.80
   targetAssurance: number;      // e.g., 0.80 (80% probability of achieving target power)
-  testType: 'ttest' | 'anova' | 'correlation';
-  groups?: number;              // For ANOVA
+  testType: 'ttest' | 'anova' | 'correlation' | 'permanova';
+  groups?: number;              // For ANOVA or PERMANOVA
   alpha: number;
 }
 
@@ -85,9 +86,15 @@ export const calculateBayesianAssurance = (
         } else if (params.testType === 'anova' && params.groups) {
           power = calculateOneWayAnovaPower(n, params.groups, sampledEffect, params.alpha).power;
         } else if (params.testType === 'correlation') {
-          // For correlation, effect size is the correlation coefficient
-          const rho = Math.min(0.99, sampledEffect); // Cap at 0.99
-          power = calculateCorrelationPower(n, rho, params.alpha).power;
+          // For correlation, effect size is the correlation coefficient (r)
+          // Ensure it stays within valid range [-1, 1]
+          const sampledR = Math.min(0.99, Math.max(-0.99, sampledEffect));
+          power = calculateCorrelationPower(n, sampledR, params.alpha).power;
+        } else if (params.testType === 'permanova' && params.groups) {
+          // For PERMANOVA, effect size is R² (variance explained)
+          // Ensure it stays within valid range [0, 0.95]
+          const sampledR2 = Math.min(0.95, Math.max(0.001, sampledEffect));
+          power = calculatePERMANOVAPower(n, params.groups, sampledR2, params.alpha).power;
         }
       } catch (e) {
         // Handle edge cases
@@ -115,6 +122,7 @@ export const calculateBayesianAssurance = (
   
   // Estimate frequentist n for comparison (assumes exact effect size)
   let frequentistN = 10;
+  let freqPower = 0;
   try {
     if (params.testType === 'ttest') {
       // Binary search for required n
@@ -122,6 +130,7 @@ export const calculateBayesianAssurance = (
         const power = calculateTTestPower(n, params.effectSizeMean, params.alpha).power;
         if (power >= params.targetPower) {
           frequentistN = n;
+          freqPower = power;
           break;
         }
       }
@@ -130,6 +139,7 @@ export const calculateBayesianAssurance = (
         const power = calculateOneWayAnovaPower(n, params.groups, params.effectSizeMean, params.alpha).power;
         if (power >= params.targetPower) {
           frequentistN = n;
+          freqPower = power;
           break;
         }
       }
@@ -138,6 +148,17 @@ export const calculateBayesianAssurance = (
         const power = calculateCorrelationPower(n, params.effectSizeMean, params.alpha).power;
         if (power >= params.targetPower) {
           frequentistN = n;
+          freqPower = power;
+          break;
+        }
+      }
+    } else if (params.testType === 'permanova' && params.groups) {
+      // For PERMANOVA, traditional power analysis
+      for (let n = 10; n <= 300; n += 5) {
+        const power = calculatePERMANOVAPower(n, params.groups, params.effectSizeMean, params.alpha).power;
+        if (power >= params.targetPower) {
+          frequentistN = n;
+          freqPower = power;
           break;
         }
       }
@@ -146,7 +167,12 @@ export const calculateBayesianAssurance = (
     frequentistN = Math.ceil(requiredN * 0.7);
   }
   
-  const summary = `With uncertainty in effect size (mean=${params.effectSizeMean.toFixed(2)}, SD=${params.effectSizeSD.toFixed(2)}), you need <strong>${requiredN}</strong> ${params.testType === 'correlation' ? 'total' : 'per group'} to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional power analysis (ignoring uncertainty) suggests ${frequentistN} ${params.testType === 'correlation' ? 'total' : 'per group'}. <strong>Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%</strong>.`;
+  let summary = '';
+  if (params.testType === 'permanova') {
+    summary = `With uncertainty in effect size (R²: mean=${params.effectSizeMean.toFixed(3)}, SD=${params.effectSizeSD.toFixed(3)}), you need <strong>${requiredN}</strong> per group to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional PERMANOVA power analysis (ignoring uncertainty) suggests ${frequentistN} per group. <strong>Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%</strong>, which is especially important in microbiome studies with high variability.`;
+  } else {
+    summary = `With uncertainty in effect size (mean=${params.effectSizeMean.toFixed(2)}, SD=${params.effectSizeSD.toFixed(2)}), you need <strong>${requiredN}</strong> ${params.testType === 'correlation' ? 'total' : 'per group'} to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional power analysis (ignoring uncertainty) suggests ${frequentistN} ${params.testType === 'correlation' ? 'total' : 'per group'}. <strong>Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%</strong>.`;
+  }
   
   return { requiredN, assuranceCurve, priorDistribution, summary };
 };
