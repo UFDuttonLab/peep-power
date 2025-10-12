@@ -92,29 +92,30 @@ export const calculateLMMPower = (
   // Design effect accounts for within-subject correlation
   const designEffect = calculateDesignEffect(nTimepoints, withinCorr);
   
-  // Effective sample size
-  const effectiveN = (nSubjects * nTimepoints) / designEffect;
+  // Random slopes increase the effective variance of the time effect
+  // This reduces the effective design, similar to increasing correlation
+  const slopeInflationFactor = 1 + (randomSlopeVar * (nTimepoints - 1) / nTimepoints);
+  const adjustedDesignEffect = designEffect * slopeInflationFactor;
   
   // Adjust for dropout (assume exponential dropout)
   const retainedSubjects = nSubjects * Math.pow(1 - dropoutRate, nTimepoints - 1);
-  const adjustedEffectiveN = (retainedSubjects * nTimepoints) / designEffect;
   
-  // Degrees of freedom
+  // Effective sample size accounting for correlation and random slopes
+  const adjustedEffectiveN = (retainedSubjects * nTimepoints) / adjustedDesignEffect;
+  
+  // Degrees of freedom for time × treatment interaction in LMM
   const df1 = nTimepoints - 1; // Time effect
-  const df2 = Math.max(1, adjustedEffectiveN - nSubjects - nCovariates - df1 - 1);
+  const df2 = Math.max(5, retainedSubjects - nCovariates - 2); // Subject-level df
   
-  // Non-centrality parameter for F-test
-  const lambda = effectSize * effectSize * adjustedEffectiveN;
-  
-  // Add random slope variance adjustment
-  const slopeAdjustment = 1 + randomSlopeVar;
-  const adjustedLambda = lambda / slopeAdjustment;
+  // Non-centrality parameter for 2-group comparison over time
+  const nPerGroup = retainedSubjects / 2;
+  const lambda = (effectSize * effectSize * nPerGroup * nTimepoints) / adjustedDesignEffect;
   
   // F critical value
   const fCrit = jStat.centralF.inv(1 - alpha, df1, df2);
   
   // Power using noncentral F distribution approximation
-  // NOTE: This is a ROUGH approximation using normal approximation to noncentral F
+  // NOTE: This is an approximation using normal approximation to noncentral F
   // For precise power in complex LMM designs, use simulation-based methods
   // (e.g., simr package in R, as provided in the R code export)
   // 
@@ -123,8 +124,8 @@ export const calculateLMMPower = (
   // - High dropout rates (>20%)
   // - Small sample sizes (<20 subjects)
   // - Complex covariance structures beyond compound symmetry
-  const noncentralMean = df1 + adjustedLambda;
-  const noncentralVar = 2 * df1 + 4 * adjustedLambda;
+  const noncentralMean = df1 + lambda;
+  const noncentralVar = 2 * df1 + 4 * lambda;
   const threshold = fCrit * df1;
   
   const z = (threshold - noncentralMean) / Math.sqrt(noncentralVar);

@@ -139,6 +139,37 @@ const LongitudinalMixedModelCalculator = () => {
         </div>
       </Card>
 
+      {/* Warning alerts for approximation limitations */}
+      {(randomSlopeVar > 0.5 || dropoutRate > 0.2 || nSubjects < 20) && (
+        <Alert variant="default" className="border-yellow-500/50 bg-yellow-50/50 dark:bg-yellow-950/20">
+          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+          <AlertTitle>Approximation Warning</AlertTitle>
+          <AlertDescription className="text-sm space-y-1">
+            {randomSlopeVar > 0.5 && (
+              <div>• High random slope variance (&gt;0.5) may reduce approximation accuracy</div>
+            )}
+            {dropoutRate > 0.2 && (
+              <div>• High dropout rate (&gt;20%) - consider simulation-based power (simr package in R)</div>
+            )}
+            {nSubjects < 20 && (
+              <div>• Small sample size (&lt;20 subjects) may give unreliable random effects estimates</div>
+            )}
+            <div className="mt-2 font-semibold">For precise power in complex designs, use simulation methods provided in the R code export.</div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Alert className="border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-500" />
+        <AlertTitle>About This Power Calculation</AlertTitle>
+        <AlertDescription className="text-sm">
+          This calculator uses an analytical approximation for LMM power. The formula accounts for within-subject 
+          correlation, random slopes, dropout, and covariates. For final sample size decisions, we recommend 
+          validation using simulation-based methods (simr package in R). Export the R code below to run precise 
+          Monte Carlo simulations.
+        </AlertDescription>
+      </Alert>
+
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
         <h2 className="text-2xl font-bold mb-4">Power Analysis</h2>
         
