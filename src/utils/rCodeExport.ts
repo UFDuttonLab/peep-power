@@ -587,7 +587,7 @@ simulate_permanova <- function(n_per_group, num_groups, r2, alpha, nsim = 999) {
     
     # Run PERMANOVA
     perm_result <- adonis2(dist_matrix ~ groups_vec, permutations = 999)
-    p_values[i] <- perm_result$\`Pr(>F)\`[1]
+    p_values[i] <- perm_result[["Pr(>F)"]][1]
   }
   
   power <- mean(p_values < alpha, na.rm = TRUE)
@@ -700,7 +700,7 @@ simulate_rm_permanova <- function(subj, tp, r2, rho, alpha, nsim = 500) {
     perm_result <- adonis2(dist_mat ~ time, strata = subject_id, 
                            permutations = 999)
     
-    p_values[i] <- perm_result$\`Pr(>F)\`[1]
+    p_values[i] <- perm_result[["Pr(>F)"]][1]
   }
   
   power <- mean(p_values < alpha, na.rm = TRUE)
@@ -756,6 +756,8 @@ cat("\\n=== Bayesian Assurance Analysis ===\\n")
 cat("Prior: Effect size ~ N(", effect_mean, ",", effect_sd, ")\\n")
 cat("Target power:", target_power, "\\n")
 cat("Target assurance:", target_assurance, "\\n\\n")
+
+set.seed(123)  # For reproducible results
 
 # Monte Carlo integration to calculate assurance
 calculate_assurance <- function(n, prior_mean, prior_sd, target_pwr, alpha, type, groups) {
