@@ -11,6 +11,7 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { calculateReplicationProbability } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { PUBLICATION_BIAS_DESCRIPTIONS, PUBLICATION_BIAS_CITATIONS } from '@/constants/bayesianConstants';
 
 const BayesianReplicationCalculator = () => {
   const { toast } = useToast();
@@ -387,11 +388,11 @@ const BayesianReplicationCalculator = () => {
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="font-semibold mb-2">Publication Bias Impact</p>
                     <p className="text-sm text-muted-foreground">
-                      {publicationBias === 'severe' && "Severe bias (e.g., highly competitive fields) inflates effects by ~75%."}
-                      {publicationBias === 'moderate' && "Moderate bias (typical academic publishing) inflates effects by ~35%."}
-                      {publicationBias === 'mild' && "Mild bias (pre-registered studies) inflates effects by ~15%."}
-                      {publicationBias === 'none' && "No bias assumed (open science practices in place)."}
+                      {PUBLICATION_BIAS_DESCRIPTIONS[publicationBias]}
                     </p>
+                    <div className="text-xs mt-2 pt-2 border-t border-border opacity-70">
+                      <strong>References:</strong> {PUBLICATION_BIAS_CITATIONS.general}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

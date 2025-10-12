@@ -11,6 +11,7 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { calculateAdaptiveAllocation } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { ADAPTIVE_ALLOCATION_CITATIONS } from '@/constants/bayesianConstants';
 
 const BayesianAdaptiveAllocationCalculator = () => {
   const { toast } = useToast();
@@ -131,16 +132,19 @@ const BayesianAdaptiveAllocationCalculator = () => {
         <AlertDescription>
           <strong>What is Adaptive Allocation?</strong> Instead of equal randomization, adaptive designs allocate 
           more samples to treatments showing better performance. This is both more efficient (better power) and 
-          more ethical (fewer subjects to inferior treatments).
+          more ethical (fewer subjects to inferior treatments). <a href={`#cite-ethics`} className="text-primary underline text-xs">[1]</a>
         </AlertDescription>
       </Alert>
 
-      <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-        <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
-        <AlertDescription className="text-green-900 dark:text-green-100">
+      <Alert className="bg-muted/50 border-muted">
+        <Info className="h-4 w-4" />
+        <AlertDescription>
           <strong>When to use:</strong> Restoration experiments comparing multiple interventions, 
           adaptive management trials, conservation action testing, any multi-arm study where ethics favor 
           reducing exposure to ineffective treatments.
+          <div className="text-xs mt-2 pt-2 border-t border-border">
+            <strong id="cite-ethics">[1]</strong> {ADAPTIVE_ALLOCATION_CITATIONS.ethics}
+          </div>
         </AlertDescription>
       </Alert>
 

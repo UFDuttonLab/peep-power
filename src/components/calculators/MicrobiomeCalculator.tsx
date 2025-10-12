@@ -8,6 +8,7 @@ import SimplePowerChart from '@/components/SimplePowerChart';
 import BetaDiversityVisualizer from '@/components/BetaDiversityVisualizer';
 import EffectSizeConversionGuide from '@/components/EffectSizeConversionGuide';
 import { calculatePERMANOVAPower, calculateTTestPower } from '@/utils/powerCalculations';
+import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
 
 const MicrobiomeCalculator = () => {
   // PERMANOVA calculator state
@@ -197,13 +198,19 @@ const MicrobiomeCalculator = () => {
             </div>
           </div>
 
-          <Alert variant="default" className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
-            <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <AlertTitle className="text-sm">Note on Accuracy</AlertTitle>
-            <AlertDescription className="text-xs">
-              This calculator uses an approximation based on the noncentral F-distribution. 
-              Exact PERMANOVA power depends on your distance metric (Bray-Curtis, Jaccard, etc.) and data structure. 
-              We recommend conducting a pilot study to validate these estimates.
+          <Alert className="bg-accent/10 border-accent/30">
+            <Lightbulb className="h-4 w-4 text-accent-foreground" />
+            <AlertTitle className="text-sm">Note on Accuracy & Pilot Studies</AlertTitle>
+            <AlertDescription className="text-xs space-y-2">
+              <p>
+                This calculator uses an approximation based on the noncentral F-distribution. 
+                Exact PERMANOVA power depends on your distance metric (Bray-Curtis, Jaccard, etc.) and data structure.
+              </p>
+              <p className="font-semibold">Pilot Study Recommendations:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>{MICROBIOME_PILOT_GUIDANCE.betaDiversity}</li>
+                <li>For best results, use simulations with actual pilot data (see powersim in R).</li>
+              </ul>
             </AlertDescription>
           </Alert>
         </div>
