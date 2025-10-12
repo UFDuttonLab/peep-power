@@ -23,6 +23,10 @@ export interface BayesianAssuranceInput {
 export interface BayesianAssuranceResult {
   requiredN: number;
   assuranceCurve: Array<{n: number, assurance: number}>;
+  confidenceRegions: {
+    lower: Array<{ x: number; y: number }>;
+    upper: Array<{ x: number; y: number }>;
+  };
   priorDistribution: Array<{effectSize: number, density: number}>;
   summary: string;
 }
@@ -64,8 +68,12 @@ export const calculateBayesianAssurance = (
   }
   
   // Monte Carlo integration: calculate assurance for different sample sizes
+  const nBootstrap = 100;
+  const bootstrapResults: number[][] = [];
+  
   for (let n = 10; n <= 300; n += 5) {
     let countSuccess = 0;
+    const bootstrapAssurances: number[] = [];
     
     for (let i = 0; i < nSamples; i++) {
       // Sample effect size from prior (truncated at 0 for positive effects only)
@@ -108,12 +116,64 @@ export const calculateBayesianAssurance = (
     const assurance = countSuccess / nSamples;
     assuranceCurve.push({ n, assurance });
     
+    // Bootstrap for confidence intervals (smaller sample for speed)
+    for (let boot = 0; boot < nBootstrap; boot++) {
+      let bootSuccess = 0;
+      const bootSamples = Math.floor(nSamples / 10);
+      
+      for (let i = 0; i < bootSamples; i++) {
+        let sampledEffect = normalRandom(params.effectSizeMean, params.effectSizeSD);
+        let attempts = 0;
+        while (sampledEffect < 0 && attempts < 10) {
+          sampledEffect = normalRandom(params.effectSizeMean, params.effectSizeSD);
+          attempts++;
+        }
+        if (sampledEffect < 0) sampledEffect = 0.01;
+        
+        let power = 0;
+        try {
+          if (params.testType === 'ttest') {
+            power = calculateTTestPower(n, sampledEffect, params.alpha).power;
+          } else if (params.testType === 'anova' && params.groups) {
+            power = calculateOneWayAnovaPower(n, params.groups, sampledEffect, params.alpha).power;
+          } else if (params.testType === 'correlation') {
+            const sampledR = Math.min(0.99, Math.max(-0.99, sampledEffect));
+            power = calculateCorrelationPower(n, sampledR, params.alpha).power;
+          } else if (params.testType === 'permanova' && params.groups) {
+            const sampledR2 = Math.min(0.95, Math.max(0.001, sampledEffect));
+            power = calculatePERMANOVAPower(n, params.groups, sampledR2, params.alpha).power;
+          }
+        } catch (e) {
+          power = 0;
+        }
+        
+        if (power >= params.targetPower) bootSuccess++;
+      }
+      
+      bootstrapAssurances.push(bootSuccess / bootSamples);
+    }
+    
+    bootstrapResults.push(bootstrapAssurances);
+    
     // Find minimum n where assurance >= target (first crossing)
     if (assurance >= params.targetAssurance && !foundRequiredN) {
       requiredN = n;
       foundRequiredN = true;
     }
   }
+  
+  // Calculate percentiles for confidence bounds
+  const confidenceLower = assuranceCurve.map((d, idx) => {
+    const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
+    const lower = sorted[Math.floor(0.025 * nBootstrap)] || 0;
+    return { x: d.n, y: Math.max(0, lower) };
+  });
+  
+  const confidenceUpper = assuranceCurve.map((d, idx) => {
+    const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
+    const upper = sorted[Math.floor(0.975 * nBootstrap)] || 1;
+    return { x: d.n, y: Math.min(1, upper) };
+  });
   
   // If never reached target assurance, return max
   if (!foundRequiredN) {
@@ -174,7 +234,16 @@ export const calculateBayesianAssurance = (
     summary = `With uncertainty in effect size (mean=${params.effectSizeMean.toFixed(2)}, SD=${params.effectSizeSD.toFixed(2)}), you need <strong>${requiredN}</strong> ${params.testType === 'correlation' ? 'total' : 'per group'} to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional power analysis (ignoring uncertainty) suggests ${frequentistN} ${params.testType === 'correlation' ? 'total' : 'per group'}. <strong>Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%</strong>.`;
   }
   
-  return { requiredN, assuranceCurve, priorDistribution, summary };
+  return { 
+    requiredN, 
+    assuranceCurve, 
+    confidenceRegions: {
+      lower: confidenceLower,
+      upper: confidenceUpper
+    },
+    priorDistribution, 
+    summary 
+  };
 };
 
 /**

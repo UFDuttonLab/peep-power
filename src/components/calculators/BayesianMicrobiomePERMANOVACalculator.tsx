@@ -322,6 +322,14 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                     </AlertDescription>
                   </Alert>
 
+                  <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Computation:</strong> 5,000 Monte Carlo iterations across 59 sample sizes 
+                      + 100 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                    </AlertDescription>
+                  </Alert>
+
                   <div className="grid grid-cols-3 gap-2 mt-4">
                     <Button onClick={exportToR} variant="outline" size="sm">
                       <Code2 className="mr-2 h-4 w-4" />
@@ -337,11 +345,12 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve</CardTitle>
+                  <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
+                    confidenceRegions={result.confidenceRegions}
                     currentValue={result.requiredN}
                     xLabel="Samples Per Group"
                     title="Assurance vs Sample Size"

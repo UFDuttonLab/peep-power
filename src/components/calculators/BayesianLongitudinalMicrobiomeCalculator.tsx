@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ControlSlider from '@/components/ControlSlider';
-import SimplePowerChart from '@/components/SimplePowerChart';
+import BayesianAssuranceChart from '@/components/BayesianAssuranceChart';
 import TimelineVisualization from '@/components/TimelineVisualization';
 import { Clock, Brain, Info, Download, Code2, Copy, Play, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 interface AssuranceResult {
   requiredN: number;
   assuranceCurve: Array<{ n: number; assurance: number }>;
+  confidenceRegions: {
+    lower: Array<{ x: number; y: number }>;
+    upper: Array<{ x: number; y: number }>;
+  };
   summary: string;
 }
 
@@ -30,17 +34,30 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
   const [alpha, setAlpha] = useState(0.05);
   const [result, setResult] = useState<AssuranceResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const runSimulation = () => {
+  const runSimulation = async () => {
     setIsCalculating(true);
-    setTimeout(() => {
-      try {
-        // Simplified Bayesian assurance for LMM
-        const nRange = Array.from({ length: 30 }, (_, i) => (i + 1) * 3);
+    setProgress(0);
+    
+    try {
+      // Simplified Bayesian assurance for LMM
+      const nRange = Array.from({ length: 30 }, (_, i) => (i + 1) * 3);
+      const assuranceCurve: Array<{ n: number; assurance: number }> = [];
+      const bootstrapResults: number[][] = [];
+      const nBootstrap = 100;
+      
+      // Process in chunks to allow UI updates
+      const chunkSize = 5;
+      for (let chunkIdx = 0; chunkIdx < nRange.length; chunkIdx += chunkSize) {
+        await new Promise(resolve => setTimeout(resolve, 50));
         
-        const assuranceCurve = nRange.map(n => {
+        const chunk = nRange.slice(chunkIdx, chunkIdx + chunkSize);
+        
+        for (const n of chunk) {
           let successCount = 0;
           const nSims = 1000;
+          const bootstrapAssurances: number[] = [];
           
           for (let i = 0; i < nSims; i++) {
             // Sample effect size from prior
@@ -58,36 +75,77 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
             if (power >= targetPower) successCount++;
           }
           
-          return { n, assurance: successCount / nSims };
-        });
-
-        const requiredN = assuranceCurve.find(d => d.assurance >= targetAssurance)?.n || 90;
-        const finalN = Math.round(requiredN * Math.pow(1 - dropoutRate, nTimepoints - 1));
-
-        setResult({
-          requiredN,
-          assuranceCurve,
-          summary: `To achieve <strong>${(targetPower * 100).toFixed(0)}% power</strong> with <strong>${(targetAssurance * 100).toFixed(0)}% assurance</strong>
-                   (accounting for uncertainty in the time × treatment effect size of ${effectSizeMean.toFixed(2)} ± ${effectSizeSD.toFixed(2)}),
-                   you need <strong>${requiredN} subjects</strong> to start.
-                   With ${(dropoutRate * 100).toFixed(0)}% dropout per timepoint over ${nTimepoints} timepoints,
-                   expect approximately <strong>${finalN} subjects</strong> at the final timepoint.`
-        });
-
-        toast({
-          title: "Simulation complete",
-          description: "Bayesian LMM assurance analysis finished",
-        });
-      } catch (e) {
-        toast({
-          title: "Error",
-          description: "Simulation failed",
-          variant: "destructive",
-        });
-      } finally {
-        setIsCalculating(false);
+          assuranceCurve.push({ n, assurance: successCount / nSims });
+          
+          // Bootstrap for confidence intervals
+          for (let boot = 0; boot < nBootstrap; boot++) {
+            let bootSuccess = 0;
+            const bootSamples = 100;
+            
+            for (let i = 0; i < bootSamples; i++) {
+              const sampledES = Math.max(0.05, effectSizeMean + (Math.random() - 0.5) * 2 * effectSizeSD * 1.96);
+              const effectiveN = n * Math.pow(1 - dropoutRate, nTimepoints - 1);
+              const designEffect = 1 + (nTimepoints - 1) * withinCorr;
+              const adjustedN = effectiveN / designEffect;
+              const ncp = sampledES * Math.sqrt(adjustedN * nTimepoints / 2);
+              const power = 1 - Math.exp(-Math.pow(ncp, 2) / 2);
+              
+              if (power >= targetPower) bootSuccess++;
+            }
+            
+            bootstrapAssurances.push(bootSuccess / bootSamples);
+          }
+          
+          bootstrapResults.push(bootstrapAssurances);
+        }
+        
+        setProgress(((chunkIdx + chunk.length) / nRange.length) * 100);
       }
-    }, 100);
+      
+      // Calculate confidence intervals
+      const confidenceLower = assuranceCurve.map((d, idx) => {
+        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
+        const lower = sorted[Math.floor(0.025 * nBootstrap)] || 0;
+        return { x: d.n, y: Math.max(0, lower) };
+      });
+      
+      const confidenceUpper = assuranceCurve.map((d, idx) => {
+        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
+        const upper = sorted[Math.floor(0.975 * nBootstrap)] || 1;
+        return { x: d.n, y: Math.min(1, upper) };
+      });
+
+      const requiredN = assuranceCurve.find(d => d.assurance >= targetAssurance)?.n || 90;
+      const finalN = Math.round(requiredN * Math.pow(1 - dropoutRate, nTimepoints - 1));
+
+      setResult({
+        requiredN,
+        assuranceCurve,
+        confidenceRegions: {
+          lower: confidenceLower,
+          upper: confidenceUpper
+        },
+        summary: `To achieve <strong>${(targetPower * 100).toFixed(0)}% power</strong> with <strong>${(targetAssurance * 100).toFixed(0)}% assurance</strong>
+                 (accounting for uncertainty in the time × treatment effect size of ${effectSizeMean.toFixed(2)} ± ${effectSizeSD.toFixed(2)}),
+                 you need <strong>${requiredN} subjects</strong> to start.
+                 With ${(dropoutRate * 100).toFixed(0)}% dropout per timepoint over ${nTimepoints} timepoints,
+                 expect approximately <strong>${finalN} subjects</strong> at the final timepoint.`
+      });
+
+      toast({
+        title: "Simulation complete",
+        description: `${30000} Monte Carlo iterations with ${nBootstrap} bootstrap replicates`,
+      });
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Simulation failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCalculating(false);
+      setProgress(0);
+    }
   };
 
   const applyPreset = (preset: 'antibiotic' | 'diet' | 'disease') => {
@@ -326,14 +384,15 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
                 size="lg"
               >
                 {isCalculating ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Running...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    <span>Simulating... {progress.toFixed(0)}%</span>
+                    <span className="text-xs opacity-70">({Math.floor(progress * 300 / 100)} / 300)</span>
+                  </div>
                 ) : (
                   <>
                     <Play className="mr-2 h-4 w-4" />
-                    Run Simulation
+                    Run Bayesian Simulation
                   </>
                 )}
               </Button>
@@ -361,6 +420,14 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
 
                   <div className="mt-4 text-sm" dangerouslySetInnerHTML={{ __html: result.summary }} />
 
+                  <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Computation:</strong> 30,000 Monte Carlo iterations (1,000 samples × 30 sample sizes) 
+                      + 100 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                    </AlertDescription>
+                  </Alert>
+
                   <div className="grid grid-cols-3 gap-2 mt-4">
                     <Button onClick={exportToR} variant="outline" size="sm">
                       <Code2 className="mr-2 h-4 w-4" />
@@ -376,11 +443,12 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve</CardTitle>
+                  <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SimplePowerChart
+                  <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
+                    confidenceRegions={result.confidenceRegions}
                     currentValue={result.requiredN}
                     xLabel="Starting Subjects"
                     title="Assurance vs Sample Size"

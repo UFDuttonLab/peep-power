@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import ControlSlider from '@/components/ControlSlider';
-import SimplePowerChart from '@/components/SimplePowerChart';
+import BayesianAssuranceChart from '@/components/BayesianAssuranceChart';
 import { Dna, Brain, Info, Download, Code2, Copy, Play, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
@@ -13,6 +13,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 interface AssuranceResult {
   requiredN: number;
   assuranceCurve: Array<{ n: number; assurance: number }>;
+  confidenceRegions: {
+    lower: Array<{ x: number; y: number }>;
+    upper: Array<{ x: number; y: number }>;
+  };
   summary: string;
 }
 
@@ -28,19 +32,32 @@ const BayesianDifferentialAbundanceCalculator = () => {
   const [numTests, setNumTests] = useState(100);
   const [result, setResult] = useState<AssuranceResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const runSimulation = () => {
+  const runSimulation = async () => {
     setIsCalculating(true);
-    setTimeout(() => {
-      try {
-        // Simplified Bayesian assurance for differential abundance
-        const nRange = Array.from({ length: 30 }, (_, i) => (i + 1) * 5);
-        const adjustedAlpha = alpha / numTests; // Bonferroni
+    setProgress(0);
+    
+    try {
+      // Simplified Bayesian assurance for differential abundance
+      const nRange = Array.from({ length: 30 }, (_, i) => (i + 1) * 5);
+      const adjustedAlpha = alpha / numTests; // Bonferroni
+      const assuranceCurve: Array<{ n: number; assurance: number }> = [];
+      const bootstrapResults: number[][] = [];
+      const nBootstrap = 100;
+      
+      // Process in chunks to allow UI updates
+      const chunkSize = 5;
+      for (let chunkIdx = 0; chunkIdx < nRange.length; chunkIdx += chunkSize) {
+        await new Promise(resolve => setTimeout(resolve, 50));
         
-        const assuranceCurve = nRange.map(n => {
+        const chunk = nRange.slice(chunkIdx, chunkIdx + chunkSize);
+        
+        for (const n of chunk) {
           // Monte Carlo: sample from prior, calculate power
           let successCount = 0;
           const nSims = 1000;
+          const bootstrapAssurances: number[] = [];
           
           for (let i = 0; i < nSims; i++) {
             // Sample effect size from prior
@@ -57,36 +74,76 @@ const BayesianDifferentialAbundanceCalculator = () => {
             if (power >= targetPower) successCount++;
           }
           
-          return { n, assurance: successCount / nSims };
-        });
-
-        const requiredN = assuranceCurve.find(d => d.assurance >= targetAssurance)?.n || 150;
-        const foldChange = Math.pow(2, log2FCMean);
-
-        setResult({
-          requiredN,
-          assuranceCurve,
-          summary: `To achieve <strong>${(targetPower * 100).toFixed(0)}% power</strong> with <strong>${(targetAssurance * 100).toFixed(0)}% assurance</strong> 
-                   (accounting for uncertainty about the true log2 fold-change of ${log2FCMean.toFixed(1)} ± ${log2FCSD.toFixed(1)}), 
-                   you need <strong>${requiredN} samples per group</strong>. 
-                   This accounts for ${numTests} taxa tested and typical overdispersion (${dispersion}) in microbiome count data.
-                   Expected fold-change: ${foldChange.toFixed(1)}×`
-        });
-
-        toast({
-          title: "Simulation complete",
-          description: "Bayesian assurance analysis finished",
-        });
-      } catch (e) {
-        toast({
-          title: "Error",
-          description: "Simulation failed",
-          variant: "destructive",
-        });
-      } finally {
-        setIsCalculating(false);
+          assuranceCurve.push({ n, assurance: successCount / nSims });
+          
+          // Bootstrap for confidence intervals
+          for (let boot = 0; boot < nBootstrap; boot++) {
+            let bootSuccess = 0;
+            const bootSamples = 100;
+            
+            for (let i = 0; i < bootSamples; i++) {
+              const sampledFC = Math.max(0.1, log2FCMean + (Math.random() - 0.5) * 2 * log2FCSD * 1.96);
+              const se = Math.sqrt((dispersion / (n * Math.max(1, baseMean))) + (dispersion / (n * Math.max(1, baseMean))));
+              const zStat = Math.abs(sampledFC) / se;
+              const power = Math.min(0.999, 1 - (1 - 2 * (1 - Math.exp(-0.717 * zStat - 0.416 * zStat * zStat))) * 
+                            Math.exp(Math.pow(1.96 - zStat, 2) / -2));
+              
+              if (power >= targetPower) bootSuccess++;
+            }
+            
+            bootstrapAssurances.push(bootSuccess / bootSamples);
+          }
+          
+          bootstrapResults.push(bootstrapAssurances);
+        }
+        
+        setProgress(((chunkIdx + chunk.length) / nRange.length) * 100);
       }
-    }, 100);
+      
+      // Calculate confidence intervals
+      const confidenceLower = assuranceCurve.map((d, idx) => {
+        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
+        const lower = sorted[Math.floor(0.025 * nBootstrap)] || 0;
+        return { x: d.n, y: Math.max(0, lower) };
+      });
+      
+      const confidenceUpper = assuranceCurve.map((d, idx) => {
+        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
+        const upper = sorted[Math.floor(0.975 * nBootstrap)] || 1;
+        return { x: d.n, y: Math.min(1, upper) };
+      });
+
+      const requiredN = assuranceCurve.find(d => d.assurance >= targetAssurance)?.n || 150;
+      const foldChange = Math.pow(2, log2FCMean);
+
+      setResult({
+        requiredN,
+        assuranceCurve,
+        confidenceRegions: {
+          lower: confidenceLower,
+          upper: confidenceUpper
+        },
+        summary: `To achieve <strong>${(targetPower * 100).toFixed(0)}% power</strong> with <strong>${(targetAssurance * 100).toFixed(0)}% assurance</strong> 
+                 (accounting for uncertainty about the true log2 fold-change of ${log2FCMean.toFixed(1)} ± ${log2FCSD.toFixed(1)}), 
+                 you need <strong>${requiredN} samples per group</strong>. 
+                 This accounts for ${numTests} taxa tested and typical overdispersion (${dispersion}) in microbiome count data.
+                 Expected fold-change: ${foldChange.toFixed(1)}×`
+      });
+
+      toast({
+        title: "Simulation complete",
+        description: `${30000} Monte Carlo iterations with ${nBootstrap} bootstrap replicates`,
+      });
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Simulation failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCalculating(false);
+      setProgress(0);
+    }
   };
 
   const applyPreset = (preset: 'high-abundance' | 'moderate' | 'rare') => {
@@ -331,14 +388,15 @@ const BayesianDifferentialAbundanceCalculator = () => {
                 size="lg"
               >
                 {isCalculating ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Running...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    <span>Simulating... {progress.toFixed(0)}%</span>
+                    <span className="text-xs opacity-70">({Math.floor(progress * 300 / 100)} / 300)</span>
+                  </div>
                 ) : (
                   <>
                     <Play className="mr-2 h-4 w-4" />
-                    Run Simulation
+                    Run Bayesian Simulation
                   </>
                 )}
               </Button>
@@ -370,6 +428,14 @@ const BayesianDifferentialAbundanceCalculator = () => {
                     </AlertDescription>
                   </Alert>
 
+                  <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Computation:</strong> 30,000 Monte Carlo iterations (1,000 samples × 30 sample sizes) 
+                      + 100 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                    </AlertDescription>
+                  </Alert>
+
                   <div className="grid grid-cols-3 gap-2 mt-4">
                     <Button onClick={exportToR} variant="outline" size="sm">
                       <Code2 className="mr-2 h-4 w-4" />
@@ -385,11 +451,12 @@ const BayesianDifferentialAbundanceCalculator = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve</CardTitle>
+                  <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SimplePowerChart
+                  <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
+                    confidenceRegions={result.confidenceRegions}
                     currentValue={result.requiredN}
                     xLabel="Samples Per Group"
                     title="Assurance vs Sample Size"
