@@ -6,7 +6,10 @@
 export interface RCodeParams {
   testType: 'ttest' | 'correlation' | 'chisquare' | 'oneway-anova' | 'twoway-anova' | 
             'repeated-measures' | 'nested-anova' | 'permanova' | 'repeated-permanova' | 'bayesian' | 
-            'deseq' | 'zinb' | 'lmm-microbiome';
+            'deseq' | 'zinb' | 'lmm-microbiome' | 
+            'bayesian-sequential' | 'bayesian-replication' | 'bayesian-information' |
+            'bayesian-hierarchical' | 'bayesian-adaptive' | 'bayesian-equivalence' |
+            'bayesian-model-comparison' | 'bayesian-calibration';
   parameters: Record<string, any>;
 }
 
@@ -40,6 +43,22 @@ export const generateRCode = (params: RCodeParams): string => {
       return generateZINBRCode(parameters);
     case 'lmm-microbiome':
       return generateLMMMicrobiomeRCode(parameters);
+    case 'bayesian-sequential':
+      return generateSequentialRCode(parameters);
+    case 'bayesian-replication':
+      return generateReplicationRCode(parameters);
+    case 'bayesian-information':
+      return generateInformationDesignRCode(parameters);
+    case 'bayesian-hierarchical':
+      return generateHierarchicalRCode(parameters);
+    case 'bayesian-adaptive':
+      return generateAdaptiveAllocationRCode(parameters);
+    case 'bayesian-equivalence':
+      return generateEquivalenceRCode(parameters);
+    case 'bayesian-model-comparison':
+      return generateModelComparisonRCode(parameters);
+    case 'bayesian-calibration':
+      return generateCalibrationRCode(parameters);
     default:
       return '# Unknown test type';
   }
@@ -1362,6 +1381,792 @@ cat("Done!\\n")
 `;
 
   return code;
+};
+
+const generateSequentialRCode = (params: any): string => {
+  const { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha } = params;
+  
+  return `# Bayesian Sequential Design Power Analysis
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("rpact")
+
+library(rpact)
+
+# Parameters
+effect_mean <- ${effectMean}
+effect_sd <- ${effectSD}
+max_n <- ${maxN}
+interim_looks <- ${interimLooks}
+alpha <- ${alpha}
+test_type <- "${testType}"
+${testType === 'anova' ? `num_groups <- ${groups}` : ''}
+
+cat("=== Bayesian Sequential Design ===\\n")
+cat("Effect prior: N(", effect_mean, ",", effect_sd, ")\\n")
+cat("Maximum N per group:", max_n, "\\n")
+cat("Interim looks:", interim_looks, "\\n\\n")
+
+# Create group sequential design with O'Brien-Fleming boundaries
+design <- getDesignGroupSequential(
+  kMax = interim_looks,
+  alpha = alpha,
+  beta = 0.2,  # Target 80% power
+  typeOfDesign = "OF"  # O'Brien-Fleming
+)
+
+cat("O'Brien-Fleming Stopping Boundaries:\\n")
+print(design)
+
+# Simulate sequential trial
+simulate_sequential <- function(n_max, looks, effect, sd_effect, alpha_spend, nsim = 2000) {
+  stop_early_count <- 0
+  expected_n <- numeric(nsim)
+  
+  for (i in 1:nsim) {
+    true_effect <- rnorm(1, mean = effect, sd = sd_effect)
+    
+    for (look in 1:looks) {
+      current_n <- round(n_max * look / looks)
+      
+      # Generate data
+      ${testType === 'ttest' ? `
+      control <- rnorm(current_n, 0, 1)
+      treatment <- rnorm(current_n, true_effect, 1)
+      t_stat <- t.test(treatment, control)$statistic
+      ` : testType === 'anova' ? `
+      # Simulate ANOVA data
+      group_data <- list()
+      for (g in 1:${groups}) {
+        group_data[[g]] <- rnorm(current_n, true_effect * (g-1)/(${groups}-1), 1)
+      }
+      aov_result <- aov(value ~ group, data = stack(group_data))
+      f_stat <- summary(aov_result)[[1]]$"F value"[1]
+      ` : `
+      # Correlation
+      x <- rnorm(current_n * 2, 0, 1)
+      y <- true_effect * x + sqrt(1 - true_effect^2) * rnorm(current_n * 2)
+      cor_test <- cor.test(x, y)
+      t_stat <- cor_test$statistic
+      `}
+      
+      # Check stopping boundary (simplified)
+      z_score <- abs(t_stat) / sqrt(current_n)
+      boundary <- qnorm(1 - alpha / (2 * (looks - look + 1)))
+      
+      if (z_score > boundary) {
+        stop_early_count <- stop_early_count + 1
+        expected_n[i] <- current_n
+        break
+      }
+      
+      if (look == looks) {
+        expected_n[i] <- current_n
+      }
+    }
+  }
+  
+  return(list(
+    prob_early_stop = stop_early_count / nsim,
+    expected_n = mean(expected_n)
+  ))
+}
+
+cat("\\nRunning simulations...\\n")
+set.seed(123)
+results <- simulate_sequential(max_n, interim_looks, effect_mean, effect_sd, alpha)
+
+cat("\\n=== Results ===\\n")
+cat("Probability of early stopping:", round(results$prob_early_stop, 3), "\\n")
+cat("Expected sample size:", round(results$expected_n, 0), "\\n")
+cat("Sample size savings:", round((1 - results$expected_n/max_n) * 100, 1), "%\\n\\n")
+
+cat("\\n*** KEY PRINCIPLES ***\\n")
+cat("• Pre-specify stopping rules before data collection\\n")
+cat("• Use alpha spending functions to control Type I error\\n")
+cat("• Document all interim analyses in your protocol\\n")
+cat("\\nReference: Jennison & Turnbull (1999) 'Group Sequential Methods'\\n")
+`;
+};
+
+const generateReplicationRCode = (params: any): string => {
+  const { publishedEffect, publishedN, publishedP, replicationN, publicationBias, alpha } = params;
+  
+  return `# Bayesian Replication Probability Analysis
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("pwr")
+
+library(pwr)
+
+# Published study parameters
+published_effect <- ${publishedEffect}
+published_n <- ${publishedN}
+published_p <- ${publishedP}
+
+# Replication parameters
+replication_n <- ${replicationN}
+alpha <- ${alpha}
+publication_bias <- "${publicationBias}"
+
+cat("=== Replication Probability Analysis ===\\n")
+cat("Published effect:", published_effect, "\\n")
+cat("Published N:", published_n, "\\n")
+cat("Published p-value:", published_p, "\\n\\n")
+
+# Apply shrinkage based on publication bias (Gelman & Carlin Type M error)
+shrinkage_factors <- list(
+  none = 1.0,
+  mild = 0.85,
+  moderate = 0.65,
+  severe = 0.4
+)
+
+shrinkage <- shrinkage_factors[[publication_bias]]
+adjusted_effect <- published_effect * shrinkage
+
+cat("Publication bias adjustment:", publication_bias, "\\n")
+cat("Shrinkage factor:", shrinkage, "\\n")
+cat("Adjusted effect size:", round(adjusted_effect, 3), "\\n\\n")
+
+# Calculate replication probability
+replication_power <- pwr.t.test(
+  n = replication_n,
+  d = adjusted_effect,
+  sig.level = alpha,
+  type = "two.sample"
+)$power
+
+cat("=== Replication Analysis ===\\n")
+cat("Replication probability:", round(replication_power, 3), "\\n")
+cat("Interpretation:", 
+    ifelse(replication_power >= 0.8, "High chance of replication",
+    ifelse(replication_power >= 0.5, "Moderate chance",
+    "Low chance - consider larger N")), "\\n\\n")
+
+# Calculate recommended N for 80% power
+recommended_n <- ceiling(pwr.t.test(
+  d = adjusted_effect,
+  sig.level = alpha,
+  power = 0.80,
+  type = "two.sample"
+)$n)
+
+cat("Recommended N for 80% power:", recommended_n, "\\n\\n")
+
+# Type M and S errors
+calculate_type_m <- function(true_d, study_n, alpha_level) {
+  # Simulate winner's curse inflation
+  nsim <- 5000
+  detected_effects <- numeric()
+  
+  for (i in 1:nsim) {
+    obs_effect <- rnorm(1, true_d, sqrt(2/study_n))
+    power_sim <- pwr.t.test(n = study_n, d = obs_effect, sig.level = alpha_level)$power
+    
+    if (runif(1) < power_sim) {
+      detected_effects <- c(detected_effects, obs_effect)
+    }
+  }
+  
+  type_m <- mean(abs(detected_effects)) / abs(true_d)
+  type_s <- mean(sign(detected_effects) != sign(true_d))
+  
+  return(list(type_m = type_m, type_s = type_s))
+}
+
+errors <- calculate_type_m(adjusted_effect, published_n, alpha)
+cat("Type M error (exaggeration ratio):", round(errors$type_m, 2), "\\n")
+cat("Type S error (sign error rate):", round(errors$type_s, 3), "\\n\\n")
+
+cat("*** INTERPRETATION ***\\n")
+cat("Type M shows published effect is likely", round(errors$type_m, 2), 
+    "times larger than true effect\\n")
+cat("\\nReference: Gelman & Carlin (2014) Perspect Psychol Sci 9:641-651\\n")
+`;
+};
+
+const generateInformationDesignRCode = (params: any): string => {
+  const { designs, priorMean, priorSD, testType } = params;
+  
+  return `# Bayesian Information-Based Design Comparison
+# Generated from Ecological Power Analysis Tool
+
+# Parameters
+prior_mean <- ${priorMean}
+prior_sd <- ${priorSD}
+test_type <- "${testType}"
+
+cat("=== Information-Based Design Optimization ===\\n")
+cat("Prior effect: N(", prior_mean, ",", prior_sd, ")\\n\\n")
+
+# Design options
+designs <- data.frame(
+  name = c(${designs.map((d: any) => `"${d.name}"`).join(', ')}),
+  n_per_group = c(${designs.map((d: any) => d.nPerGroup).join(', ')}),
+  measurement_error = c(${designs.map((d: any) => d.measurementError).join(', ')}),
+  cost = c(${designs.map((d: any) => d.cost).join(', ')})
+)
+
+# Calculate Fisher Information for each design
+${testType === 'ttest' ? `
+# For t-test: Information = n / (2 * sigma^2)
+calculate_fisher_info <- function(n, sigma) {
+  return(n / (2 * sigma^2))
+}
+` : `
+# For ANOVA: Information depends on design matrix
+calculate_fisher_info <- function(n, sigma) {
+  # Simplified: info scales with n / sigma^2
+  return(n / sigma^2)
+}
+`}
+
+designs$fisher_info <- calculate_fisher_info(designs$n_per_group, designs$measurement_error)
+designs$cost_per_info <- designs$cost / designs$fisher_info
+
+# Calculate posterior precision (inverse of posterior variance)
+prior_precision <- 1 / (prior_sd^2)
+designs$posterior_precision <- prior_precision + designs$fisher_info
+designs$posterior_sd <- sqrt(1 / designs$posterior_precision)
+designs$uncertainty_reduction <- (1 - designs$posterior_sd / prior_sd) * 100
+
+cat("=== Design Comparison ===\\n")
+print(designs)
+
+# Rank designs by cost-per-information
+designs$rank <- rank(designs$cost_per_info)
+
+cat("\\n=== Optimal Design ===\\n")
+optimal <- designs[which.min(designs$cost_per_info), ]
+cat("Best design:", as.character(optimal$name), "\\n")
+cat("Fisher Information:", round(optimal$fisher_info, 2), "\\n")
+cat("Cost per Information:", round(optimal$cost_per_info, 2), "\\n")
+cat("Uncertainty Reduction:", round(optimal$uncertainty_reduction, 1), "%\\n\\n")
+
+# Visualize
+par(mfrow = c(1, 2))
+barplot(designs$fisher_info, names.arg = designs$name, 
+        main = "Fisher Information", ylab = "Information",
+        col = "lightblue")
+
+barplot(designs$cost_per_info, names.arg = designs$name,
+        main = "Cost per Information", ylab = "Cost/Info",
+        col = "lightcoral")
+
+cat("\\nReference: Chaloner & Verdinelli (1995) Statist Sci 10:273-304\\n")
+`;
+};
+
+const generateHierarchicalRCode = (params: any): string => {
+  const { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, alpha } = params;
+  
+  return `# Bayesian Hierarchical Power Analysis
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("lme4")
+
+library(lme4)
+
+# Parameters
+effect_mean <- ${effectMean}
+effect_sd <- ${effectSD}
+n_clusters <- ${nClusters}
+n_per_cluster <- ${nPerCluster}
+icc_mean <- ${icc}
+icc_sd <- ${iccUncertainty}
+alpha <- ${alpha}
+test_type <- "${testType}"
+
+cat("=== Hierarchical Design Power ===\\n")
+cat("Effect prior: N(", effect_mean, ",", effect_sd, ")\\n")
+cat("Clusters:", n_clusters, " | Per cluster:", n_per_cluster, "\\n")
+cat("ICC ~ Beta(shape from mean/sd)\\n\\n")
+
+# Design Effect: 1 + (m-1)*ICC
+calculate_design_effect <- function(m, rho) {
+  return(1 + (m - 1) * rho)
+}
+
+# Effective sample size
+deff <- calculate_design_effect(n_per_cluster, icc_mean)
+effective_n <- (n_clusters * n_per_cluster) / deff
+
+cat("Design Effect:", round(deff, 2), "\\n")
+cat("Effective N:", round(effective_n, 1), "\\n")
+cat("Inflation factor vs naive:", round(deff, 2), "x\\n\\n")
+
+# Monte Carlo power accounting for ICC uncertainty
+simulate_hierarchical_power <- function(effect_m, effect_s, n_clust, n_per, 
+                                       icc_m, icc_s, alpha_level, nsim = 2000) {
+  # Sample from Beta distribution for ICC
+  # Convert mean/sd to alpha/beta parameters
+  icc_var <- icc_s^2
+  alpha_beta <- icc_m * (icc_m * (1 - icc_m) / icc_var - 1)
+  beta_beta <- (1 - icc_m) * (icc_m * (1 - icc_m) / icc_var - 1)
+  
+  power_estimates <- numeric(nsim)
+  
+  for (i in 1:nsim) {
+    # Sample true effect and ICC
+    true_effect <- rnorm(1, effect_m, effect_s)
+    true_icc <- rbeta(1, alpha_beta, beta_beta)
+    
+    # Calculate effective N
+    deff_sim <- calculate_design_effect(n_per, true_icc)
+    eff_n <- (n_clust * n_per) / deff_sim
+    
+    # Approximate power using effective N
+    ${testType === 'ttest' ? `
+    # T-test power
+    ncp <- abs(true_effect) * sqrt(eff_n / 2)
+    power_estimates[i] <- pt(qt(1 - alpha_level/2, df = 2*eff_n - 2), 
+                             df = 2*eff_n - 2, ncp = ncp, lower.tail = FALSE) * 2
+    ` : `
+    # ANOVA power (simplified)
+    df1 <- 2  # Between groups
+    df2 <- round(eff_n) - 2
+    lambda <- eff_n * true_effect^2
+    power_estimates[i] <- pf(qf(1 - alpha_level, df1, df2), df1, df2, 
+                            ncp = lambda, lower.tail = FALSE)
+    `}
+  }
+  
+  return(power_estimates)
+}
+
+cat("Running simulations...\\n")
+set.seed(123)
+powers <- simulate_hierarchical_power(effect_mean, effect_sd, n_clusters, 
+                                     n_per_cluster, icc_mean, icc_sd, alpha)
+
+cat("\\n=== Power Results ===\\n")
+cat("Mean power:", round(mean(powers), 3), "\\n")
+cat("95% CI: [", round(quantile(powers, 0.025), 3), ", ", 
+    round(quantile(powers, 0.975), 3), "]\\n\\n")
+
+# Sensitivity to ICC
+icc_range <- seq(0.01, 0.5, by = 0.05)
+power_by_icc <- numeric(length(icc_range))
+
+for (i in seq_along(icc_range)) {
+  deff_temp <- calculate_design_effect(n_per_cluster, icc_range[i])
+  eff_n_temp <- (n_clusters * n_per_cluster) / deff_temp
+  
+  ${testType === 'ttest' ? `
+  ncp <- abs(effect_mean) * sqrt(eff_n_temp / 2)
+  power_by_icc[i] <- pt(qt(1 - alpha/2, df = 2*eff_n_temp - 2),
+                        df = 2*eff_n_temp - 2, ncp = ncp, lower.tail = FALSE) * 2
+  ` : `
+  lambda <- eff_n_temp * effect_mean^2
+  power_by_icc[i] <- pf(qf(1 - alpha, 2, eff_n_temp - 2), 2, eff_n_temp - 2,
+                       ncp = lambda, lower.tail = FALSE)
+  `}
+}
+
+plot(icc_range, power_by_icc, type = "l", lwd = 2, col = "blue",
+     xlab = "Intraclass Correlation (ICC)",
+     ylab = "Power",
+     main = "Sensitivity to ICC")
+abline(h = 0.8, lty = 2, col = "red")
+abline(v = icc_mean, lty = 2, col = "green")
+
+cat("\\nReference: Raudenbush & Liu (2000) Psychol Methods 5:199-213\\n")
+`;
+};
+
+const generateAdaptiveAllocationRCode = (params: any): string => {
+  const { treatments, priors, maxN, allocationRule } = params;
+  
+  return `# Bayesian Adaptive Allocation Simulation
+# Generated from Ecological Power Analysis Tool
+
+# Parameters
+treatments <- c(${treatments.map((t: string) => `"${t}"`).join(', ')})
+prior_means <- c(${priors.map((p: any) => p.mean).join(', ')})
+prior_sds <- c(${priors.map((p: any) => p.sd).join(', ')})
+max_n <- ${maxN}
+allocation_rule <- "${allocationRule}"
+
+cat("=== Adaptive Allocation Design ===\\n")
+cat("Treatments:", paste(treatments, collapse = ", "), "\\n")
+cat("Total sample budget:", max_n, "\\n")
+cat("Allocation rule:", allocation_rule, "\\n\\n")
+
+# Thompson Sampling allocation
+thompson_sampling <- function(treatment_means, treatment_sds, n_samples, nsim = 1000) {
+  n_treatments <- length(treatment_means)
+  allocations <- rep(0, n_treatments)
+  
+  for (i in 1:n_samples) {
+    # Sample from posterior for each treatment
+    samples <- rnorm(n_treatments, treatment_means, treatment_sds)
+    
+    # Allocate to best sampled treatment
+    best <- which.max(samples)
+    allocations[best] <- allocations[best] + 1
+    
+    # Update posteriors (simplified Bayesian updating)
+    # In practice, use actual data
+    treatment_sds[best] <- treatment_sds[best] * 0.99
+  }
+  
+  return(allocations)
+}
+
+# Run allocation simulation
+set.seed(123)
+if (allocation_rule == "thompson") {
+  final_allocations <- thompson_sampling(prior_means, prior_sds, max_n)
+} else if (allocation_rule == "optimal") {
+  # Allocate all to best prior mean
+  final_allocations <- rep(0, length(prior_means))
+  final_allocations[which.max(prior_means)] <- max_n
+} else {
+  # Equal allocation
+  final_allocations <- rep(max_n / length(prior_means), length(prior_means))
+}
+
+results <- data.frame(
+  Treatment = treatments,
+  Allocation = round(final_allocations),
+  Proportion = round(final_allocations / sum(final_allocations), 3),
+  Prior_Mean = prior_means
+)
+
+cat("=== Allocation Results ===\\n")
+print(results)
+
+cat("\\n=== Power Gain ===\\n")
+# Compare to equal allocation
+equal_power <- mean(prior_means) * sqrt(max_n / length(prior_means))
+adaptive_power <- sum(prior_means * final_allocations / sum(final_allocations)) * 
+                  sqrt(max(final_allocations))
+power_gain <- ((adaptive_power - equal_power) / equal_power) * 100
+
+cat("Power gain vs equal allocation:", round(power_gain, 1), "%\\n\\n")
+
+# Visualize
+barplot(final_allocations, names.arg = treatments,
+        main = "Adaptive Allocations",
+        ylab = "Number of Samples",
+        col = rainbow(length(treatments)))
+
+cat("\\nReference: Berry et al. (2010) 'Bayesian Adaptive Methods for Clinical Trials'\\n")
+`;
+};
+
+const generateEquivalenceRCode = (params: any): string => {
+  const { equivalenceMargin, priorMean, priorSD, targetProbability, alpha } = params;
+  
+  return `# Bayesian Equivalence Testing
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("BEST")
+
+# Parameters
+equivalence_margin <- ${equivalenceMargin}  # ROPE boundaries
+prior_mean <- ${priorMean}
+prior_sd <- ${priorSD}
+target_probability <- ${targetProbability}
+alpha <- ${alpha}
+
+cat("=== Bayesian Equivalence Testing ===\\n")
+cat("ROPE (Region of Practical Equivalence): [", -equivalence_margin, ", ", 
+    equivalence_margin, "]\\n")
+cat("Prior: Effect ~ N(", prior_mean, ",", prior_sd, ")\\n")
+cat("Target Pr(effect in ROPE) >=", target_probability, "\\n\\n")
+
+# Calculate required N via simulation
+calculate_rope_probability <- function(n, prior_m, prior_s, rope_margin) {
+  # Sample true effect
+  true_effects <- rnorm(5000, prior_m, prior_s)
+  
+  # For each true effect, simulate study and calculate posterior
+  rope_probs <- numeric(length(true_effects))
+  
+  for (i in seq_along(true_effects)) {
+    # Simulate data
+    obs_effect <- rnorm(1, true_effects[i], sqrt(2/n))
+    obs_se <- sqrt(2/n)
+    
+    # Posterior combining prior and likelihood
+    post_precision <- 1/prior_s^2 + 1/obs_se^2
+    post_mean <- (prior_m/prior_s^2 + obs_effect/obs_se^2) / post_precision
+    post_sd <- sqrt(1/post_precision)
+    
+    # Probability effect is in ROPE
+    rope_probs[i] <- pnorm(rope_margin, post_mean, post_sd) - 
+                     pnorm(-rope_margin, post_mean, post_sd)
+  }
+  
+  # Assurance: Pr(Pr(in ROPE) >= target)
+  assurance <- mean(rope_probs >= target_probability)
+  return(list(assurance = assurance, mean_rope_prob = mean(rope_probs)))
+}
+
+# Search for required N
+find_equivalence_n <- function(target_prob, prior_m, prior_s, rope_m) {
+  n_low <- 10
+  n_high <- 500
+  
+  while (n_high - n_low > 2) {
+    n_mid <- round((n_low + n_high) / 2)
+    result <- calculate_rope_probability(n_mid, prior_m, prior_s, rope_m)
+    
+    cat("Testing N =", n_mid, ": Assurance =", round(result$assurance, 3), "\\n")
+    
+    if (result$assurance < 0.80) {  # Target 80% assurance
+      n_low <- n_mid
+    } else {
+      n_high <- n_mid
+    }
+  }
+  
+  return(n_high)
+}
+
+cat("Searching for required sample size...\\n\\n")
+set.seed(123)
+required_n <- find_equivalence_n(target_probability, prior_mean, prior_sd, equivalence_margin)
+
+cat("\\n=== Results ===\\n")
+cat("Required N per group:", required_n, "\\n\\n")
+
+# Verify
+final_result <- calculate_rope_probability(required_n, prior_mean, prior_sd, equivalence_margin)
+cat("Achieved assurance:", round(final_result$assurance, 3), "\\n")
+cat("Expected Pr(in ROPE):", round(final_result$mean_rope_prob, 3), "\\n\\n")
+
+# Compare to TOST
+# TOST requires testing H0: |effect| >= margin
+tost_n <- ceiling((qnorm(1 - alpha) + qnorm(0.80))^2 * 2 / equivalence_margin^2)
+cat("TOST would require N ≈", tost_n, "\\n")
+cat("Difference:", required_n - tost_n, "\\n\\n")
+
+cat("*** INTERPRETATION ***\\n")
+cat("• ROPE = Region where effects are 'practically equivalent'\\n")
+cat("• Bayesian gives direct probability statements\\n")
+cat("• TOST uses p-values (harder to interpret)\\n")
+cat("\\nReference: Kruschke (2018) Adv Meth Pract Psychol Sci 1:270-280\\n")
+`;
+};
+
+const generateModelComparisonRCode = (params: any): string => {
+  const { models, nPerGroup, targetBayesFactor, alpha } = params;
+  
+  return `# Bayesian Model Comparison Power Analysis
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("BayesFactor")
+
+library(BayesFactor)
+
+# Parameters
+n_per_group <- ${nPerGroup}
+target_bf <- ${targetBayesFactor}
+alpha <- ${alpha}
+
+# Models to compare
+models <- list(
+  ${models.map((m: any, i: number) => 
+    `model_${i+1} = list(name = "${m.name}", prior_mean = ${m.prior.mean}, prior_sd = ${m.prior.sd})`
+  ).join(',\n  ')}
+)
+
+cat("=== Bayesian Model Comparison ===\\n")
+cat("Sample size:", n_per_group, "per group\\n")
+cat("Target Bayes Factor:", target_bf, "\\n")
+cat("Models:", length(models), "\\n\\n")
+
+# Simulate model comparison
+simulate_model_selection <- function(n, model_list, nsim = 1000) {
+  n_models <- length(model_list)
+  selection_counts <- rep(0, n_models)
+  bf_values <- matrix(0, nsim, n_models)
+  
+  for (sim in 1:nsim) {
+    # Generate data from one true model (e.g., model 2)
+    true_model_idx <- 2
+    true_effect <- rnorm(1, model_list[[true_model_idx]]$prior_mean,
+                        model_list[[true_model_idx]]$prior_sd)
+    
+    # Simulate data
+    group1 <- rnorm(n, 0, 1)
+    group2 <- rnorm(n, true_effect, 1)
+    
+    # Calculate BF for each model using BIC approximation
+    # BF ≈ exp(-0.5 * delta_BIC)
+    for (m in 1:n_models) {
+      # Simplified: BF based on how well data matches model prior
+      obs_effect <- mean(group2) - mean(group1)
+      obs_se <- sqrt(2 / n)
+      
+      # Log marginal likelihood approximation
+      log_ml <- dnorm(obs_effect, 
+                     model_list[[m]]$prior_mean,
+                     sqrt(model_list[[m]]$prior_sd^2 + obs_se^2),
+                     log = TRUE)
+      bf_values[sim, m] <- exp(log_ml)
+    }
+    
+    # Select model with highest BF
+    best_model <- which.max(bf_values[sim, ])
+    selection_counts[best_model] <- selection_counts[best_model] + 1
+  }
+  
+  selection_probs <- selection_counts / nsim
+  return(list(
+    selection_probs = selection_probs,
+    mean_bf = colMeans(bf_values)
+  ))
+}
+
+cat("Running simulations...\\n")
+set.seed(123)
+results <- simulate_model_selection(n_per_group, models)
+
+cat("\\n=== Model Selection Probabilities ===\\n")
+for (i in seq_along(models)) {
+  cat(models[[i]]$name, ":", round(results$selection_probs[i], 3), "\\n")
+}
+
+cat("\\n=== Mean Bayes Factors ===\\n")
+for (i in seq_along(models)) {
+  cat(models[[i]]$name, ":", round(results$mean_bf[i], 2), "\\n")
+}
+
+# Find N for target BF
+find_n_for_bf <- function(target_bf_threshold, model_list) {
+  for (n_test in seq(20, 300, by = 10)) {
+    res <- simulate_model_selection(n_test, model_list, nsim = 500)
+    max_bf <- max(res$mean_bf)
+    
+    cat("N =", n_test, ": Max BF =", round(max_bf, 2), "\\n")
+    
+    if (max_bf >= target_bf_threshold) {
+      return(n_test)
+    }
+  }
+  return(300)
+}
+
+cat("\\nSearching for N to achieve BF >", target_bf, "...\\n")
+recommended_n <- find_n_for_bf(target_bf, models)
+cat("\\nRecommended N:", recommended_n, "per group\\n\\n")
+
+cat("*** BAYES FACTORS INTERPRETATION ***\\n")
+cat("BF > 10: Strong evidence\\n")
+cat("BF 3-10: Moderate evidence\\n")
+cat("BF 1-3: Weak evidence\\n")
+cat("\\nReference: Kass & Raftery (1995) J Am Stat Assoc 90:773-795\\n")
+`;
+};
+
+const generateCalibrationRCode = (params: any): string => {
+  const { frequentistPower, effectSize, effectUncertainty, nPerGroup, alpha } = params;
+  
+  return `# Bayesian Calibration: Frequentist → Bayesian Assurance
+# Generated from Ecological Power Analysis Tool
+
+# Install required packages
+# install.packages("pwr")
+
+library(pwr)
+
+# Parameters
+frequentist_power <- ${frequentistPower}
+effect_size <- ${effectSize}
+effect_uncertainty <- ${effectUncertainty}  # SD of prior
+n_per_group <- ${nPerGroup}
+alpha <- ${alpha}
+
+cat("=== Bayesian Calibration ===\\n")
+cat("Frequentist power (assuming d =", effect_size, "):", frequentist_power, "\\n")
+cat("Effect size uncertainty (SD):", effect_uncertainty, "\\n")
+cat("Sample size:", n_per_group, "per group\\n\\n")
+
+# Calculate Bayesian Assurance via Monte Carlo
+set.seed(123)
+n_simulations <- 10000
+
+# Sample effect sizes from prior
+true_effects <- rnorm(n_simulations, mean = effect_size, sd = effect_uncertainty)
+
+# Calculate power for each sampled effect
+powers <- sapply(true_effects, function(d) {
+  pwr.t.test(n = n_per_group, d = abs(d), sig.level = alpha,
+            type = "two.sample")$power
+})
+
+# Bayesian Assurance = Pr(Power >= target)
+bayesian_assurance <- mean(powers >= frequentist_power)
+mean_power <- mean(powers)
+
+cat("=== Results ===\\n")
+cat("Bayesian Assurance:", round(bayesian_assurance, 3), "\\n")
+cat("Mean power:", round(mean_power, 3), "\\n")
+cat("Assurance loss:", round((frequentist_power - bayesian_assurance) * 100, 1), "%\\n\\n")
+
+# Visualize power distribution
+hist(powers, breaks = 50, col = "lightblue", border = "white",
+     main = "Distribution of Power Across Prior",
+     xlab = "Power",
+     xlim = c(0, 1))
+abline(v = frequentist_power, col = "red", lwd = 2, lty = 2)
+abline(v = mean_power, col = "blue", lwd = 2)
+legend("topleft",
+       legend = c(paste("Frequentist power =", frequentist_power),
+                 paste("Mean Bayesian power =", round(mean_power, 2)),
+                 paste("Assurance =", round(bayesian_assurance, 2))),
+       col = c("red", "blue", "black"),
+       lty = c(2, 1, 0), lwd = 2)
+
+# Calculate assurance curve
+cat("Calculating assurance curve...\\n")
+sample_sizes <- seq(10, 200, by = 5)
+assurance_values <- numeric(length(sample_sizes))
+
+for (i in seq_along(sample_sizes)) {
+  n_test <- sample_sizes[i]
+  powers_temp <- sapply(true_effects, function(d) {
+    pwr.t.test(n = n_test, d = abs(d), sig.level = alpha,
+              type = "two.sample")$power
+  })
+  assurance_values[i] <- mean(powers_temp >= frequentist_power)
+}
+
+plot(sample_sizes, assurance_values, type = "l", lwd = 2, col = "blue",
+     xlab = "Sample Size Per Group",
+     ylab = "Bayesian Assurance",
+     main = "Assurance vs Sample Size")
+abline(h = frequentist_power, lty = 2, col = "red")
+abline(v = n_per_group, lty = 2, col = "green")
+legend("bottomright",
+       legend = c("Assurance curve", 
+                 paste("Target =", frequentist_power),
+                 paste("Current N =", n_per_group)),
+       col = c("blue", "red", "green"),
+       lty = c(1, 2, 2), lwd = c(2, 1, 1))
+
+# Export
+results_df <- data.frame(
+  Sample_Size = sample_sizes,
+  Assurance = assurance_values
+)
+write.csv(results_df, "calibration_curve.csv", row.names = FALSE)
+
+cat("\\n*** KEY INSIGHT ***\\n")
+cat("Effect size uncertainty REDUCES assurance below frequentist power.\\n")
+cat("The", round((frequentist_power - bayesian_assurance) * 100, 1), 
+    "% loss reflects realistic uncertainty.\\n")
+cat("\\nReference: O'Hagan et al. (2005) J R Stat Soc A 168:569-583\\n")
+`;
 };
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {

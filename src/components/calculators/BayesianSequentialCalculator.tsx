@@ -5,12 +5,14 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Download, Copy, AlertCircle, Info } from 'lucide-react';
+import { Play, Download, Copy, Code2, AlertCircle, Info } from 'lucide-react';
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calculateBayesianSequential } from '@/utils/bayesianPowerCalculations';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const BayesianSequentialCalculator = () => {
+  const { toast } = useToast();
   const [effectMean, setEffectMean] = useState(0.5);
   const [effectSD, setEffectSD] = useState(0.2);
   const [targetPower, setTargetPower] = useState(0.80);
@@ -43,9 +45,9 @@ const BayesianSequentialCalculator = () => {
           superiorityThreshold
         });
         setResult(res);
-        toast.success('Sequential design calculated!');
+        toast({ title: "Success", description: "Sequential design calculated!" });
       } catch (error) {
-        toast.error('Calculation failed. Please check your parameters.');
+        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -72,7 +74,29 @@ const BayesianSequentialCalculator = () => {
     a.href = url;
     a.download = 'bayesian_sequential_results.csv';
     a.click();
-    toast.success('Results exported to CSV!');
+    toast({ title: "Exported", description: "Results saved to CSV!" });
+  };
+
+  const exportToR = () => {
+    if (!result) return;
+    const rCode = generateRCode({
+      testType: 'bayesian-sequential',
+      parameters: { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha }
+    });
+    downloadRFile(rCode, 'bayesian_sequential_analysis.R');
+    toast({ title: "R code exported", description: "Ready to run in RStudio" });
+  };
+
+  const copyRCode = async () => {
+    if (!result) return;
+    const rCode = generateRCode({
+      testType: 'bayesian-sequential',
+      parameters: { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast({ title: "Copied", description: "R code ready to paste" });
+    }
   };
 
   const copyResults = () => {
@@ -87,7 +111,7 @@ Power Under Prior: ${(result.operatingCharacteristics.powerUnderPrior * 100).toF
 ${result.summary}`;
     
     navigator.clipboard.writeText(text);
-    toast.success('Results copied to clipboard!');
+    toast({ title: "Copied", description: "Results copied to clipboard!" });
   };
 
   return (
@@ -305,12 +329,16 @@ ${result.summary}`;
                     <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                   </Alert>
 
-                  <div className="flex gap-2">
-                    <Button onClick={exportToCSV} variant="outline" size="sm" className="flex-1">
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button onClick={exportToCSV} variant="outline" size="sm">
                       <Download className="h-4 w-4 mr-2" />
-                      Export CSV
+                      CSV
                     </Button>
-                    <Button onClick={copyResults} variant="outline" size="sm" className="flex-1">
+                    <Button onClick={exportToR} variant="outline" size="sm">
+                      <Code2 className="h-4 w-4 mr-2" />
+                      R Code
+                    </Button>
+                    <Button onClick={copyRCode} variant="outline" size="sm">
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
