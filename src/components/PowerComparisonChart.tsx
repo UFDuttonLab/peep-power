@@ -32,13 +32,13 @@ const PowerComparisonChart = ({
             stroke="hsl(var(--foreground))"
             tick={{ fontSize: 24 }}
           />
-          <YAxis 
-            label={{ value: 'Statistical Power', angle: -90, position: 'insideLeft', style: { fontSize: 28, fontWeight: 600 } }}
-            domain={[0, 1]}
-            tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
-            stroke="hsl(var(--foreground))"
-            tick={{ fontSize: 24 }}
-          />
+            <YAxis 
+              label={{ value: 'Statistical Power', angle: -90, position: 'left', style: { fontSize: 28, fontWeight: 600 } }}
+              domain={[0, 1]}
+              tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+              stroke="hsl(var(--foreground))"
+              tick={{ fontSize: 24 }}
+            />
           <Tooltip 
             formatter={(value: number) => `${(value * 100).toFixed(1)}%`}
             contentStyle={{ 

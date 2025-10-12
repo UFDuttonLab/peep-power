@@ -88,11 +88,11 @@ const DistributionVisualization = ({
               stroke="hsl(var(--foreground))"
               tick={{ fontSize: 24 }}
             />
-            <YAxis 
-              label={{ value: 'Probability', angle: -90, position: 'insideLeft', style: { fontSize: 28, fontWeight: 600 } }}
-              stroke="hsl(var(--foreground))"
-              tick={{ fontSize: 24 }}
-            />
+              <YAxis 
+                label={{ value: 'Probability', angle: -90, position: 'left', style: { fontSize: 28, fontWeight: 600 } }}
+                stroke="hsl(var(--foreground))"
+                tick={{ fontSize: 24 }}
+              />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--popover))',
@@ -127,11 +127,11 @@ const DistributionVisualization = ({
             stroke="hsl(var(--foreground))"
             tick={{ fontSize: 24 }}
           />
-          <YAxis 
-            label={{ value: 'Probability', angle: -90, position: 'insideLeft', style: { fontSize: 28, fontWeight: 600 } }}
-            stroke="hsl(var(--foreground))"
-            tick={{ fontSize: 24 }}
-          />
+              <YAxis 
+                label={{ value: 'Probability', angle: -90, position: 'left', style: { fontSize: 28, fontWeight: 600 } }}
+                stroke="hsl(var(--foreground))"
+                tick={{ fontSize: 24 }}
+              />
           <Tooltip 
             contentStyle={{ 
               backgroundColor: 'hsl(var(--popover))',
