@@ -78,8 +78,13 @@ const LongitudinalMixedModelCalculator = () => {
   };
 
   const generatePowerCurve = () => {
-    return Array.from({ length: 30 }, (_, i) => {
-      const subjects = (i + 1) * 3;
+    const maxSubjects = 200; // Match the slider max
+    const minSubjects = 10;  // Match the slider min
+    const numPoints = 40;    // More points for smoother curve
+    
+    return Array.from({ length: numPoints }, (_, i) => {
+      // Generate points from 10 to 200, evenly spaced
+      const subjects = Math.round(minSubjects + (i / (numPoints - 1)) * (maxSubjects - minSubjects));
       return {
         x: subjects,
         y: calculateLMMPower(subjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha),
