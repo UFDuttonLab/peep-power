@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import DistributionVisualization from '@/components/DistributionVisualization';
@@ -114,16 +114,13 @@ const DifferentialAbundanceCalculator = () => {
         </div>
       </Card>
 
-      <Tabs defaultValue="parameters" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-          <TabsTrigger value="guide">Guide</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="parameters" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Study Parameters</h3>
+      <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
+        <h2 className="text-2xl font-bold mb-4">Power Analysis</h2>
+        
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+          {/* Left Column: Study Parameters */}
+          <Card className="p-4 bg-background">
+            <h3 className="font-semibold mb-4">Study Parameters</h3>
             <div className="space-y-6">
               <ControlSlider
                 id="n"
@@ -189,131 +186,141 @@ const DifferentialAbundanceCalculator = () => {
                   <li>0.9-1.5: Rare or highly variable taxa</li>
                 </ul>
               </div>
+
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-semibold mb-3">Multiple Testing Correction</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant={useFDR ? 'default' : 'outline'}
+                      onClick={() => setUseFDR(true)}
+                      className="flex-1"
+                    >
+                      Apply Correction
+                    </Button>
+                    <Button
+                      variant={!useFDR ? 'default' : 'outline'}
+                      onClick={() => setUseFDR(false)}
+                      className="flex-1"
+                    >
+                      Single Test
+                    </Button>
+                  </div>
+
+                  {useFDR && (
+                    <ControlSlider
+                      id="numtests"
+                      label="Number of Taxa Tested"
+                      value={numTests}
+                      min={10}
+                      max={1000}
+                      step={10}
+                      onChange={setNumTests}
+                      decimals={0}
+                      tooltip="Total number of taxa being tested (typically 50-500 for 16S data)"
+                    />
+                  )}
+
+                  <ControlSlider
+                    id="alpha"
+                    label="Significance Level (α)"
+                    value={alpha}
+                    min={0.01}
+                    max={0.10}
+                    step={0.01}
+                    onChange={setAlpha}
+                  />
+
+                  {useFDR && (
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        Adjusted α: {adjustedAlpha.toFixed(6)} (Bonferroni correction for {numTests} tests)
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Multiple Testing Correction</h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant={useFDR ? 'default' : 'outline'}
-                  onClick={() => setUseFDR(true)}
-                  className="flex-1"
-                >
-                  Apply Correction
-                </Button>
-                <Button
-                  variant={!useFDR ? 'default' : 'outline'}
-                  onClick={() => setUseFDR(false)}
-                  className="flex-1"
-                >
-                  Single Test
-                </Button>
+          {/* Right Column: Results */}
+          <div className="space-y-4">
+            <Card className="p-4 bg-background">
+              <div className="flex items-start gap-4 mb-4">
+                <Icon className={`h-8 w-8 ${interpretation.color}`} />
+                <div>
+                  <h3 className="text-2xl font-bold">Statistical Power: {(power * 100).toFixed(1)}%</h3>
+                  <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
+                </div>
               </div>
 
-              {useFDR && (
-                <ControlSlider
-                  id="numtests"
-                  label="Number of Taxa Tested"
-                  value={numTests}
-                  min={10}
-                  max={1000}
-                  step={10}
-                  onChange={setNumTests}
-                  decimals={0}
-                  tooltip="Total number of taxa being tested (typically 50-500 for 16S data)"
-                />
-              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">Current Sample Size</div>
+                  <div className="text-2xl font-bold">{n} per group</div>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">For 80% Power</div>
+                  <div className="text-2xl font-bold">{requiredN} per group</div>
+                </div>
+              </div>
 
-              <ControlSlider
-                id="alpha"
-                label="Significance Level (α)"
-                value={alpha}
-                min={0.01}
-                max={0.10}
-                step={0.01}
-                onChange={setAlpha}
-              />
-
-              {useFDR && (
-                <Alert>
-                  <Info className="h-4 w-4" />
+              {power < 0.8 && (
+                <Alert className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Adjusted α: {adjustedAlpha.toFixed(6)} (Bonferroni correction for {numTests} tests)
+                    Consider increasing sample size to {requiredN} per group, or focus on taxa with larger fold-changes or lower dispersion.
                   </AlertDescription>
                 </Alert>
               )}
-            </div>
-          </Card>
-        </TabsContent>
+            </Card>
 
-        <TabsContent value="results" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <Icon className={`h-8 w-8 ${interpretation.color}`} />
-              <div>
-                <h3 className="text-2xl font-bold">Power: {(power * 100).toFixed(1)}%</h3>
-                <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Power Curve</h3>
+              <SimplePowerChart
+                data={generatePowerCurve()}
+                currentValue={n}
+                xLabel="Samples per Group"
+                title="Power vs Sample Size"
+              />
+            </Card>
+
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Expected Distribution</h3>
+              <DistributionVisualization
+                type="negative-binomial"
+                meanCount={baseMean}
+                dispersion={dispersion}
+              />
+            </Card>
+
+            <Card className="p-4 bg-muted/50">
+              <h3 className="font-semibold mb-3">Multiple Testing Impact</h3>
+              <div className="space-y-3">
+                {[10, 100, 500, 1000].map(tests => {
+                  const testPower = calculateNegBinomialPower(n, log2FC, dispersion, baseMean, alpha, tests);
+                  return (
+                    <div key={tests} className="flex justify-between items-center p-3 bg-background rounded">
+                      <span className="text-sm">Testing {tests} taxa</span>
+                      <span className="font-semibold">{(testPower * 100).toFixed(1)}% power</span>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Power decreases as you test more taxa due to multiple testing correction
+              </p>
+            </Card>
+          </div>
+        </div>
+      </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm text-muted-foreground">Current Sample Size</div>
-                <div className="text-2xl font-bold">{n} per group</div>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm text-muted-foreground">For 80% Power</div>
-                <div className="text-2xl font-bold">{requiredN} per group</div>
-              </div>
-            </div>
-
-            {power < 0.8 && (
-              <Alert className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Consider increasing sample size to {requiredN} per group, or focus on taxa with larger fold-changes or lower dispersion.
-                </AlertDescription>
-              </Alert>
-            )}
-          </Card>
-
-          <SimplePowerChart
-            data={generatePowerCurve()}
-            currentValue={n}
-            xLabel="Samples per Group"
-            title="Power vs Sample Size"
-          />
-
-          <DistributionVisualization
-            type="negative-binomial"
-            meanCount={baseMean}
-            dispersion={dispersion}
-          />
-
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Multiple Testing Impact</h3>
-            <div className="space-y-3">
-              {[10, 100, 500, 1000].map(tests => {
-                const testPower = calculateNegBinomialPower(n, log2FC, dispersion, baseMean, alpha, tests);
-                return (
-                  <div key={tests} className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm">Testing {tests} taxa</span>
-                    <span className="font-semibold">{(testPower * 100).toFixed(1)}% power</span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              Power decreases as you test more taxa due to multiple testing correction
-            </p>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="guide" className="space-y-4">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">When to Use This Test</h3>
+      {/* Educational Content */}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="when-to-use">
+          <AccordionTrigger>When to Use This Test</AccordionTrigger>
+          <AccordionContent>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2">
                 <span className="text-primary font-bold">✓</span>
@@ -332,10 +339,12 @@ const DifferentialAbundanceCalculator = () => {
                 <span>You have pilot data to estimate dispersion and mean counts</span>
               </li>
             </ul>
-          </Card>
+          </AccordionContent>
+        </AccordionItem>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">Common Mistakes</h3>
+        <AccordionItem value="mistakes">
+          <AccordionTrigger>Common Mistakes</AccordionTrigger>
+          <AccordionContent>
             <div className="space-y-3 text-sm">
               <Alert>
                 <AlertCircle className="h-4 w-4" />
@@ -358,10 +367,12 @@ const DifferentialAbundanceCalculator = () => {
                 </AlertDescription>
               </Alert>
             </div>
-          </Card>
+          </AccordionContent>
+        </AccordionItem>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">Recommended Reading</h3>
+        <AccordionItem value="reading">
+          <AccordionTrigger>Recommended Reading</AccordionTrigger>
+          <AccordionContent>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 • Love et al. (2014) - DESeq2 paper: Moderated estimation of fold change and dispersion
@@ -373,9 +384,9 @@ const DifferentialAbundanceCalculator = () => {
                 • McMurdie & Holmes (2014) - Best practices for analyzing microbiome data
               </li>
             </ul>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };

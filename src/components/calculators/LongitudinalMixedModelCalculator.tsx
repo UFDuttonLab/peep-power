@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import TimelineVisualization from '@/components/TimelineVisualization';
 import { calculateLMMPower, calculateRequiredSampleSizeLMM } from '@/utils/microbiomePowerCalculations';
-import { AlertCircle, TrendingUp, Clock } from 'lucide-react';
+import { AlertCircle, TrendingUp, Clock, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 const LongitudinalMixedModelCalculator = () => {
@@ -115,16 +115,13 @@ const LongitudinalMixedModelCalculator = () => {
         </div>
       </Card>
 
-      <Tabs defaultValue="parameters" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-          <TabsTrigger value="guide">Guide</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="parameters" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Study Design</h3>
+      <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
+        <h2 className="text-2xl font-bold mb-4">Power Analysis</h2>
+        
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+          {/* Left Column: Study Parameters */}
+          <Card className="p-4 bg-background">
+            <h3 className="font-semibold mb-4">Study Parameters</h3>
             <div className="space-y-6">
               <ControlSlider
                 id="nsubjects"
@@ -160,6 +157,16 @@ const LongitudinalMixedModelCalculator = () => {
                 onChange={setEffectSize}
                 tooltip="Time × treatment interaction effect. 0.1=small, 0.25=medium, 0.4=large"
               />
+
+              <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
+                <strong>Effect Size Guide:</strong>
+                <ul className="mt-1 ml-4 list-disc space-y-1">
+                  <li>0.1: Small effect</li>
+                  <li>0.25: Medium effect</li>
+                  <li>0.4+: Large effect</li>
+                  <li>Current: {effectSize >= 0.4 ? 'Large' : effectSize >= 0.25 ? 'Medium' : 'Small'}</li>
+                </ul>
+              </div>
 
               <ControlSlider
                 id="withincorr"
@@ -220,46 +227,74 @@ const LongitudinalMixedModelCalculator = () => {
               />
             </div>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="results" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <Icon className={`h-8 w-8 ${interpretation.color}`} />
-              <div>
-                <h3 className="text-2xl font-bold">Power: {(power * 100).toFixed(1)}%</h3>
-                <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
+          {/* Right Column: Results */}
+          <div className="space-y-4">
+            <Card className="p-4 bg-background">
+              <div className="flex items-start gap-4 mb-4">
+                <Icon className={`h-8 w-8 ${interpretation.color}`} />
+                <div>
+                  <h3 className="text-2xl font-bold">Statistical Power: {(power * 100).toFixed(1)}%</h3>
+                  <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm text-muted-foreground">Current Subjects</div>
-                <div className="text-2xl font-bold">{nSubjects}</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">Current Subjects</div>
+                  <div className="text-2xl font-bold">{nSubjects}</div>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">For 80% Power</div>
+                  <div className="text-2xl font-bold">{requiredN} subjects</div>
+                </div>
               </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm text-muted-foreground">For 80% Power</div>
-                <div className="text-2xl font-bold">{requiredN} subjects</div>
+
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                <h4 className="text-sm font-semibold mb-2">Study Design Summary</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total timepoints:</span>
+                    <span className="font-semibold">{nTimepoints}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total measurements:</span>
+                    <span className="font-semibold">{nSubjects * nTimepoints}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Expected final N:</span>
+                    <span className="font-semibold">{Math.round(nSubjects * Math.pow(1 - dropoutRate, nTimepoints - 1))}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
 
-          <SimplePowerChart
-            data={generatePowerCurve()}
-            currentValue={nSubjects}
-            xLabel="Number of Subjects"
-            title="Power vs Sample Size"
-          />
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Power Curve</h3>
+              <SimplePowerChart
+                data={generatePowerCurve()}
+                currentValue={nSubjects}
+                xLabel="Number of Subjects"
+                title="Power vs Sample Size"
+              />
+            </Card>
 
-          <TimelineVisualization
-            nTimepoints={nTimepoints}
-            dropoutRate={dropoutRate}
-          />
-        </TabsContent>
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Timeline & Retention</h3>
+              <TimelineVisualization
+                nTimepoints={nTimepoints}
+                dropoutRate={dropoutRate}
+              />
+            </Card>
+          </div>
+        </div>
+      </Card>
 
-        <TabsContent value="guide" className="space-y-4">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">When to Use LMM</h3>
+      {/* Educational Content */}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="when-to-use">
+          <AccordionTrigger>When to Use LMM</AccordionTrigger>
+          <AccordionContent>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2">
                 <span className="text-primary font-bold">✓</span>
@@ -273,10 +308,66 @@ const LongitudinalMixedModelCalculator = () => {
                 <span className="text-primary font-bold">✓</span>
                 <span>Individual trajectories vary (random slopes needed)</span>
               </li>
+              <li className="flex gap-2">
+                <span className="text-primary font-bold">✓</span>
+                <span>Want to model continuous time effects</span>
+              </li>
             </ul>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="comparison">
+          <AccordionTrigger>LMM vs RM-PERMANOVA</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3 text-sm">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Use LMM when:</strong> You have covariates, missing data, or need to model individual trajectories. LMM is more flexible but requires assumptions about the covariance structure.
+                </AlertDescription>
+              </Alert>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Use RM-PERMANOVA when:</strong> You have complete balanced data and want a non-parametric test. Simpler but less flexible than LMM.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="missing-data">
+          <AccordionTrigger>Handling Missing Data</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-3 text-sm">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Missing at Random (MAR):</strong> LMM handles this well using maximum likelihood. No need to impute or remove subjects with missing timepoints.
+                </AlertDescription>
+              </Alert>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Missing Not at Random (MNAR):</strong> If dropout is related to outcomes, standard LMM may be biased. Consider pattern-mixture models or sensitivity analyses.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="software">
+          <AccordionTrigger>Recommended Software</AccordionTrigger>
+          <AccordionContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>• lme4 package in R (lmer function)</li>
+              <li>• nlme package in R for complex covariance structures</li>
+              <li>• SAS PROC MIXED for comprehensive LMM analysis</li>
+              <li>• Python statsmodels.MixedLM for mixed models</li>
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };

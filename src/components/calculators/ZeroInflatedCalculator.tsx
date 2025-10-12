@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
@@ -115,16 +115,13 @@ const ZeroInflatedCalculator = () => {
         </div>
       </Card>
 
-      <Tabs defaultValue="parameters" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-          <TabsTrigger value="guide">Guide</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="parameters" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Study Parameters</h3>
+      <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
+        <h2 className="text-2xl font-bold mb-4">Power Analysis</h2>
+        
+        <div className="grid md:grid-cols-[1fr_2fr] gap-6">
+          {/* Left Column: Study Parameters */}
+          <Card className="p-4 bg-background">
+            <h3 className="font-semibold mb-4">Study Parameters</h3>
             <div className="space-y-6">
               <ControlSlider
                 id="n"
@@ -202,122 +199,130 @@ const ZeroInflatedCalculator = () => {
                 step={0.01}
                 onChange={setAlpha}
               />
-            </div>
-          </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Test Type</h3>
-            <div className="space-y-3">
-              <Select value={testType} onValueChange={(v: any) => setTestType(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="count">Count Difference Only</SelectItem>
-                  <SelectItem value="zero">Zero-Inflation Difference Only</SelectItem>
-                  <SelectItem value="both">Both Components (Combined)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-semibold mb-3">Test Type</h4>
+                <Select value={testType} onValueChange={(v: any) => setTestType(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="count">Count Difference Only</SelectItem>
+                    <SelectItem value="zero">Zero-Inflation Difference Only</SelectItem>
+                    <SelectItem value="both">Both Components (Combined)</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
-                <strong>Test Type Explained:</strong>
-                <ul className="mt-1 ml-4 list-disc space-y-1">
-                  <li><strong>Count:</strong> Tests if abundance differs when present</li>
-                  <li><strong>Zero-Inflation:</strong> Tests if prevalence (presence/absence) differs</li>
-                  <li><strong>Both:</strong> Tests for any difference (recommended)</li>
-                </ul>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="results" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-start gap-4 mb-6">
-              <Icon className={`h-8 w-8 ${interpretation.color}`} />
-              <div>
-                <h3 className="text-2xl font-bold">Overall Power: {(power * 100).toFixed(1)}%</h3>
-                <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm text-muted-foreground">Count Model Power</div>
-                <div className="text-2xl font-bold">{(countPower * 100).toFixed(1)}%</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Detecting abundance differences
-                </div>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm text-muted-foreground">Zero Model Power</div>
-                <div className="text-2xl font-bold">{(zeroPower * 100).toFixed(1)}%</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Detecting prevalence differences
+                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded mt-3">
+                  <strong>Test Type Explained:</strong>
+                  <ul className="mt-1 ml-4 list-disc space-y-1">
+                    <li><strong>Count:</strong> Tests if abundance differs when present</li>
+                    <li><strong>Zero-Inflation:</strong> Tests if prevalence (presence/absence) differs</li>
+                    <li><strong>Both:</strong> Tests for any difference (recommended)</li>
+                  </ul>
                 </div>
               </div>
             </div>
-
-            {zeroInflation > 0.9 && (
-              <Alert className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Very high zero-inflation ({(zeroInflation * 100).toFixed(0)}%). 
-                  Consider using presence/absence analysis instead of count-based methods.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {power < 0.8 && (
-              <Alert className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Consider: (1) increasing sample size, (2) focusing on less rare taxa, 
-                  or (3) expecting larger effect sizes.
-                </AlertDescription>
-              </Alert>
-            )}
           </Card>
 
-          <SimplePowerChart
-            data={generatePowerCurve()}
-            currentValue={n}
-            xLabel="Samples per Group"
-            title="Power vs Sample Size"
-          />
-
-          <DistributionVisualization
-            type="zero-inflated"
-            meanCount={meanCount}
-            dispersion={dispersion}
-            zeroInflation={zeroInflation}
-          />
-
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Effective Sample Size</h3>
-            <div className="space-y-3">
-              <div className="p-3 bg-muted/30 rounded">
-                <div className="flex justify-between">
-                  <span className="text-sm">Total samples per group</span>
-                  <span className="font-semibold">{n}</span>
+          {/* Right Column: Results */}
+          <div className="space-y-4">
+            <Card className="p-4 bg-background">
+              <div className="flex items-start gap-4 mb-4">
+                <Icon className={`h-8 w-8 ${interpretation.color}`} />
+                <div>
+                  <h3 className="text-2xl font-bold">Statistical Power: {(power * 100).toFixed(1)}%</h3>
+                  <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
                 </div>
               </div>
-              <div className="p-3 bg-muted/30 rounded">
-                <div className="flex justify-between">
-                  <span className="text-sm">Expected non-zero samples</span>
-                  <span className="font-semibold">{Math.round(n * (1 - zeroInflation))}</span>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">Count Model Power</div>
+                  <div className="text-2xl font-bold">{(countPower * 100).toFixed(1)}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Detecting abundance differences
+                  </div>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">Zero Model Power</div>
+                  <div className="text-2xl font-bold">{(zeroPower * 100).toFixed(1)}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Detecting prevalence differences
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                High zero-inflation reduces effective sample size for the count model
-              </p>
-            </div>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="guide" className="space-y-4">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">When to Use ZINB</h3>
+              {zeroInflation > 0.9 && (
+                <Alert className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Very high zero-inflation ({(zeroInflation * 100).toFixed(0)}%). 
+                    Consider using presence/absence analysis instead of count-based methods.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {power < 0.8 && (
+                <Alert className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Consider: (1) increasing sample size, (2) focusing on less rare taxa, 
+                    or (3) expecting larger effect sizes.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Power Curve</h3>
+              <SimplePowerChart
+                data={generatePowerCurve()}
+                currentValue={n}
+                xLabel="Samples per Group"
+                title="Power vs Sample Size"
+              />
+            </Card>
+
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Expected Distribution</h3>
+              <DistributionVisualization
+                type="zero-inflated"
+                meanCount={meanCount}
+                dispersion={dispersion}
+                zeroInflation={zeroInflation}
+              />
+            </Card>
+
+            <Card className="p-4 bg-muted/50">
+              <h3 className="font-semibold mb-3">Study Design Summary</h3>
+              <div className="space-y-3">
+                <div className="p-3 bg-background rounded">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Total samples per group</span>
+                    <span className="font-semibold">{n}</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-background rounded">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Expected non-zero samples</span>
+                    <span className="font-semibold">{Math.round(n * (1 - zeroInflation))}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  High zero-inflation reduces effective sample size for the count model
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </Card>
+
+      {/* Educational Content */}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="when-to-use">
+          <AccordionTrigger>When to Use ZINB</AccordionTrigger>
+          <AccordionContent>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2">
                 <span className="text-primary font-bold">✓</span>
@@ -336,10 +341,12 @@ const ZeroInflatedCalculator = () => {
                 <span>Standard negative binomial models show poor fit</span>
               </li>
             </ul>
-          </Card>
+          </AccordionContent>
+        </AccordionItem>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">ZINB vs Standard NB</h3>
+        <AccordionItem value="comparison">
+          <AccordionTrigger>ZINB vs Standard NB</AccordionTrigger>
+          <AccordionContent>
             <div className="space-y-3 text-sm">
               <Alert>
                 <Info className="h-4 w-4" />
@@ -355,10 +362,12 @@ const ZeroInflatedCalculator = () => {
                 </AlertDescription>
               </Alert>
             </div>
-          </Card>
+          </AccordionContent>
+        </AccordionItem>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">Common Issues</h3>
+        <AccordionItem value="issues">
+          <AccordionTrigger>Common Issues</AccordionTrigger>
+          <AccordionContent>
             <div className="space-y-3 text-sm">
               <Alert>
                 <AlertCircle className="h-4 w-4" />
@@ -375,18 +384,20 @@ const ZeroInflatedCalculator = () => {
                 </AlertDescription>
               </Alert>
             </div>
-          </Card>
+          </AccordionContent>
+        </AccordionItem>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-3">Recommended Software</h3>
+        <AccordionItem value="software">
+          <AccordionTrigger>Recommended Software</AccordionTrigger>
+          <AccordionContent>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• pscl package in R (zeroinfl function)</li>
               <li>• ZINB-WaVE for single-cell sequencing data</li>
               <li>• metagenomeSeq (fitZIG function) for microbiome data</li>
             </ul>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };
