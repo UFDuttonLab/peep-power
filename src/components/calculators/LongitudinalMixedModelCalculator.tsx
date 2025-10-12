@@ -9,10 +9,11 @@ import SimplePowerChart from '@/components/SimplePowerChart';
 import TimelineVisualization from '@/components/TimelineVisualization';
 import { calculateLMMPower, calculateRequiredSampleSizeLMM } from '@/utils/microbiomePowerCalculations';
 import { AlertCircle, TrendingUp, Clock, Info, Download, Code2, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const LongitudinalMixedModelCalculator = () => {
+  const { toast } = useToast();
   const [nSubjects, setNSubjects] = useState(30);
   const [nTimepoints, setNTimepoints] = useState(4);
   const [effectSize, setEffectSize] = useState(0.25);
@@ -31,7 +32,7 @@ const LongitudinalMixedModelCalculator = () => {
       parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha }
     });
     downloadRFile(rCode, 'lmm_microbiome_power.R');
-    toast.success('R code exported successfully');
+    toast({ title: "R code exported", description: "Data downloaded successfully" });
   };
 
   const copyRCode = async () => {
@@ -41,9 +42,9 @@ const LongitudinalMixedModelCalculator = () => {
     });
     const success = await copyToClipboard(rCode);
     if (success) {
-      toast.success('R code copied to clipboard');
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
     } else {
-      toast.error('Failed to copy R code');
+      toast({ title: "Error", description: "Failed to copy R code", variant: "destructive" });
     }
   };
 
@@ -55,7 +56,7 @@ const LongitudinalMixedModelCalculator = () => {
         setEffectSize(0.4);
         setWithinCorr(0.8);
         setDropoutRate(0.05);
-        toast.success('Applied: Antibiotic trial preset');
+        toast({ title: "Preset applied", description: "Antibiotic trial preset" });
         break;
       case 'diet':
         setNSubjects(40);
@@ -63,7 +64,7 @@ const LongitudinalMixedModelCalculator = () => {
         setEffectSize(0.25);
         setWithinCorr(0.6);
         setDropoutRate(0.15);
-        toast.success('Applied: Diet intervention preset');
+        toast({ title: "Preset applied", description: "Diet intervention preset" });
         break;
       case 'disease':
         setNSubjects(50);
@@ -71,7 +72,7 @@ const LongitudinalMixedModelCalculator = () => {
         setEffectSize(0.2);
         setWithinCorr(0.4);
         setDropoutRate(0.20);
-        toast.success('Applied: Disease progression preset');
+        toast({ title: "Preset applied", description: "Disease progression preset" });
         break;
     }
   };

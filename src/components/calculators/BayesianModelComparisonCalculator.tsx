@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Plus, Trash2, Info, Scale, Download, Code2, Copy } from 'lucide-react';
+import { Play, Info, Scale, Download, Code2, Copy, Trash2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { calculateModelComparisonN } from '@/utils/bayesianPowerCalculations';
+import ControlSlider from '@/components/ControlSlider';
+import { Input } from '@/components/ui/input';
 
 const BayesianModelComparisonCalculator = () => {
   const { toast } = useToast();
@@ -88,25 +88,167 @@ const BayesianModelComparisonCalculator = () => {
         </AlertDescription>
       </Alert>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Parameters</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Starting N Per Group: {nPerGroup}</Label>
-              <Slider value={[nPerGroup]} onValueChange={(v) => setNPerGroup(v[0])} min={20} max={300} step={10} />
-            </div>
-            <div className="space-y-2">
-              <Label>Target Bayes Factor: {targetBF}</Label>
-              <Slider value={[targetBF]} onValueChange={(v) => setTargetBF(v[0])} min={3} max={100} step={1} />
-            </div>
-            <Button onClick={runSimulation} className="w-full" disabled={isCalculating}>
-              <Play className="h-4 w-4 mr-2" />
-              {isCalculating ? 'Calculating...' : 'Calculate Required N'}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Study Parameters</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ControlSlider
+                id="n-per-group"
+                label="Starting N Per Group"
+                value={nPerGroup}
+                onChange={setNPerGroup}
+                min={20}
+                max={300}
+                step={10}
+                decimals={0}
+                tooltip="Starting sample size per group for calculation"
+              />
+              <ControlSlider
+                id="target-bf"
+                label="Target Bayes Factor"
+                value={targetBF}
+                onChange={setTargetBF}
+                min={3}
+                max={100}
+                step={1}
+                decimals={0}
+                tooltip="Desired Bayes Factor for evidence: 3=moderate, 10=strong, 30+=very strong"
+              />
+              <ControlSlider
+                id="alpha"
+                label="Significance Level (α)"
+                value={alpha}
+                onChange={setAlpha}
+                min={0.01}
+                max={0.10}
+                step={0.01}
+              />
+              <Button onClick={runSimulation} className="w-full" disabled={isCalculating}>
+                <Play className="h-4 w-4 mr-2" />
+                {isCalculating ? 'Calculating...' : 'Calculate Required N'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Model Specifications</CardTitle>
+              <CardDescription>Define competing models and their priors</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {models.map((model, idx) => (
+                <div key={idx} className="p-4 border rounded-lg space-y-3 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <Input
+                      value={model.name}
+                      onChange={(e) => {
+                        const newModels = [...models];
+                        newModels[idx].name = e.target.value;
+                        setModels(newModels);
+                      }}
+                      className="font-semibold max-w-[200px]"
+                    />
+                    {models.length > 2 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setModels(models.filter((_, i) => i !== idx))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <ControlSlider
+                    id={`model-${idx}-mean`}
+                    label="Prior Mean (Effect Size)"
+                    value={model.prior.mean}
+                    onChange={(v) => {
+                      const newModels = [...models];
+                      newModels[idx].prior.mean = v;
+                      setModels(newModels);
+                    }}
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    tooltip="Expected effect size under this model"
+                  />
+                  
+                  <ControlSlider
+                    id={`model-${idx}-sd`}
+                    label="Prior SD (Uncertainty)"
+                    value={model.prior.sd}
+                    onChange={(v) => {
+                      const newModels = [...models];
+                      newModels[idx].prior.sd = v;
+                      setModels(newModels);
+                    }}
+                    min={0.05}
+                    max={0.5}
+                    step={0.05}
+                    tooltip="Uncertainty about the effect size"
+                  />
+                  
+                  <ControlSlider
+                    id={`model-${idx}-prob`}
+                    label="Prior Probability"
+                    value={model.priorProbability}
+                    onChange={(v) => {
+                      const newModels = [...models];
+                      newModels[idx].priorProbability = v;
+                      setModels(newModels);
+                    }}
+                    min={0.1}
+                    max={0.8}
+                    step={0.05}
+                    tooltip="Your belief in this model before seeing data"
+                  />
+                  
+                  <ControlSlider
+                    id={`model-${idx}-complexity`}
+                    label="Model Complexity"
+                    value={model.complexity}
+                    onChange={(v) => {
+                      const newModels = [...models];
+                      newModels[idx].complexity = v;
+                      setModels(newModels);
+                    }}
+                    min={1}
+                    max={10}
+                    step={1}
+                    decimals={0}
+                    tooltip="Number of parameters (1=simple, 10=complex)"
+                  />
+                </div>
+              ))}
+              
+              {models.length < 5 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setModels([...models, { 
+                    name: `Model ${models.length + 1}`, 
+                    prior: { mean: 0.5, sd: 0.2 }, 
+                    priorProbability: 0.3, 
+                    complexity: 2 
+                  }])}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Model
+                </Button>
+              )}
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Prior probabilities should sum to 1.0. Current sum: {models.reduce((sum, m) => sum + m.priorProbability, 0).toFixed(2)}
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
         <div className="space-y-6">
           {result ? (
             <Card>
@@ -123,7 +265,21 @@ const BayesianModelComparisonCalculator = () => {
                   <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
                 </Alert>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-sm font-semibold">Model Comparison Details</h4>
+                  {models.map((model, idx) => (
+                    <div key={idx} className="p-3 bg-muted/50 rounded text-sm">
+                      <div className="font-semibold">{model.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Prior: μ={model.prior.mean.toFixed(2)}, σ={model.prior.sd.toFixed(2)} • 
+                        P(Model)={model.priorProbability.toFixed(2)} • 
+                        Complexity={model.complexity}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mt-4">
                   <Button onClick={exportToCSV} variant="outline" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     CSV

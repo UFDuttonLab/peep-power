@@ -9,10 +9,11 @@ import SimplePowerChart from '@/components/SimplePowerChart';
 import DistributionVisualization from '@/components/DistributionVisualization';
 import { calculateZINBPower } from '@/utils/microbiomePowerCalculations';
 import { AlertCircle, TrendingUp, Info, Droplet, Download, Code2, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const ZeroInflatedCalculator = () => {
+  const { toast } = useToast();
   const [n, setN] = useState(50);
   const [zeroInflation, setZeroInflation] = useState(0.6);
   const [meanCount, setMeanCount] = useState(50);
@@ -33,7 +34,7 @@ const ZeroInflatedCalculator = () => {
       parameters: { n, zeroInflation, meanCount, dispersion, log2FC, alpha, testType }
     });
     downloadRFile(rCode, 'zero_inflated_power.R');
-    toast.success('R code exported successfully');
+    toast({ title: "R code exported", description: "Data downloaded successfully" });
   };
 
   const copyRCode = async () => {
@@ -43,9 +44,9 @@ const ZeroInflatedCalculator = () => {
     });
     const success = await copyToClipboard(rCode);
     if (success) {
-      toast.success('R code copied to clipboard');
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
     } else {
-      toast.error('Failed to copy R code');
+      toast({ title: "Error", description: "Failed to copy R code", variant: "destructive" });
     }
   };
 
@@ -56,21 +57,21 @@ const ZeroInflatedCalculator = () => {
         setMeanCount(30);
         setDispersion(1.2);
         setLog2FC(3.0);
-        toast.success('Applied: Rare genus preset (80% zeros)');
+        toast({ title: "Preset applied", description: "Rare genus preset (80% zeros)" });
         break;
       case 'moderate':
         setZeroInflation(0.4);
         setMeanCount(100);
         setDispersion(0.6);
         setLog2FC(2.0);
-        toast.success('Applied: Moderate prevalence preset');
+        toast({ title: "Preset applied", description: "Moderate prevalence preset" });
         break;
       case 'barely-present':
         setZeroInflation(0.95);
         setMeanCount(10);
         setDispersion(1.5);
         setLog2FC(4.0);
-        toast.success('Applied: Barely present preset (95% zeros)');
+        toast({ title: "Preset applied", description: "Barely present preset (95% zeros)" });
         break;
     }
   };

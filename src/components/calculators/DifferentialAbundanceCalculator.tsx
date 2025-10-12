@@ -8,10 +8,11 @@ import SimplePowerChart from '@/components/SimplePowerChart';
 import DistributionVisualization from '@/components/DistributionVisualization';
 import { calculateNegBinomialPower, calculateRequiredSampleSizeNB, adjustAlphaForBonferroni } from '@/utils/microbiomePowerCalculations';
 import { AlertCircle, TrendingUp, Info, Dna, Download, Code2, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const DifferentialAbundanceCalculator = () => {
+  const { toast } = useToast();
   const [n, setN] = useState(30);
   const [log2FC, setLog2FC] = useState(2.0);
   const [dispersion, setDispersion] = useState(0.5);
@@ -32,7 +33,7 @@ const DifferentialAbundanceCalculator = () => {
       parameters: { n, log2FC, dispersion, baseMean, alpha, numTests, useFDR }
     });
     downloadRFile(rCode, 'differential_abundance_power.R');
-    toast.success('R code exported successfully');
+    toast({ title: "R code exported", description: "Data downloaded successfully" });
   };
 
   const copyRCode = async () => {
@@ -42,9 +43,9 @@ const DifferentialAbundanceCalculator = () => {
     });
     const success = await copyToClipboard(rCode);
     if (success) {
-      toast.success('R code copied to clipboard');
+      toast({ title: "Copied to clipboard", description: "R code ready to paste" });
     } else {
-      toast.error('Failed to copy R code');
+      toast({ title: "Error", description: "Failed to copy R code", variant: "destructive" });
     }
   };
 
@@ -55,21 +56,21 @@ const DifferentialAbundanceCalculator = () => {
         setDispersion(0.2);
         setLog2FC(1.5);
         setNumTests(50);
-        toast.success('Applied: High abundance genus preset');
+        toast({ title: "Preset applied", description: "High abundance genus preset" });
         break;
       case 'moderate':
         setBaseMean(100);
         setDispersion(0.5);
         setLog2FC(2.0);
         setNumTests(100);
-        toast.success('Applied: Moderate abundance species preset');
+        toast({ title: "Preset applied", description: "Moderate abundance species preset" });
         break;
       case 'rare':
         setBaseMean(20);
         setDispersion(1.2);
         setLog2FC(3.0);
         setNumTests(200);
-        toast.success('Applied: Rare taxon preset');
+        toast({ title: "Preset applied", description: "Rare taxon preset" });
         break;
     }
   };
