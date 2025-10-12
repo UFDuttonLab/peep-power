@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Info, Gauge, Download, Code2, Copy } from 'lucide-react';
+import { Play, Info, Gauge, Download, Code2, Copy, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { calibrateFrequentistToBayesian } from '@/utils/bayesianPowerCalculations';
@@ -125,6 +125,38 @@ const BayesianCalibrationCalculator = () => {
                     <p className="text-3xl font-bold text-red-600 dark:text-red-400">{result.assuranceLoss.toFixed(0)}%</p>
                   </div>
                 </div>
+                
+                {/* Sample size recommendation with clear status */}
+                <div className={`p-4 rounded-lg border-2 ${
+                  result.recommendedN === nPerGroup 
+                    ? 'bg-green-50 dark:bg-green-950/20 border-green-500' 
+                    : 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-500'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {result.recommendedN === nPerGroup ? (
+                      <>
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <p className="font-semibold text-green-900 dark:text-green-100">Sample Size Sufficient</p>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                        <p className="font-semibold text-yellow-900 dark:text-yellow-100">Increase Sample Size</p>
+                      </>
+                    )}
+                  </div>
+                  <p className={`text-sm ${
+                    result.recommendedN === nPerGroup 
+                      ? 'text-green-800 dark:text-green-200' 
+                      : 'text-yellow-800 dark:text-yellow-200'
+                  }`}>
+                    {result.recommendedN === nPerGroup 
+                      ? `Current N=${nPerGroup} is adequate for ${(frequentistPower * 100).toFixed(0)}% assurance`
+                      : `Increase from N=${nPerGroup} to N=${result.recommendedN} per group`
+                    }
+                  </p>
+                </div>
+                
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />

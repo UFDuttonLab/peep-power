@@ -13,6 +13,15 @@ import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { ADAPTIVE_ALLOCATION_CITATIONS } from '@/constants/bayesianConstants';
 
+// Define distinct colors for each treatment in the chart
+const CHART_COLORS = [
+  'hsl(217, 91%, 60%)',  // Blue
+  'hsl(142, 71%, 45%)',  // Green
+  'hsl(280, 65%, 60%)',  // Purple
+  'hsl(25, 95%, 53%)',   // Orange
+  'hsl(346, 77%, 50%)',  // Red
+];
+
 const BayesianAdaptiveAllocationCalculator = () => {
   const { toast } = useToast();
   const [treatments, setTreatments] = useState(['Control', 'Treatment A', 'Treatment B']);
@@ -353,7 +362,7 @@ const BayesianAdaptiveAllocationCalculator = () => {
                           key={treatment}
                           dataKey={`allocations.${treatment}`}
                           stackId="a"
-                          fill={`hsl(var(--chart-${(idx % 5) + 1}))`}
+                          fill={CHART_COLORS[idx % CHART_COLORS.length]}
                           name={treatment}
                         />
                       ))}

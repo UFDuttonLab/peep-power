@@ -1536,6 +1536,7 @@ export const calibrateFrequentistToBayesian = (
     throw new Error('Effect uncertainty cannot be negative');
   }
   
+  // Step 1: Calculate assurance at current N
   const nSims = 2000;
   let powerCount = 0;
   
@@ -1557,32 +1558,44 @@ export const calibrateFrequentistToBayesian = (
   }
   
   const bayesianAssurance = powerCount / nSims;
-  const assuranceLoss = ((params.frequentistPower - bayesianAssurance) / params.frequentistPower) * 100;
+  const assuranceLoss = Math.max(0, ((params.frequentistPower - bayesianAssurance) / params.frequentistPower) * 100);
   
+  // Step 2: Determine if current N is sufficient
   let recommendedN = params.nPerGroup;
-  for (let n = params.nPerGroup; n <= 500; n += 5) {
-    let count = 0;
-    for (let i = 0; i < 500; i++) {
-      const sampledEffect = normalRandom(params.effectSize, params.effectUncertainty);
-      let power = 0;
-      try {
-        if (params.testType === 'ttest') {
-          power = calculateTTestPower(n, Math.abs(sampledEffect), params.alpha).power;
-        } else if (params.testType === 'anova' && params.groups) {
-          power = calculateOneWayAnovaPower(n, params.groups, Math.abs(sampledEffect), params.alpha).power;
+  let summary = '';
+  
+  if (bayesianAssurance >= params.frequentistPower) {
+    // Current N is sufficient
+    summary = `✓ Your current sample size of <strong>N=${params.nPerGroup}</strong> per group is <strong>sufficient</strong> to maintain <strong>${(params.frequentistPower * 100).toFixed(0)}%</strong> assurance given the effect size uncertainty (SD=${params.effectUncertainty.toFixed(2)}). Actual Bayesian assurance is <strong>${(bayesianAssurance * 100).toFixed(0)}%</strong>.`;
+  } else {
+    // Need to search for required N
+    for (let n = params.nPerGroup + 5; n <= 500; n += 5) {
+      let count = 0;
+      for (let i = 0; i < 500; i++) {
+        const sampledEffect = normalRandom(params.effectSize, params.effectUncertainty);
+        let power = 0;
+        try {
+          if (params.testType === 'ttest') {
+            power = calculateTTestPower(n, Math.abs(sampledEffect), params.alpha).power;
+          } else if (params.testType === 'anova' && params.groups) {
+            power = calculateOneWayAnovaPower(n, params.groups, Math.abs(sampledEffect), params.alpha).power;
+          }
+        } catch (e) {
+          power = 0;
         }
-      } catch (e) {
-        power = 0;
+        if (power >= params.frequentistPower) count++;
       }
-      if (power >= params.frequentistPower) count++;
+      
+      if (count / 500 >= params.frequentistPower) {
+        recommendedN = n;
+        break;
+      }
     }
     
-    if (count / 500 >= params.frequentistPower) {
-      recommendedN = n;
-      break;
-    }
+    summary = `⚠ Frequentist power of <strong>${(params.frequentistPower * 100).toFixed(0)}%</strong> (assuming exact effect=${params.effectSize.toFixed(2)}) translates to Bayesian assurance of only <strong>${(bayesianAssurance * 100).toFixed(0)}%</strong> when accounting for uncertainty (SD=${params.effectUncertainty.toFixed(2)}). This represents a <strong>${assuranceLoss.toFixed(0)}%</strong> loss. To maintain ${(params.frequentistPower * 100).toFixed(0)}% assurance, increase N from <strong>${params.nPerGroup}</strong> to <strong>${recommendedN}</strong> per group.`;
   }
   
+  // Step 3: Generate calibration curve
   const calibrationCurve: Array<{ uncertainty: number; assurance: number }> = [];
   for (let unc = 0; unc <= params.effectSize; unc += params.effectSize / 20) {
     let count = 0;
@@ -1602,8 +1615,6 @@ export const calibrateFrequentistToBayesian = (
     }
     calibrationCurve.push({ uncertainty: unc, assurance: count / 200 });
   }
-  
-  const summary = `Frequentist power of <strong>${(params.frequentistPower * 100).toFixed(0)}%</strong> (assuming exact effect=${params.effectSize.toFixed(2)}) translates to Bayesian assurance of only <strong>${(bayesianAssurance * 100).toFixed(0)}%</strong> when accounting for uncertainty (SD=${params.effectUncertainty.toFixed(2)}). This represents a <strong>${assuranceLoss.toFixed(0)}%</strong> loss. To maintain ${(params.frequentistPower * 100).toFixed(0)}% assurance, increase N to <strong>${recommendedN}</strong>.`;
   
   return {
     bayesianAssurance,
