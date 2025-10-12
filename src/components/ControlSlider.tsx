@@ -13,6 +13,7 @@ interface ControlSliderProps {
   onChange: (value: number) => void;
   tooltip?: string;
   decimals?: number;
+  warningThreshold?: { min?: number; max?: number; message?: string };
 }
 
 const ControlSlider = ({
@@ -25,7 +26,20 @@ const ControlSlider = ({
   onChange,
   tooltip,
   decimals = 2,
+  warningThreshold,
 }: ControlSliderProps) => {
+  const handleChange = (newValue: number) => {
+    // Clamp value to valid range
+    const validated = Math.max(min, Math.min(max, newValue));
+    onChange(validated);
+  };
+
+  // Check if value is in warning range
+  const isWarning = warningThreshold && (
+    (warningThreshold.min !== undefined && value < warningThreshold.min) ||
+    (warningThreshold.max !== undefined && value > warningThreshold.max)
+  );
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -46,7 +60,7 @@ const ControlSlider = ({
             </TooltipProvider>
           )}
         </div>
-        <span className="bg-card px-3 py-1 rounded text-sm font-bold text-primary">
+        <span className={`px-3 py-1 rounded text-sm font-bold ${isWarning ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100' : 'bg-card text-primary'}`}>
           {decimals === 0 ? value.toFixed(0) : value.toFixed(decimals)}
         </span>
       </div>
@@ -56,9 +70,14 @@ const ControlSlider = ({
         max={max}
         step={step}
         value={[value]}
-        onValueChange={(vals) => onChange(vals[0])}
+        onValueChange={(vals) => handleChange(vals[0])}
         className="w-full"
       />
+      {isWarning && warningThreshold?.message && (
+        <p className="text-xs text-yellow-700 dark:text-yellow-300">
+          ⚠️ {warningThreshold.message}
+        </p>
+      )}
     </div>
   );
 };

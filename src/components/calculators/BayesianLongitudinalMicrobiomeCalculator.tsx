@@ -9,6 +9,8 @@ import TimelineVisualization from '@/components/TimelineVisualization';
 import { Clock, Brain, Info, Download, Code2, Copy, Play, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AssuranceResult {
   requiredN: number;
@@ -164,6 +166,25 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
           accounts for this uncertainty in effect timing and magnitude, giving you realistic sample sizes.
         </AlertDescription>
       </Alert>
+
+      <Collapsible>
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                <span className="font-semibold">📊 Planning longitudinal microbiome studies</span>
+              </div>
+              <span className="text-sm text-muted-foreground">Click to expand</span>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <div className="text-sm space-y-2 whitespace-pre-wrap">
+              {MICROBIOME_PILOT_GUIDANCE.longitudinal}
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <Card className="p-4">
         <h3 className="text-sm font-semibold mb-3">Quick Presets</h3>

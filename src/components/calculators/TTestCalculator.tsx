@@ -93,6 +93,10 @@ const TTestCalculator = () => {
             onChange={setN}
             decimals={0}
             tooltip="Number of INDEPENDENT experimental units (e.g., separate plots, tanks, or individuals) in each group. NOT the total number of measurements. If you have subsamples, average them within each unit first."
+            warningThreshold={{ 
+              min: 10, 
+              message: "Power is very low with n<10 per group unless effect size is very large (d>1.0)" 
+            }}
           />
 
           <div className="space-y-2">

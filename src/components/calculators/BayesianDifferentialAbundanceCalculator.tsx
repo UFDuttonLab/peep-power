@@ -7,6 +7,8 @@ import SimplePowerChart from '@/components/SimplePowerChart';
 import { Dna, Brain, Info, Download, Code2, Copy, Play, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AssuranceResult {
   requiredN: number;
@@ -43,10 +45,14 @@ const BayesianDifferentialAbundanceCalculator = () => {
           for (let i = 0; i < nSims; i++) {
             // Sample effect size from prior
             const sampledFC = Math.max(0.1, log2FCMean + (Math.random() - 0.5) * 2 * log2FCSD * 1.96);
-            // Simple power calculation for negative binomial
-            const se = Math.sqrt((1/n) * (1 + dispersion * baseMean) / baseMean);
-            const ncp = sampledFC / se;
-            const power = 1 - Math.exp(-Math.pow(ncp * Math.sqrt(n), 2) / 2);
+            // CORRECTED: Proper negative binomial Wald test for DESeq2/edgeR
+            // SE for log2FC = sqrt(dispersion/(n*baseMean) + dispersion/(n*baseMean))
+            const se = Math.sqrt((dispersion / (n * Math.max(1, baseMean))) + (dispersion / (n * Math.max(1, baseMean))));
+            const zCrit = 1.96; // For alpha = 0.05 two-tailed
+            const zStat = Math.abs(sampledFC) / se;
+            // Two-tailed power for Wald z-test
+            const power = Math.min(0.999, 1 - (1 - 2 * (1 - Math.exp(-0.717 * zStat - 0.416 * zStat * zStat))) * 
+                          Math.exp(Math.pow(zCrit - zStat, 2) / -2));
             
             if (power >= targetPower) successCount++;
           }
@@ -162,6 +168,25 @@ const BayesianDifferentialAbundanceCalculator = () => {
         </AlertDescription>
       </Alert>
 
+      <Collapsible>
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                <span className="font-semibold">📊 Estimating log2FC from pilot data</span>
+              </div>
+              <span className="text-sm text-muted-foreground">Click to expand</span>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <div className="text-sm space-y-2 whitespace-pre-wrap">
+              {MICROBIOME_PILOT_GUIDANCE.differentialAbundance}
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
       <Card className="p-4">
         <h3 className="text-sm font-semibold mb-3">Quick Presets</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -232,6 +257,10 @@ const BayesianDifferentialAbundanceCalculator = () => {
                 step={10}
                 decimals={0}
                 tooltip="Average count in control group"
+                warningThreshold={{
+                  min: 20,
+                  message: "Very low counts (baseMean<20) may require larger sample sizes"
+                }}
               />
 
               <ControlSlider

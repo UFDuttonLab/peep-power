@@ -8,6 +8,8 @@ import { Dna, Brain, Info, Download, Code2, Copy, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { calculateBayesianAssurance, BayesianAssuranceResult } from '@/utils/bayesianPowerCalculations';
+import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const BayesianMicrobiomePERMANOVACalculator = () => {
   const { toast } = useToast();
@@ -118,9 +120,8 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
               Bayesian PERMANOVA Assurance
             </h2>
             <p className="text-muted-foreground">
-              Account for uncertainty in microbiome effect sizes (R²). Unlike traditional power analysis,
-              this calculates the probability of achieving your target power given realistic uncertainty
-              about community-level effects.
+              Account for uncertainty in R² when planning PERMANOVA analyses of community composition.
+              Ensures your sample size is robust to variation in effect sizes across studies.
             </p>
           </div>
         </div>
@@ -129,11 +130,30 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
       <Alert className="bg-purple-50 dark:bg-purple-950/20 border-purple-500">
         <Brain className="h-4 w-4" />
         <AlertDescription>
-          <strong>Why Bayesian for microbiome?</strong> Microbiome R² values are notoriously hard to predict.
-          Diet might explain 3-15% of variance, antibiotics 10-30%. Bayesian assurance accounts for this
-          uncertainty, giving you realistic sample sizes that work across a range of plausible effect sizes.
+          <strong>Why Bayesian?</strong> Effect sizes (R²) vary across studies due to sequencing depth, 
+          data processing, and biological variation. Assurance accounts for this uncertainty, giving you 
+          sample sizes that work reliably even if your pilot R² was optimistic.
         </AlertDescription>
       </Alert>
+
+      <Collapsible>
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                <span className="font-semibold">📊 How to estimate R² from pilot data</span>
+              </div>
+              <span className="text-sm text-muted-foreground">Click to expand</span>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <div className="text-sm space-y-2 whitespace-pre-wrap">
+              {MICROBIOME_PILOT_GUIDANCE.betaDiversity}
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <Card className="p-4">
         <h3 className="text-sm font-semibold mb-3">Quick Presets</h3>
@@ -141,7 +161,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
           <Button variant="outline" onClick={() => applyPreset('strong')} className="h-auto py-3 flex-col items-start">
             <div className="font-semibold">Strong Effect</div>
             <div className="text-xs text-muted-foreground text-left mt-1">
-              R²=0.15 (antibiotics/major treatment)
+              R²=0.15 (antibiotic, major diet shift)
             </div>
           </Button>
           <Button variant="outline" onClick={() => applyPreset('moderate')} className="h-auto py-3 flex-col items-start">
@@ -217,6 +237,10 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                 step={1}
                 decimals={0}
                 tooltip="Number of treatment groups to compare"
+                warningThreshold={{
+                  min: 3,
+                  message: "PERMANOVA needs 8-15 per group for multivariate community data"
+                }}
               />
 
               <ControlSlider
@@ -249,18 +273,19 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                 min={0.01}
                 max={0.10}
                 step={0.01}
+                tooltip="Probability of Type I error (false positive)"
               />
 
               <Button
                 onClick={runSimulation}
                 disabled={isCalculating}
-                className="w-full mt-4"
+                className="w-full"
                 size="lg"
               >
                 {isCalculating ? (
                   <>
                     <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Running Simulation...
+                    Running...
                   </>
                 ) : (
                   <>
@@ -269,10 +294,6 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   </>
                 )}
               </Button>
-
-              <div className="text-xs text-muted-foreground text-center mt-2">
-                Monte Carlo simulation with 5,000 samples • Takes 2-5 seconds
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -290,9 +311,6 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                     <div className="text-5xl font-bold text-primary mb-2">
                       {result.requiredN}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Total: {result.requiredN * groups} samples
-                    </div>
                   </div>
 
                   <div className="mt-4 text-sm" dangerouslySetInnerHTML={{ __html: result.summary }} />
@@ -300,9 +318,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   <Alert className="mt-4">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Microbiome considerations:</strong> This sample size accounts for high
-                      within-group variability typical in microbiome data. Budget extra samples (10-20%)
-                      for failed sequencing or low read depth.
+                      This accounts for uncertainty in R² and ensures reliable detection even if pilot estimates were optimistic.
                     </AlertDescription>
                   </Alert>
 
@@ -326,19 +342,8 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                 <CardContent>
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
-                    confidenceRegions={{
-                      lower: result.assuranceCurve.map(d => ({
-                        x: d.n,
-                        y: Math.max(0, d.assurance - 0.1)
-                      })),
-                      upper: result.assuranceCurve.map(d => ({
-                        x: d.n,
-                        y: Math.min(1, d.assurance + 0.1)
-                      }))
-                    }}
-                    currentValue={result.requiredN}
-                    xLabel="Samples Per Group"
-                    title="Assurance vs Sample Size"
+                    targetAssurance={targetAssurance}
+                    requiredN={result.requiredN}
                   />
                 </CardContent>
               </Card>
@@ -348,7 +353,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
               <CardContent className="py-12">
                 <div className="text-center text-muted-foreground">
                   <Dna className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Configure parameters and run simulation</p>
+                  <p>Configure parameters and run simulation to see required sample size</p>
                 </div>
               </CardContent>
             </Card>

@@ -235,9 +235,11 @@ export const calculateRepeatedMeasuresPower = (
     };
   }
 
-  // Noncentrality parameter for repeated measures
-  // CORRECTED: Design effect reduces effective sample size when correlation is high
-  // Higher within-subject correlation = MORE redundant information = LESS effective N
+  // Design Effect for Repeated Measures (Compound Symmetry)
+  // When measurements are correlated within subjects, they provide less independent information
+  // Formula: DE = 1 + (k-1)ρ, where k=timepoints, ρ=within-subject correlation
+  // Higher correlation (ρ→1) → measurements more similar → less unique information → lower effective N
+  // Lower correlation (ρ→0) → measurements independent → full information → effective N approaches subjects×timepoints
   const designEffect = 1 + (timepoints - 1) * correlation;
   const effectiveN = (subjects * timepoints) / designEffect;
   const lambda = effectiveN * effectSize * effectSize;
@@ -321,8 +323,12 @@ export const calculateChiSquarePower = (
   const lambda = w * w * n;
   const critChi = jStat.chisquare.inv(1 - alpha, df);
   
-  // CORRECTED: Use Patnaik's approximation for noncentral chi-square
-  // This is more accurate than the previous exponential adjustment
+  // Patnaik's two-moment chi-square approximation for noncentral chi-square
+  // Accurate for most practical cases, but may lose precision for very large lambda
+  if (lambda > 30) {
+    console.warn(`Chi-square power: lambda=${lambda.toFixed(1)} is large. Approximation may be less accurate. Consider simulation-based methods.`);
+  }
+  
   const h = 1 - (2/3) * (lambda / (df + lambda));
   const dfAdjusted = df + lambda;
   const critChiAdjusted = critChi / h;
