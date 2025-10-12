@@ -8,73 +8,73 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Ecological Color Palette */
-    --forest-green: 150 40% 25%;
-    --dark-green: 150 50% 15%;
-    --sand-beige: 40 45% 88%;
-    --light-beige: 40 50% 96%;
-    --sky-blue: 195 53% 79%;
-    --sky-blue-muted: 195 30% 60%;
+    /* Ocean Research Color Palette */
+    --ocean-blue: 203 65% 25%;
+    --navy: 210 60% 15%;
+    --blue-grey: 210 20% 92%;
+    --pale-blue: 210 25% 98%;
+    --bright-cyan: 190 85% 55%;
+    --muted-teal: 185 35% 45%;
     
-    --background: var(--light-beige);
-    --foreground: var(--dark-green);
+    --background: var(--pale-blue);
+    --foreground: var(--navy);
 
     --card: 0 0% 100%;
-    --card-foreground: var(--dark-green);
+    --card-foreground: var(--navy);
 
     --popover: 0 0% 100%;
-    --popover-foreground: var(--dark-green);
+    --popover-foreground: var(--navy);
 
-    --primary: var(--forest-green);
+    --primary: var(--ocean-blue);
     --primary-foreground: 0 0% 98%;
 
-    --secondary: var(--sand-beige);
-    --secondary-foreground: var(--dark-green);
+    --secondary: var(--blue-grey);
+    --secondary-foreground: var(--navy);
 
-    --muted: var(--sand-beige);
-    --muted-foreground: 0 0% 45%;
+    --muted: var(--blue-grey);
+    --muted-foreground: 210 15% 45%;
 
-    --accent: var(--sky-blue);
-    --accent-foreground: var(--dark-green);
+    --accent: var(--bright-cyan);
+    --accent-foreground: var(--navy);
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 40 30% 85%;
-    --input: 40 30% 85%;
-    --ring: var(--forest-green);
+    --border: 210 25% 85%;
+    --input: 210 25% 85%;
+    --ring: var(--ocean-blue);
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 150 50% 8%;
-    --foreground: 40 50% 96%;
+    --background: 215 50% 10%;
+    --foreground: 210 25% 96%;
 
-    --card: 150 40% 12%;
-    --card-foreground: 40 50% 96%;
+    --card: 215 40% 15%;
+    --card-foreground: 210 25% 96%;
 
-    --popover: 150 40% 12%;
-    --popover-foreground: 40 50% 96%;
+    --popover: 215 40% 15%;
+    --popover-foreground: 210 25% 96%;
 
-    --primary: 150 45% 35%;
+    --primary: 203 60% 40%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 150 30% 20%;
-    --secondary-foreground: 40 50% 96%;
+    --secondary: 215 30% 20%;
+    --secondary-foreground: 210 25% 96%;
 
-    --muted: 150 30% 20%;
+    --muted: 215 30% 20%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 195 40% 50%;
+    --accent: 190 75% 50%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 150 20% 25%;
-    --input: 150 20% 25%;
-    --ring: 150 45% 40%;
+    --border: 215 25% 25%;
+    --input: 215 25% 25%;
+    --ring: 203 60% 45%;
   }
 }
 
