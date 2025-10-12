@@ -10,21 +10,43 @@ export const MinimumDetectableEffectCalculator = () => {
   const [n, setN] = useState(30);
   const [targetPower, setTargetPower] = useState(0.8);
   const [alpha, setAlpha] = useState(0.05);
-  const [testType, setTestType] = useState<'ttest' | 'anova' | 'correlation'>('ttest');
+  const [testType, setTestType] = useState<'ttest' | 'anova' | 'correlation' | 'chisquare' | 'twoway-anova' | 'repeated-measures' | 'nested-anova' | 'permanova' | 'repeated-permanova'>('ttest');
   const [groups, setGroups] = useState(3);
+  const [factorALevels, setFactorALevels] = useState(2);
+  const [factorBLevels, setFactorBLevels] = useState(2);
+  const [timepoints, setTimepoints] = useState(3);
+  const [correlation, setCorrelation] = useState(0.5);
+  const [nests, setNests] = useState(3);
+  const [df, setDf] = useState(1);
   const [mde, setMde] = useState<number | null>(null);
   const [requiredN, setRequiredN] = useState<number | null>(null);
   const [givenEffect, setGivenEffect] = useState(0.5);
 
   useEffect(() => {
-    const calculatedMde = calculateMinimumDetectableEffect(n, targetPower, alpha, testType, groups);
+    const additionalParams = {
+      df,
+      factorALevels,
+      factorBLevels,
+      timepoints,
+      correlation,
+      nests
+    };
+    const calculatedMde = calculateMinimumDetectableEffect(n, targetPower, alpha, testType, groups, additionalParams);
     setMde(calculatedMde);
-  }, [n, targetPower, alpha, testType, groups]);
+  }, [n, targetPower, alpha, testType, groups, df, factorALevels, factorBLevels, timepoints, correlation, nests]);
 
   useEffect(() => {
-    const calculatedN = calculateRequiredSampleSize(givenEffect, targetPower, alpha, testType, groups);
+    const additionalParams = {
+      df,
+      factorALevels,
+      factorBLevels,
+      timepoints,
+      correlation,
+      nests
+    };
+    const calculatedN = calculateRequiredSampleSize(givenEffect, targetPower, alpha, testType, groups, additionalParams);
     setRequiredN(calculatedN);
-  }, [givenEffect, targetPower, alpha, testType, groups]);
+  }, [givenEffect, targetPower, alpha, testType, groups, df, factorALevels, factorBLevels, timepoints, correlation, nests]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -43,12 +65,18 @@ export const MinimumDetectableEffectCalculator = () => {
                 <SelectContent>
                   <SelectItem value="ttest">Two-Sample t-test</SelectItem>
                   <SelectItem value="anova">One-Way ANOVA</SelectItem>
+                  <SelectItem value="twoway-anova">Two-Way ANOVA</SelectItem>
+                  <SelectItem value="repeated-measures">Repeated Measures ANOVA</SelectItem>
+                  <SelectItem value="nested-anova">Nested ANOVA</SelectItem>
                   <SelectItem value="correlation">Correlation</SelectItem>
+                  <SelectItem value="chisquare">Chi-Square Test</SelectItem>
+                  <SelectItem value="permanova">PERMANOVA</SelectItem>
+                  <SelectItem value="repeated-permanova">RM-PERMANOVA</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {testType === 'anova' && (
+            {(testType === 'anova' || testType === 'permanova') && (
               <ControlSlider
                 id="mde-groups"
                 label="Number of Groups"
@@ -56,6 +84,93 @@ export const MinimumDetectableEffectCalculator = () => {
                 onChange={setGroups}
                 min={2}
                 max={10}
+                step={1}
+                decimals={0}
+              />
+            )}
+
+            {testType === 'twoway-anova' && (
+              <>
+                <ControlSlider
+                  id="mde-factor-a"
+                  label="Factor A Levels"
+                  value={factorALevels}
+                  onChange={setFactorALevels}
+                  min={2}
+                  max={5}
+                  step={1}
+                  decimals={0}
+                />
+                <ControlSlider
+                  id="mde-factor-b"
+                  label="Factor B Levels"
+                  value={factorBLevels}
+                  onChange={setFactorBLevels}
+                  min={2}
+                  max={5}
+                  step={1}
+                  decimals={0}
+                />
+              </>
+            )}
+
+            {(testType === 'repeated-measures' || testType === 'repeated-permanova') && (
+              <>
+                <ControlSlider
+                  id="mde-timepoints"
+                  label="Number of Timepoints"
+                  value={timepoints}
+                  onChange={setTimepoints}
+                  min={2}
+                  max={10}
+                  step={1}
+                  decimals={0}
+                />
+                <ControlSlider
+                  id="mde-correlation"
+                  label="Within-Subject Correlation"
+                  value={correlation}
+                  onChange={setCorrelation}
+                  min={0}
+                  max={0.95}
+                  step={0.05}
+                />
+              </>
+            )}
+
+            {testType === 'nested-anova' && (
+              <>
+                <ControlSlider
+                  id="mde-groups-nested"
+                  label="Number of Groups"
+                  value={groups}
+                  onChange={setGroups}
+                  min={2}
+                  max={10}
+                  step={1}
+                  decimals={0}
+                />
+                <ControlSlider
+                  id="mde-nests"
+                  label="Nests per Group"
+                  value={nests}
+                  onChange={setNests}
+                  min={2}
+                  max={10}
+                  step={1}
+                  decimals={0}
+                />
+              </>
+            )}
+
+            {testType === 'chisquare' && (
+              <ControlSlider
+                id="mde-df"
+                label="Degrees of Freedom"
+                value={df}
+                onChange={setDf}
+                min={1}
+                max={20}
                 step={1}
                 decimals={0}
               />
@@ -92,7 +207,14 @@ export const MinimumDetectableEffectCalculator = () => {
           <CardContent className="space-y-4">
             <ControlSlider
               id="mde-sample-size"
-              label={testType === 'ttest' ? 'Sample Size per Group' : testType === 'anova' ? 'Sample Size per Group' : 'Total Sample Size'}
+              label={
+                testType === 'correlation' ? 'Total Sample Size' :
+                testType === 'twoway-anova' ? 'Sample Size per Cell' :
+                testType === 'repeated-measures' ? 'Number of Subjects' :
+                testType === 'nested-anova' ? 'Sample Size per Nest' :
+                testType === 'repeated-permanova' ? 'Number of Subjects' :
+                'Sample Size per Group'
+              }
               value={n}
               onChange={setN}
               min={2}
@@ -110,7 +232,13 @@ export const MinimumDetectableEffectCalculator = () => {
                 <div className="text-xs text-muted-foreground mt-2">
                   {testType === 'ttest' && "Cohen's d"}
                   {testType === 'anova' && "Cohen's f"}
+                  {testType === 'twoway-anova' && "Cohen's f"}
+                  {testType === 'repeated-measures' && "Cohen's f"}
+                  {testType === 'nested-anova' && "Cohen's f"}
                   {testType === 'correlation' && "Correlation coefficient (r)"}
+                  {testType === 'chisquare' && "Cohen's w"}
+                  {testType === 'permanova' && "R² (proportion of variance)"}
+                  {testType === 'repeated-permanova' && "R² (proportion of variance)"}
                 </div>
                 <div className="text-xs mt-2">
                   With n={n}{testType !== 'correlation' && ' per group'}, you can detect effects of {mde.toFixed(3)} or larger 
@@ -128,11 +256,15 @@ export const MinimumDetectableEffectCalculator = () => {
           <CardContent className="space-y-4">
             <ControlSlider
               id="mde-effect-size"
-              label={testType === 'correlation' ? 'Expected Correlation (r)' : 'Expected Effect Size'}
+              label={
+                testType === 'correlation' ? 'Expected Correlation (r)' :
+                (testType === 'permanova' || testType === 'repeated-permanova') ? 'Expected R²' :
+                'Expected Effect Size'
+              }
               value={givenEffect}
               onChange={setGivenEffect}
               min={0.01}
-              max={testType === 'correlation' ? 0.95 : 2.0}
+              max={testType === 'correlation' || testType === 'permanova' || testType === 'repeated-permanova' ? 0.95 : 2.0}
               step={0.01}
             />
 
@@ -146,9 +278,29 @@ export const MinimumDetectableEffectCalculator = () => {
                   To detect an effect of {givenEffect.toFixed(3)} with {(targetPower * 100).toFixed(0)}% power at α={alpha}, 
                   you need {requiredN} participants{testType !== 'correlation' && ' per group'}.
                 </div>
-                {testType !== 'correlation' && (
+                {testType === 'anova' && (
                   <div className="text-xs mt-1 font-semibold">
-                    Total N = {requiredN * (testType === 'anova' ? groups : 2)}
+                    Total N = {requiredN * groups}
+                  </div>
+                )}
+                {testType === 'ttest' && (
+                  <div className="text-xs mt-1 font-semibold">
+                    Total N = {requiredN * 2}
+                  </div>
+                )}
+                {testType === 'twoway-anova' && (
+                  <div className="text-xs mt-1 font-semibold">
+                    Total N = {requiredN * factorALevels * factorBLevels}
+                  </div>
+                )}
+                {testType === 'nested-anova' && (
+                  <div className="text-xs mt-1 font-semibold">
+                    Total N = {requiredN * groups * nests}
+                  </div>
+                )}
+                {testType === 'permanova' && (
+                  <div className="text-xs mt-1 font-semibold">
+                    Total N = {requiredN * groups}
                   </div>
                 )}
               </div>

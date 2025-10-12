@@ -25,6 +25,28 @@ const DifferentialAbundanceCalculator = () => {
   const foldChange = Math.pow(2, log2FC);
   const adjustedAlpha = useFDR ? adjustAlphaForBonferroni(alpha, numTests) : alpha;
 
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'deseq',
+      parameters: { n, log2FC, dispersion, baseMean, alpha, numTests, useFDR }
+    });
+    downloadRFile(rCode, 'differential_abundance_power.R');
+    toast.success('R code exported successfully');
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'deseq',
+      parameters: { n, log2FC, dispersion, baseMean, alpha, numTests, useFDR }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast.success('R code copied to clipboard');
+    } else {
+      toast.error('Failed to copy R code');
+    }
+  };
+
   const applyPreset = (preset: string) => {
     switch (preset) {
       case 'high-abundance':

@@ -26,6 +26,28 @@ const ZeroInflatedCalculator = () => {
   
   const foldChange = Math.pow(2, log2FC);
 
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'zinb',
+      parameters: { n, zeroInflation, meanCount, dispersion, log2FC, alpha, testType }
+    });
+    downloadRFile(rCode, 'zero_inflated_power.R');
+    toast.success('R code exported successfully');
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'zinb',
+      parameters: { n, zeroInflation, meanCount, dispersion, log2FC, alpha, testType }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast.success('R code copied to clipboard');
+    } else {
+      toast.error('Failed to copy R code');
+    }
+  };
+
   const applyPreset = (preset: string) => {
     switch (preset) {
       case 'rare':

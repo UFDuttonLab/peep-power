@@ -8,8 +8,9 @@ import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import TimelineVisualization from '@/components/TimelineVisualization';
 import { calculateLMMPower, calculateRequiredSampleSizeLMM } from '@/utils/microbiomePowerCalculations';
-import { AlertCircle, TrendingUp, Clock, Info } from 'lucide-react';
+import { AlertCircle, TrendingUp, Clock, Info, Download, Code2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const LongitudinalMixedModelCalculator = () => {
   const [nSubjects, setNSubjects] = useState(30);
@@ -23,6 +24,28 @@ const LongitudinalMixedModelCalculator = () => {
 
   const power = calculateLMMPower(nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha);
   const requiredN = calculateRequiredSampleSizeLMM(0.8, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha);
+
+  const exportToR = () => {
+    const rCode = generateRCode({
+      testType: 'lmm-microbiome',
+      parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha }
+    });
+    downloadRFile(rCode, 'lmm_microbiome_power.R');
+    toast.success('R code exported successfully');
+  };
+
+  const copyRCode = async () => {
+    const rCode = generateRCode({
+      testType: 'lmm-microbiome',
+      parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha }
+    });
+    const success = await copyToClipboard(rCode);
+    if (success) {
+      toast.success('R code copied to clipboard');
+    } else {
+      toast.error('Failed to copy R code');
+    }
+  };
 
   const applyPreset = (preset: string) => {
     switch (preset) {
@@ -285,6 +308,26 @@ const LongitudinalMixedModelCalculator = () => {
                 nTimepoints={nTimepoints}
                 dropoutRate={dropoutRate}
               />
+            </Card>
+
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Code2 className="h-4 w-4" />
+                Export R Code
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Generate R code to replicate this analysis using nlme/lme4
+              </p>
+              <div className="space-y-2">
+                <Button onClick={exportToR} variant="outline" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download R Script
+                </Button>
+                <Button onClick={copyRCode} variant="outline" className="w-full">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy to Clipboard
+                </Button>
+              </div>
             </Card>
           </div>
         </div>
