@@ -107,7 +107,9 @@ export const calculateOneWayAnovaPower = (
     };
   }
 
-  const lambda = effectSize * effectSize * N;
+  // Cohen's f relates to noncentrality via: λ = N × f² / (1 + f²)
+  // This properly accounts for the relationship between f and R²
+  const lambda = (effectSize * effectSize * N) / (1 + effectSize * effectSize);
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
 
@@ -121,7 +123,7 @@ export const calculateOneWayAnovaPower = (
     const df1Curve = groups - 1;
     const df2Curve = totalN - groups;
     if (df2Curve <= 0) continue;
-    const lambdaCurve = effectSize * effectSize * totalN;
+    const lambdaCurve = (effectSize * effectSize * totalN) / (1 + effectSize * effectSize);
     const critFCurve = jStat.centralF.inv(1 - alpha, df1Curve, df2Curve);
     const powerCurve = noncentralFPower(lambdaCurve, df1Curve, df2Curve, critFCurve);
     curveData.push({ x: totalN, y: Math.max(0, Math.min(1, powerCurve)) });
@@ -156,9 +158,10 @@ export const calculateTwoWayAnovaPower = (
     };
   }
 
-  const lambdaA = effectA * effectA * N;
-  const lambdaB = effectB * effectB * N;
-  const lambdaAB = effectInteraction * effectInteraction * N;
+  // Corrected noncentrality parameters for Two-Way ANOVA
+  const lambdaA = (effectA * effectA * N) / (1 + effectA * effectA);
+  const lambdaB = (effectB * effectB * N) / (1 + effectB * effectB);
+  const lambdaAB = (effectInteraction * effectInteraction * N) / (1 + effectInteraction * effectInteraction);
 
   const critA = jStat.centralF.inv(1 - alpha, dfA, dfError);
   const critB = jStat.centralF.inv(1 - alpha, dfB, dfError);
@@ -178,7 +181,7 @@ export const calculateTwoWayAnovaPower = (
     if (nPerCell < 2) continue;
     const dfErrorCurve = totalCells * (nPerCell - 1);
     if (dfErrorCurve <= 0) continue;
-    const lambdaCurve = effectInteraction * effectInteraction * totalN;
+    const lambdaCurve = (effectInteraction * effectInteraction * totalN) / (1 + effectInteraction * effectInteraction);
     const critCurve = jStat.centralF.inv(1 - alpha, dfAB, dfErrorCurve);
     const powerCurve = noncentralFPower(lambdaCurve, dfAB, dfErrorCurve, critCurve);
     curveData.push({ x: totalN, y: Math.max(0, Math.min(1, powerCurve)) });
@@ -191,7 +194,7 @@ export const calculateTwoWayAnovaPower = (
     if (nPerCell < 2) continue;
     const dfErrorCurve = totalCells * (nPerCell - 1);
     if (dfErrorCurve <= 0) continue;
-    const lambdaACurve = effectA * effectA * totalN;
+    const lambdaACurve = (effectA * effectA * totalN) / (1 + effectA * effectA);
     const critACurve = jStat.centralF.inv(1 - alpha, dfA, dfErrorCurve);
     const powerACurve = noncentralFPower(lambdaACurve, dfA, dfErrorCurve, critACurve);
     curveDataA.push({ x: totalN, y: Math.max(0, Math.min(1, powerACurve)) });
@@ -204,7 +207,7 @@ export const calculateTwoWayAnovaPower = (
     if (nPerCell < 2) continue;
     const dfErrorCurve = totalCells * (nPerCell - 1);
     if (dfErrorCurve <= 0) continue;
-    const lambdaBCurve = effectB * effectB * totalN;
+    const lambdaBCurve = (effectB * effectB * totalN) / (1 + effectB * effectB);
     const critBCurve = jStat.centralF.inv(1 - alpha, dfB, dfErrorCurve);
     const powerBCurve = noncentralFPower(lambdaBCurve, dfB, dfErrorCurve, critBCurve);
     curveDataB.push({ x: totalN, y: Math.max(0, Math.min(1, powerBCurve)) });
@@ -242,7 +245,8 @@ export const calculateRepeatedMeasuresPower = (
   // Lower correlation (ρ→0) → measurements independent → full information → effective N approaches subjects×timepoints
   const designEffect = 1 + (timepoints - 1) * correlation;
   const effectiveN = (subjects * timepoints) / designEffect;
-  const lambda = effectiveN * effectSize * effectSize;
+  // Corrected noncentrality parameter for repeated measures
+  const lambda = (effectiveN * effectSize * effectSize) / (1 + effectSize * effectSize);
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
 
@@ -259,7 +263,7 @@ export const calculateRepeatedMeasuresPower = (
     if (df2C <= 0) continue;
     const designEffectC = 1 + (timepoints - 1) * correlation;
     const effectiveNC = (subj * timepoints) / designEffectC;
-    const lambdaC = effectiveNC * effectSize * effectSize;
+    const lambdaC = (effectiveNC * effectSize * effectSize) / (1 + effectSize * effectSize);
     const critFC = jStat.centralF.inv(1 - alpha, df1C, df2C);
     const powerC = noncentralFPower(lambdaC, df1C, df2C, critFC);
     curveData.push({ x: subj, y: Math.max(0, Math.min(1, powerC)) });
@@ -427,7 +431,14 @@ export function calculateRequiredSampleSize(
     if (power < targetPower) low = mid + 1; else high = mid - 1;
   }
   
-  return Math.round((low + high) / 2);
+  let result = Math.round((low + high) / 2);
+  
+  // Enforce statistical validity minimums for ANOVA
+  if (testType === 'anova' && result < 15) {
+    result = 15; // ANOVA requires minimum 15 per group for reliable results
+  }
+  
+  return result;
 }
 
 export const calculatePERMANOVAPower = (

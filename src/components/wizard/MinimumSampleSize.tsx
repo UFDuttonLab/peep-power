@@ -346,13 +346,19 @@ const MinimumSampleSize = ({
   };
 
   const mappedTestType = testTypeMapping[testType];
-  const requiredN = calculateRequiredSampleSize(
+  let requiredN = calculateRequiredSampleSize(
     effectSize,
     targetPower,
     alpha,
     mappedTestType,
     groups
   );
+  
+  // Enforce statistical validity minimums for ANOVA
+  const ANOVA_MIN_PER_GROUP = 15;
+  if ((testType === 'oneway' || testType === 'twoway' || testType === 'nested' || testType === 'repeated') && requiredN < ANOVA_MIN_PER_GROUP) {
+    requiredN = ANOVA_MIN_PER_GROUP;
+  }
 
   // Calculate budget estimates
   const budgetScenarios = [
@@ -390,6 +396,17 @@ const MinimumSampleSize = ({
           </Alert>
         </div>
       </Card>
+
+      {(testType === 'oneway' || testType === 'twoway' || testType === 'repeated' || testType === 'nested') && requiredN < 20 && (
+        <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Note:</strong> While {requiredN} samples per group may provide 80% statistical power, 
+            ANOVA results are most reliable with ≥15 samples per group due to assumptions about normality 
+            and homogeneity of variance. Consider increasing your sample size if possible.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="p-6 space-y-4">
         <div className="flex items-center gap-2">
