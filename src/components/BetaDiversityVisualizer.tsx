@@ -37,7 +37,7 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
 
   const padding = 60;
   const width = 600;
-  const height = 500;
+  const height = 650;
   const plotWidth = width - 2 * padding;
   const plotHeight = height - 2 * padding;
   

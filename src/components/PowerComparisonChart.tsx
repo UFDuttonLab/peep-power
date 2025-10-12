@@ -21,9 +21,9 @@ const PowerComparisonChart = ({
   method2Name 
 }: PowerComparisonChartProps) => {
   return (
-    <Card className="p-4">
+    <Card className="p-4 min-h-[500px]">
       <h3 className="text-sm font-semibold mb-3">{title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={450}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis 

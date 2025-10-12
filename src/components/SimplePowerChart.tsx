@@ -35,18 +35,18 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
   }
 
   return (
-    <div className="w-full h-[400px] flex flex-col">
+    <div className="w-full h-[500px] flex flex-col">
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <div className="flex-1 relative bg-card border rounded-lg p-6">
-        <svg className="w-full h-full" viewBox="0 0 800 300">
+        <svg className="w-full h-full" viewBox="0 0 800 420">
           {/* Grid lines */}
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((y) => (
             <line
               key={y}
               x1="50"
-              y1={250 - y * 200}
+              y1={350 - y * 300}
               x2="750"
-              y2={250 - y * 200}
+              y2={350 - y * 300}
               stroke="hsl(var(--border))"
               strokeWidth="1"
               strokeDasharray="2,2"
@@ -54,15 +54,15 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
           ))}
           
           {/* Axes */}
-          <line x1="50" y1="250" x2="750" y2="250" stroke="hsl(var(--foreground))" strokeWidth="2" />
-          <line x1="50" y1="50" x2="50" y2="250" stroke="hsl(var(--foreground))" strokeWidth="2" />
+          <line x1="50" y1="350" x2="750" y2="350" stroke="hsl(var(--foreground))" strokeWidth="2" />
+          <line x1="50" y1="50" x2="50" y2="350" stroke="hsl(var(--foreground))" strokeWidth="2" />
           
           {/* Y-axis labels */}
           {[0, 20, 40, 60, 80, 100].map((label, i) => (
             <text
               key={label}
               x="30"
-              y={255 - (i * 40)}
+              y={355 - (i * 60)}
               fontSize="12"
               fill="hsl(var(--foreground))"
               textAnchor="end"
@@ -76,7 +76,7 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
             points={data
               .map((d) => {
                 const x = 50 + (d.x / maxX) * 700;
-                const y = 250 - d.y * 200;
+                const y = 350 - d.y * 300;
                 return `${x},${y}`;
               })
               .join(' ')}
@@ -88,7 +88,7 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
           {/* Current point marker */}
           <circle
             cx={50 + (currentValue / maxX) * 700}
-            cy={250 - currentY * 200}
+            cy={350 - currentY * 300}
             r="6"
             fill="hsl(var(--accent))"
             stroke="hsl(var(--primary))"
@@ -96,10 +96,10 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
           />
           
           {/* Axis labels */}
-          <text x="400" y="285" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
+          <text x="400" y="395" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
             {xLabel}
           </text>
-          <text x="15" y="150" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 150)">
+          <text x="15" y="210" fontSize="14" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 15 210)">
             Power (%)
           </text>
         </svg>
