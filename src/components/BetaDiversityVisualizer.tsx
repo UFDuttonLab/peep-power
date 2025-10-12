@@ -156,9 +156,9 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
           fontSize="28" fill="hsl(var(--foreground))" fontWeight="600">
           NMDS1
         </text>
-        <text x={20} y={height/2} textAnchor="middle" 
+        <text x={10} y={height/2} textAnchor="middle" 
           fontSize="28" fill="hsl(var(--foreground))" fontWeight="600"
-          transform={`rotate(-90 20 ${height/2})`}>
+          transform={`rotate(-90 10 ${height/2})`}>
           NMDS2
         </text>
         

@@ -24,7 +24,7 @@ const PowerComparisonChart = ({
     <Card className="p-4 min-h-[500px]">
       <h3 className="text-sm font-semibold mb-3">{title}</h3>
       <ResponsiveContainer width="100%" height={450}>
-        <LineChart data={data} margin={{ left: 40, right: 20, top: 20, bottom: 20 }}>
+        <LineChart data={data} margin={{ left: 60, right: 20, top: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis 
             dataKey="x" 
