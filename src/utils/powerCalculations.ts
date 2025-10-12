@@ -368,8 +368,9 @@ export function calculateMinimumDetectableEffect(
   n: number,
   targetPower: number = 0.8,
   alpha: number = 0.05,
-  testType: 'ttest' | 'anova' | 'correlation' = 'ttest',
-  groups?: number
+  testType: 'ttest' | 'anova' | 'correlation' | 'chisquare' | 'twoway-anova' | 'repeated-measures' | 'nested-anova' | 'permanova' | 'repeated-permanova' = 'ttest',
+  groups?: number,
+  additionalParams?: any
 ): number {
   let low = 0.01;
   let high = 3.0;
@@ -397,8 +398,9 @@ export function calculateRequiredSampleSize(
   effectSize: number,
   targetPower: number = 0.8,
   alpha: number = 0.05,
-  testType: 'ttest' | 'anova' | 'correlation' = 'ttest',
-  groups?: number
+  testType: 'ttest' | 'anova' | 'correlation' | 'chisquare' | 'twoway-anova' | 'repeated-measures' | 'nested-anova' | 'permanova' | 'repeated-permanova' = 'ttest',
+  groups?: number,
+  additionalParams?: any
 ): number {
   let low = 2;
   let high = 10000;

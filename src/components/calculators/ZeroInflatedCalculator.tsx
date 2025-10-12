@@ -8,8 +8,9 @@ import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import DistributionVisualization from '@/components/DistributionVisualization';
 import { calculateZINBPower } from '@/utils/microbiomePowerCalculations';
-import { AlertCircle, TrendingUp, Info, Droplet } from 'lucide-react';
+import { AlertCircle, TrendingUp, Info, Droplet, Download, Code2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const ZeroInflatedCalculator = () => {
   const [n, setN] = useState(50);

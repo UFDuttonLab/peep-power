@@ -7,8 +7,9 @@ import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import DistributionVisualization from '@/components/DistributionVisualization';
 import { calculateNegBinomialPower, calculateRequiredSampleSizeNB, adjustAlphaForBonferroni } from '@/utils/microbiomePowerCalculations';
-import { AlertCircle, TrendingUp, Info, Dna } from 'lucide-react';
+import { AlertCircle, TrendingUp, Info, Dna, Download, Code2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 
 const DifferentialAbundanceCalculator = () => {
   const [n, setN] = useState(30);
