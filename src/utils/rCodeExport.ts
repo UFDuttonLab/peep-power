@@ -73,7 +73,7 @@ const generateTTestRCode = (params: any): string => {
   const { n, effectSize, alpha } = params;
   
   return `# Two-Sample t-test Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required package (if not already installed)
 # install.packages("pwr")
@@ -130,7 +130,7 @@ const generateCorrelationRCode = (params: any): string => {
   const { n, rho, alpha } = params;
   
   return `# Correlation Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 library(pwr)
 
@@ -183,7 +183,7 @@ const generateChiSquareRCode = (params: any): string => {
   const { n, w, df, alpha } = params;
   
   return `# Chi-Square Test Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 library(pwr)
 
@@ -236,7 +236,7 @@ const generateOneWayAnovaRCode = (params: any): string => {
   const { n, groups, effectSize, alpha } = params;
   
   return `# One-Way ANOVA Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 library(pwr)
 
@@ -290,7 +290,7 @@ const generateTwoWayAnovaRCode = (params: any): string => {
   const { nPerCell, factorALevels, factorBLevels, effectSizeA, effectSizeB, effectSizeAB, alpha } = params;
   
   return `# Two-Way ANOVA Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required package (if not already installed)
 # install.packages("WebPower")
@@ -393,7 +393,7 @@ const generateRepeatedMeasuresRCode = (params: any): string => {
   const { subjects, timepoints, effectSize, correlation, alpha } = params;
   
   return `# Repeated Measures ANOVA Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required package (if not already installed)
 # install.packages("WebPower")
@@ -464,7 +464,7 @@ const generateNestedAnovaRCode = (params: any): string => {
   const { sitesPerTreatment, subplotsPerSite, effectSize, alpha } = params;
   
   return `# Nested ANOVA Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Note: Exact power for nested designs requires simulation
 # This provides an approximation using effective sample size
@@ -561,7 +561,7 @@ const generatePERMANOVARCode = (params: any): string => {
   const { nPerGroup, groups, rSquared, alpha } = params;
   
   return `# PERMANOVA Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages (if not already installed)
 # install.packages("vegan")
@@ -664,7 +664,7 @@ const generateRepeatedPERMANOVARCode = (params: any): string => {
   const { subjects, timepoints, rSquared, correlation, alpha } = params;
   
   return `# Repeated Measures PERMANOVA Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 library(vegan)
 
@@ -769,7 +769,7 @@ const generateBayesianRCode = (params: any): string => {
   // Handle PERMANOVA specifically
   if (testType === 'permanova') {
     return `# Bayesian Assurance for PERMANOVA
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages(c("vegan", "pwr"))
@@ -846,7 +846,7 @@ cat("\\nResults exported to: permanova_assurance.csv\\n")
   // Handle differential abundance (DESeq2-style) for Bayesian
   if (log2FCMean !== undefined && dispersion !== undefined) {
     return `# Bayesian Assurance for Differential Abundance (DESeq2/edgeR)
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("DESeq2")  # From Bioconductor
@@ -918,7 +918,7 @@ write.csv(data.frame(Sample_Size = n_range, Assurance = assurance_values),
   // Handle longitudinal microbiome (LMM)
   if (nTimepoints !== undefined && withinCorr !== undefined) {
     return `# Bayesian Assurance for Longitudinal Microbiome (LMM)
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages(c("lme4", "lmerTest"))
@@ -994,7 +994,7 @@ write.csv(data.frame(Sample_Size = n_range, Assurance = assurance_values),
   
   // Default Bayesian for other cases
   return `# Bayesian Assurance (Hybrid-Bayesian Power) Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("pwr")
@@ -1621,7 +1621,7 @@ const generateSequentialRCode = (params: any): string => {
   const { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha } = params;
   
   return `# Bayesian Sequential Design Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("rpact")
@@ -1728,7 +1728,7 @@ const generateReplicationRCode = (params: any): string => {
   const { publishedEffect, publishedN, publishedP, replicationN, publicationBias, alpha } = params;
   
   return `# Bayesian Replication Probability Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("pwr")
@@ -1826,7 +1826,7 @@ const generateInformationDesignRCode = (params: any): string => {
   const { designs, priorMean, priorSD, testType } = params;
   
   return `# Bayesian Information-Based Design Comparison
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Parameters
 prior_mean <- ${priorMean}
@@ -1898,7 +1898,7 @@ const generateHierarchicalRCode = (params: any): string => {
   const { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, alpha } = params;
   
   return `# Bayesian Hierarchical Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("lme4")
@@ -2016,7 +2016,7 @@ const generateAdaptiveAllocationRCode = (params: any): string => {
   const { treatments, priors, maxN, allocationRule } = params;
   
   return `# Bayesian Adaptive Allocation Simulation
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Parameters
 treatments <- c(${treatments.map((t: string) => `"${t}"`).join(', ')})
@@ -2097,7 +2097,7 @@ const generateEquivalenceRCode = (params: any): string => {
   const { equivalenceMargin, priorMean, priorSD, targetProbability, alpha } = params;
   
   return `# Bayesian Equivalence Testing
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("BEST")
@@ -2194,7 +2194,7 @@ const generateModelComparisonRCode = (params: any): string => {
   const { models, nPerGroup, targetBayesFactor, alpha } = params;
   
   return `# Bayesian Model Comparison Power Analysis
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("BayesFactor")
@@ -2306,7 +2306,7 @@ const generateCalibrationRCode = (params: any): string => {
   const { frequentistPower, effectSize, effectUncertainty, nPerGroup, alpha } = params;
   
   return `# Bayesian Calibration: Frequentist → Bayesian Assurance
-# Generated from Ecological Power Analysis Tool
+# Generated from PEEP
 
 # Install required packages
 # install.packages("pwr")

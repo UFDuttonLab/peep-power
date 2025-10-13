@@ -15,7 +15,7 @@ const AboutHelp = () => {
               <h3 className="text-xl font-bold">Purpose</h3>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              The Ecological Power Analysis Toolkit is designed to help researchers, students, and field biologists 
+              PEEP is designed to help researchers, students, and field biologists 
               determine the appropriate sample sizes for their studies. Statistical power analysis is critical for 
               designing effective experiments and avoiding underpowered studies that waste resources.
             </p>
