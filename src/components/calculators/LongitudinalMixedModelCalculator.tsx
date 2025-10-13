@@ -82,7 +82,7 @@ const LongitudinalMixedModelCalculator = () => {
   const generatePowerCurve = () => {
     const maxSubjects = 200; // Match the slider max
     const minSubjects = 10;  // Match the slider min
-    const numPoints = 40;    // More points for smoother curve
+    const numPoints = 100;    // More points for smoother curve
     
     return Array.from({ length: numPoints }, (_, i) => {
       // Generate points from 10 to 200, evenly spaced

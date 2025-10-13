@@ -100,7 +100,7 @@ const ZeroInflatedCalculator = () => {
   const generatePowerCurve = () => {
     const maxN = 200; // Match slider max
     const minN = 10;  // Match slider min
-    const numPoints = 40;
+    const numPoints = 100;
     
     return Array.from({ length: numPoints }, (_, i) => {
       const sampleSize = Math.round(minN + (i / (numPoints - 1)) * (maxN - minN));

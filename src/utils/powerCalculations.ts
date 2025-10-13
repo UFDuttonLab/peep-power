@@ -76,7 +76,7 @@ export const calculateTTestPower = (
 
   // Power curve: vary TOTAL sample size N (x-axis), calculate power
   const curveData = [];
-  for (let totalSampleSize = 10; totalSampleSize <= 400; totalSampleSize += 10) {
+  for (let totalSampleSize = 10; totalSampleSize <= 400; totalSampleSize += 4) {
     const nPerGroup = totalSampleSize / 2;
     const dfCurve = totalSampleSize - 2;
     const ncpCurve = effectSize * Math.sqrt(nPerGroup / 2);
@@ -117,7 +117,7 @@ export const calculateOneWayAnovaPower = (
 
   // Power curve: vary TOTAL sample size N (x-axis)
   const curveData = [];
-  for (let totalN = groups * 5; totalN <= 500; totalN += 10) {
+  for (let totalN = groups * 5; totalN <= 500; totalN += 4) {
     const nPerGroup = totalN / groups;
     if (nPerGroup < 2) continue;
     const df1Curve = groups - 1;
@@ -176,7 +176,7 @@ export const calculateTwoWayAnovaPower = (
   // Power curve for interaction effect (default)
   const curveData = [];
   const totalCells = factorA * factorB;
-  for (let totalN = totalCells * 2; totalN <= 400; totalN += 10) {
+  for (let totalN = totalCells * 2; totalN <= 400; totalN += 4) {
     const nPerCell = Math.floor(totalN / totalCells);
     if (nPerCell < 2) continue;
     const dfErrorCurve = totalCells * (nPerCell - 1);
@@ -189,7 +189,7 @@ export const calculateTwoWayAnovaPower = (
 
   // Power curve for main effect A
   const curveDataA = [];
-  for (let totalN = totalCells * 2; totalN <= 400; totalN += 10) {
+  for (let totalN = totalCells * 2; totalN <= 400; totalN += 4) {
     const nPerCell = Math.floor(totalN / totalCells);
     if (nPerCell < 2) continue;
     const dfErrorCurve = totalCells * (nPerCell - 1);
@@ -202,7 +202,7 @@ export const calculateTwoWayAnovaPower = (
 
   // Power curve for main effect B
   const curveDataB = [];
-  for (let totalN = totalCells * 2; totalN <= 400; totalN += 10) {
+  for (let totalN = totalCells * 2; totalN <= 400; totalN += 4) {
     const nPerCell = Math.floor(totalN / totalCells);
     if (nPerCell < 2) continue;
     const dfErrorCurve = totalCells * (nPerCell - 1);
@@ -254,7 +254,7 @@ export const calculateRepeatedMeasuresPower = (
 
   // Power curve: vary number of subjects (x-axis shows subjects, not total observations)
   const curveData = [];
-  for (let subj = 5; subj <= 200; subj += 5) {
+  for (let subj = 5; subj <= 200; subj += 2) {
     const epsilonC = Math.max(0.5, Math.min(1.0, 
       1 / (timepoints - 1) + (timepoints - 1) * (1 - correlation) / (timepoints * correlation + (timepoints - 1) * (1 - correlation))
     ));
@@ -297,7 +297,7 @@ export const calculateCorrelationPower = (
   const summary = `With a total sample size of <strong>${n}</strong>, you have a <strong>${(power * 100).toFixed(1)}% chance (power)</strong> to detect a correlation of <strong>ρ=${rho.toFixed(2)}</strong> at an alpha level of <strong>${alpha}</strong>.`;
 
   const curveData = [];
-  for (let i = 5; i <= 200; i += 5) {
+  for (let i = 5; i <= 200; i += 2) {
     if (i <= 3) continue;
     const seCurve = 1 / Math.sqrt(i - 3);
     const powerCurve =
@@ -341,7 +341,7 @@ export const calculateChiSquarePower = (
   const summary = `With a total sample size of <strong>${n}</strong> and <strong>${df} degrees of freedom</strong>, you have a <strong>${(power * 100).toFixed(1)}% chance (power)</strong> to detect an effect size of <strong>w=${w.toFixed(2)}</strong> at an alpha level of <strong>${alpha}</strong>.`;
 
   const curveData = [];
-  for (let i = 10; i <= 500; i += 10) {
+  for (let i = 10; i <= 500; i += 4) {
     const lambdaCurve = w * w * i;
     const hCurve = 1 - (2/3) * (lambdaCurve / (df + lambdaCurve));
     const dfAdjCurve = df + lambdaCurve;

@@ -83,7 +83,7 @@ const ResultsSummary = ({ testType, power, parameters, onGoToCalculator, onResta
 
   // Generate test-specific power curve data
   const curveData = (() => {
-    const points = 50; // More points for smoother curves
+    const points = 100; // More points for smoother curves
     const data: { x: number; y: number }[] = [];
     
     switch (testType) {
