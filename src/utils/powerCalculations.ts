@@ -107,9 +107,9 @@ export const calculateOneWayAnovaPower = (
     };
   }
 
-  // Cohen's f relates to noncentrality via: λ = N × f² / (1 + f²)
-  // This properly accounts for the relationship between f and R²
-  const lambda = (effectSize * effectSize * N) / (1 + effectSize * effectSize);
+  // Noncentrality parameter for One-Way ANOVA: λ = f² × n × k = f² × N
+  // Where f is Cohen's f, n is sample size per group, k is number of groups, N = n × k
+  const lambda = effectSize * effectSize * N;
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
 
@@ -135,7 +135,7 @@ export const calculateOneWayAnovaPower = (
     const df1Curve = groups - 1;
     const df2Curve = totalN - groups;
     if (df2Curve <= 0) continue;
-    const lambdaCurve = (effectSize * effectSize * totalN) / (1 + effectSize * effectSize);
+    const lambdaCurve = effectSize * effectSize * totalN;
     const critFCurve = jStat.centralF.inv(1 - alpha, df1Curve, df2Curve);
     const powerCurve = noncentralFPower(lambdaCurve, df1Curve, df2Curve, critFCurve);
     curveData.push({ x: totalN, y: Math.max(0, Math.min(1, powerCurve)) });
