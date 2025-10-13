@@ -441,15 +441,6 @@ export function calculateRequiredSampleSize(
   
   let result = Math.round((low + high) / 2);
   
-  // Enforce statistical validity minimums
-  if (testType === 'anova' && result < 15) {
-    result = 15; // ANOVA requires minimum 15 per group for reliable results
-  }
-  
-  if (testType === 'chisquare' && result < 5) {
-    result = 5; // Chi-square requires minimum 5 expected frequency per cell
-  }
-  
   return result;
 }
 
