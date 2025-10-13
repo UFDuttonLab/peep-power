@@ -489,69 +489,6 @@ const MinimumSampleSize = ({
         </Card>
 
         <Card className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Budget Planning Options</h3>
-          </div>
-          <div className="space-y-3">
-            {[
-              { label: 'Tight Budget', targetPower: 0.65, note: '65% power to detect your effect' },
-              { label: 'Recommended', targetPower: 0.80, note: '80% power - standard' },
-              { label: 'Well-Funded', targetPower: 0.90, note: '90% power - ideal' },
-            ].map((scenario) => {
-              // Calculate actual N for each power target using binary search
-              let low = 5, high = 500;
-              let scenarioN = low;
-              let foundExact = false;
-              
-              for (let iter = 0; iter < 50; iter++) {
-                const mid = Math.floor((low + high) / 2);
-                
-                const power = calculateLMMPower(
-                  mid, timepoints, cohensF, correlation, 
-                  randomSlopeVar, nCovariates, dropoutRate, alpha
-                );
-                
-                if (Math.abs(power - scenario.targetPower) < 0.02) {
-                  scenarioN = mid;
-                  foundExact = true;
-                  break;
-                }
-                
-                if (power < scenario.targetPower) {
-                  low = mid + 1;
-                } else {
-                  high = mid - 1;
-                }
-              }
-              
-              // If we didn't find an exact match, use the converged value
-              if (!foundExact) {
-                scenarioN = low;
-              }
-              
-              scenarioN = Math.max(scenarioN, 10);
-              
-              return (
-                <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="font-semibold">{scenario.label}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{scenarioN}</div>
-                      <div className="text-xs text-muted-foreground">subjects</div>
-                      <div className="text-xs text-muted-foreground">({scenarioN * timepoints} total)</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card className="p-6 space-y-4">
           <h3 className="font-semibold">Study Design Summary</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 bg-muted/50 rounded-lg">
@@ -715,29 +652,6 @@ const MinimumSampleSize = ({
                 with PERMANOVA at α = 0.05.
               </AlertDescription>
             </Alert>
-          </div>
-        </Card>
-
-        <Card className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Budget Planning Options</h3>
-          </div>
-        <div className="space-y-3">
-            {budgetScenarios.map((scenario) => (
-              <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="font-semibold">{scenario.label}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">n = {scenario.n}</div>
-                    <div className="text-xs text-muted-foreground">per group</div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </Card>
 
@@ -1016,29 +930,6 @@ const MinimumSampleSize = ({
           </AlertDescription>
         </Alert>
       )}
-
-      <Card className="p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Budget Planning Options</h3>
-        </div>
-        <div className="space-y-3">
-          {budgetScenarios.map((scenario) => (
-            <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1">
-                  <div className="font-semibold">{scenario.label}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{scenario.note}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">n = {scenario.n}</div>
-                  <div className="text-xs text-muted-foreground">per group</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
 
       <Card className="p-6 space-y-4">
         <h3 className="font-semibold">Study Design Summary</h3>
