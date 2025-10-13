@@ -9,6 +9,8 @@ import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExpo
 import { calculateModelComparisonN } from '@/utils/bayesianPowerCalculations';
 import ControlSlider from '@/components/ControlSlider';
 import { Input } from '@/components/ui/input';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianModelComparisonCalculator = () => {
   const { toast } = useToast();
@@ -76,7 +78,10 @@ const BayesianModelComparisonCalculator = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Bayesian Model Comparison Calculator</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Bayesian Model Comparison Calculator</CardTitle>
+            <FormulaDisplay formula={FORMULAS.BAYESIAN_ASSURANCE} buttonVariant="ghost" />
+          </div>
           <CardDescription>Calculate sample size for selecting between competing models</CardDescription>
         </CardHeader>
       </Card>

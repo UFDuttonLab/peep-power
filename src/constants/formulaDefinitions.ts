@@ -371,4 +371,105 @@ Expected N = Sum n_i × P(stop at i)`,
       { text: 'Berry et al. (2010). Bayesian Adaptive Methods' },
     ],
   },
+
+  BAYESIAN_CALIBRATION: {
+    title: 'Bayesian Calibration Formula',
+    formula: `Frequentist to Bayesian Calibration:
+
+Assurance = P(Power >= target | prior)
+Sample Size Inflation = 1 + k × CV²
+where CV = sigma_effect / mu_effect
+
+Bayesian N = Frequentist N × Inflation`,
+    variables: [
+      { symbol: 'CV', description: 'Coefficient of variation of effect size' },
+      { symbol: 'k', description: 'Adjustment factor (0.5-2.0)' },
+    ],
+    notes: [
+      'Converts frequentist power to Bayesian assurance',
+      'Inflation typically 10-50%',
+    ],
+    references: [
+      { text: 'O\'Hagan et al. (2005). Pharmaceutical Statistics' },
+    ],
+  },
+
+  BAYESIAN_REPLICATION: {
+    title: 'Bayesian Replication Probability',
+    formula: `Replication Probability = P(p_rep < alpha | Data_orig)
+
+Using posterior from original:
+theta ~ N(theta_hat, SE²)
+P(rep) = Integral Power_rep(theta) × p(theta|data) dtheta`,
+    variables: [
+      { symbol: 'theta_hat', description: 'Original effect estimate' },
+      { symbol: 'SE', description: 'Standard error from original' },
+    ],
+    notes: [
+      'Accounts for winner\'s curse',
+      'Often lower than classical power',
+    ],
+    references: [
+      { text: 'Anderson & Maxwell (2016). Psychological Methods' },
+    ],
+  },
+
+  BAYESIAN_EQUIVALENCE: {
+    title: 'Bayesian Equivalence Testing',
+    formula: `P(equivalence) = P(theta in ROPE | data)
+ROPE = [-delta, delta]
+
+Required N: Find n where P(theta in ROPE) > threshold`,
+    variables: [
+      { symbol: 'ROPE', description: 'Region of Practical Equivalence' },
+      { symbol: 'delta', description: 'Equivalence margin' },
+    ],
+    notes: [
+      'More informative than TOST',
+      'Requires scientific justification of ROPE',
+    ],
+    references: [
+      { text: 'Kruschke (2018). Advances in Methods' },
+    ],
+  },
+
+  BAYESIAN_HIERARCHICAL: {
+    title: 'Bayesian Hierarchical Design',
+    formula: `Design Effect = 1 + (m-1)×ICC
+ICC ~ Beta(alpha_ICC, beta_ICC)
+
+Expected DE = E[1 + (m-1)×ICC]
+Required J = n_total / (m × DE)`,
+    variables: [
+      { symbol: 'J', description: 'Number of clusters' },
+      { symbol: 'm', description: 'Cluster size' },
+      { symbol: 'ICC', description: 'Intraclass correlation' },
+    ],
+    notes: [
+      'Accounts for ICC uncertainty',
+    ],
+    references: [
+      { text: 'Raudenbush & Bryk (2002). HLM' },
+    ],
+  },
+
+  BAYESIAN_PERMANOVA: {
+    title: 'Bayesian PERMANOVA Assurance',
+    formula: `Assurance = P(Power >= target | R² prior)
+
+R² ~ N(mu_R2, sigma²_R2)
+For each sampled R²:
+  Calculate PERMANOVA power
+Assurance = proportion meeting target`,
+    variables: [
+      { symbol: 'mu_R2', description: 'Prior mean R²' },
+      { symbol: 'sigma_R2', description: 'Prior uncertainty in R²' },
+    ],
+    notes: [
+      'Accounts for R² uncertainty from pilot data',
+    ],
+    references: [
+      { text: 'Kelly et al. (2015). Bioinformatics' },
+    ],
+  },
 };

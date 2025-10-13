@@ -10,6 +10,8 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { calculateHierarchicalPower } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianHierarchicalCalculator = () => {
   const { toast } = useToast();
@@ -90,7 +92,10 @@ const BayesianHierarchicalCalculator = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Bayesian Hierarchical Power Calculator</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Bayesian Hierarchical Power Calculator</CardTitle>
+            <FormulaDisplay formula={FORMULAS.BAYESIAN_HIERARCHICAL} buttonVariant="ghost" />
+          </div>
           <CardDescription>
             Calculate sample size for nested/clustered data accounting for ICC uncertainty
           </CardDescription>

@@ -12,6 +12,8 @@ import { calculateReplicationProbability } from '@/utils/bayesianPowerCalculatio
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { PUBLICATION_BIAS_DESCRIPTIONS, PUBLICATION_BIAS_CITATIONS } from '@/constants/bayesianConstants';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianReplicationCalculator = () => {
   const { toast } = useToast();
@@ -246,7 +248,10 @@ const BayesianReplicationCalculator = () => {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>Replication Analysis</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Replication Analysis</CardTitle>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_REPLICATION} buttonVariant="ghost" />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">

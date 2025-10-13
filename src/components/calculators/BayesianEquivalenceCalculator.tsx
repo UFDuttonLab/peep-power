@@ -10,6 +10,8 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { calculateEquivalenceN } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianEquivalenceCalculator = () => {
   const { toast } = useToast();
@@ -108,7 +110,10 @@ const BayesianEquivalenceCalculator = () => {
         {/* Controls */}
         <Card>
           <CardHeader>
-            <CardTitle>Equivalence Parameters</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Equivalence Parameters</CardTitle>
+              <FormulaDisplay formula={FORMULAS.BAYESIAN_EQUIVALENCE} buttonVariant="ghost" />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">

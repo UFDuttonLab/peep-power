@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 interface AssuranceResult {
   requiredN: number;
@@ -474,7 +476,10 @@ const BayesianDifferentialAbundanceCalculator = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
+                    <FormulaDisplay formula={FORMULAS.DIFFERENTIAL_ABUNDANCE} buttonVariant="ghost" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <BayesianAssuranceChart

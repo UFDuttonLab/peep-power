@@ -9,6 +9,8 @@ import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import { calculateRepeatedMeasuresPERMANOVAPower } from '@/utils/powerCalculations';
 import { Button } from '@/components/ui/button';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 import {
   Select,
   SelectContent,

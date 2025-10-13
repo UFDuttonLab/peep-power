@@ -8,6 +8,8 @@ import { Play, Info, Gauge, Download, Code2, Copy, CheckCircle, AlertTriangle } 
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { calibrateFrequentistToBayesian } from '@/utils/bayesianPowerCalculations';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianCalibrationCalculator = () => {
   const { toast } = useToast();
@@ -110,10 +112,13 @@ const BayesianCalibrationCalculator = () => {
         </Card>
         <div className="space-y-6">
           {result ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Calibration Results</CardTitle>
-              </CardHeader>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Calibration Results</CardTitle>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_CALIBRATION} buttonVariant="ghost" />
+                  </div>
+                </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-muted rounded-lg">

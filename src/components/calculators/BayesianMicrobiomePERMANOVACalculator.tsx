@@ -10,6 +10,8 @@ import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExpo
 import { calculateBayesianAssurance, BayesianAssuranceResult } from '@/utils/bayesianPowerCalculations';
 import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianMicrobiomePERMANOVACalculator = () => {
   const { toast } = useToast();
@@ -386,7 +388,10 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_PERMANOVA} buttonVariant="ghost" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <BayesianAssuranceChart
