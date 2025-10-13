@@ -501,7 +501,8 @@ const MinimumSampleSize = ({
             ].map((scenario) => {
               // Calculate actual N for each power target using binary search
               let low = 5, high = 500;
-              let scenarioN = minSubjects;
+              let scenarioN = low;
+              let foundExact = false;
               
               for (let iter = 0; iter < 50; iter++) {
                 const mid = Math.floor((low + high) / 2);
@@ -513,6 +514,7 @@ const MinimumSampleSize = ({
                 
                 if (Math.abs(power - scenario.targetPower) < 0.02) {
                   scenarioN = mid;
+                  foundExact = true;
                   break;
                 }
                 
@@ -522,6 +524,12 @@ const MinimumSampleSize = ({
                   high = mid - 1;
                 }
               }
+              
+              // If we didn't find an exact match, use the converged value
+              if (!foundExact) {
+                scenarioN = low;
+              }
+              
               scenarioN = Math.max(scenarioN, 10);
               
               return (
@@ -635,7 +643,8 @@ const MinimumSampleSize = ({
     ].map(scenario => {
       // Binary search for N at this power level
       let low = 5, high = 500;
-      let scenarioN = requiredN;
+      let scenarioN = low;
+      let foundExact = false;
       
       for (let iter = 0; iter < 50; iter++) {
         const mid = Math.floor((low + high) / 2);
@@ -654,6 +663,7 @@ const MinimumSampleSize = ({
         
         if (Math.abs(approxPower - scenario.targetPower) < 0.02) {
           scenarioN = mid;
+          foundExact = true;
           break;
         }
         
@@ -663,6 +673,12 @@ const MinimumSampleSize = ({
           high = mid - 1;
         }
       }
+      
+      // If we didn't find an exact match, use the converged value
+      if (!foundExact) {
+        scenarioN = low;
+      }
+      
       scenarioN = Math.max(scenarioN, 5);
       
       return {

@@ -131,7 +131,7 @@ export const calculateLMMPower = (
   const z = (threshold - noncentralMean) / Math.sqrt(noncentralVar);
   const power = 1 - jStat.normal.cdf(z, 0, 1);
   
-  return Math.max(0, Math.min(0.999, power));
+  return Math.max(0, Math.min(0.9999, power));
 };
 
 /**
