@@ -95,8 +95,12 @@ const DifferentialAbundanceCalculator = () => {
   };
 
   const generatePowerCurve = () => {
-    return Array.from({ length: 30 }, (_, i) => {
-      const sampleSize = (i + 1) * 5;
+    const maxN = 100; // Match slider max
+    const minN = 5;   // Match slider min
+    const numPoints = 40;
+    
+    return Array.from({ length: numPoints }, (_, i) => {
+      const sampleSize = Math.round(minN + (i / (numPoints - 1)) * (maxN - minN));
       return {
         x: sampleSize,
         y: calculateNegBinomialPower(sampleSize, log2FC, dispersion, baseMean, alpha, useFDR ? numTests : 1),

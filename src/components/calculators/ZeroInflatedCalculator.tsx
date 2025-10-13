@@ -96,8 +96,12 @@ const ZeroInflatedCalculator = () => {
   };
 
   const generatePowerCurve = () => {
-    return Array.from({ length: 30 }, (_, i) => {
-      const sampleSize = (i + 1) * 5;
+    const maxN = 200; // Match slider max
+    const minN = 10;  // Match slider min
+    const numPoints = 40;
+    
+    return Array.from({ length: numPoints }, (_, i) => {
+      const sampleSize = Math.round(minN + (i / (numPoints - 1)) * (maxN - minN));
       return {
         x: sampleSize,
         y: calculateZINBPower(sampleSize, zeroInflation, meanCount, dispersion, log2FC, alpha, testType),
