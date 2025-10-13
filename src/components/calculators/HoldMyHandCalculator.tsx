@@ -38,17 +38,8 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
   };
 
   const handleTestSelected = (test: TestType) => {
-    // For PERMANOVA, go to groups first so we can show appropriate effect size options
-    if (test === 'microbiome' || test === 'repeated-microbiome') {
-      setState((prev) => ({ 
-        ...prev, 
-        selectedTest: test,
-        step: 4 // Skip to groups to determine if multi-group
-      }));
-    } else {
-      setState((prev) => ({ ...prev, selectedTest: test }));
-      handleNext();
-    }
+    setState((prev) => ({ ...prev, selectedTest: test }));
+    handleNext();
   };
 
   const handleEffectSizeSelect = (effectSize: number, effectType: string) => {
@@ -96,18 +87,6 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
   };
 
   const handleGroupsSubmit = (groups: number) => {
-    // For PERMANOVA, go back to effect size selection with group info
-    if ((state.selectedTest === 'microbiome' || state.selectedTest === 'repeated-microbiome') && 
-        !state.selectedEffectSize) {
-      setState((prev) => ({ 
-        ...prev, 
-        numGroups: groups,
-        parameters: { ...prev.parameters, groups },
-        step: 3 // Go to effect size with group context
-      }));
-      return;
-    }
-    
     // Check if this test type needs microbiome-specific parameters
     if (state.selectedTest === 'deseq' || state.selectedTest === 'zinb' || state.selectedTest === 'lmm-microbiome') {
       setState((prev) => ({ 
@@ -177,7 +156,7 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
         />
       )}
 
-      {state.step === 4 && state.selectedTest && state.selectedEffectSize && (
+      {state.step === 4 && state.selectedTest && (
         <GroupsInput
           testType={state.selectedTest}
           onSubmit={handleGroupsSubmit}
