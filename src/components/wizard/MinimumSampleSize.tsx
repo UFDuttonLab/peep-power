@@ -188,7 +188,7 @@ const MinimumSampleSize = ({
         if (power < targetPower) low = mid + 1;
         else high = mid - 1;
       }
-      return Math.max(low, 10);
+      return low;
     };
     
     const budgetScenarios = [
@@ -452,7 +452,7 @@ const MinimumSampleSize = ({
       if (power < targetPower) low = mid + 1;
       else high = mid - 1;
     }
-    minSubjects = Math.max(low, 10); // Minimum 10 subjects for repeated measures
+    minSubjects = low;
     
     const sizeInfo = getSizeCategory(minSubjects);
     const totalMeasurements = minSubjects * timepoints;
@@ -568,7 +568,7 @@ const MinimumSampleSize = ({
       }
     }
     
-    requiredNPerGroup = Math.max(low, 5); // Ensure minimum of 5 per group
+    requiredNPerGroup = low;
     
     const requiredN = requiredNPerGroup;
     
@@ -616,7 +616,7 @@ const MinimumSampleSize = ({
         scenarioN = low;
       }
       
-      scenarioN = Math.max(scenarioN, 5);
+      scenarioN = scenarioN;
       
       return {
         label: scenario.label,
@@ -848,11 +848,6 @@ const MinimumSampleSize = ({
     groups
   );
   
-  // Enforce statistical validity minimums for ANOVA
-  const ANOVA_MIN_PER_GROUP = 15;
-  if ((testType === 'oneway' || testType === 'twoway' || testType === 'repeated') && requiredN < ANOVA_MIN_PER_GROUP) {
-    requiredN = ANOVA_MIN_PER_GROUP;
-  }
 
   // Calculate actual N for each power target instead of using multipliers
   const budgetScenarios = [
@@ -870,7 +865,7 @@ const MinimumSampleSize = ({
     
     return {
       label: scenario.label,
-      n: Math.max(scenarioN, testType === 'oneway' || testType === 'twoway' || testType === 'repeated' ? ANOVA_MIN_PER_GROUP : scenarioN),
+      n: scenarioN,
       note: `${(scenario.targetPower * 100).toFixed(0)}% power to detect your effect`
     };
   });
