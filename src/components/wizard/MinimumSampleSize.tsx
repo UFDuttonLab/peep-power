@@ -495,11 +495,35 @@ const MinimumSampleSize = ({
           </div>
           <div className="space-y-3">
             {[
-              { label: 'Tight Budget', multiplier: 0.7, note: 'Lower power (~65-70%)' },
-              { label: 'Recommended', multiplier: 1.0, note: '80% power - standard' },
-              { label: 'Well-Funded', multiplier: 1.3, note: '90% power - ideal' },
+              { label: 'Tight Budget', targetPower: 0.65, note: '65% power to detect your effect' },
+              { label: 'Recommended', targetPower: 0.80, note: '80% power - standard' },
+              { label: 'Well-Funded', targetPower: 0.90, note: '90% power - ideal' },
             ].map((scenario) => {
-              const scenarioN = Math.ceil(minSubjects * scenario.multiplier);
+              // Calculate actual N for each power target using binary search
+              let low = 5, high = 500;
+              let scenarioN = minSubjects;
+              
+              for (let iter = 0; iter < 50; iter++) {
+                const mid = Math.floor((low + high) / 2);
+                
+                const power = calculateLMMPower(
+                  mid, timepoints, cohensF, correlation, 
+                  randomSlopeVar, nCovariates, dropoutRate, alpha
+                );
+                
+                if (Math.abs(power - scenario.targetPower) < 0.02) {
+                  scenarioN = mid;
+                  break;
+                }
+                
+                if (power < scenario.targetPower) {
+                  low = mid + 1;
+                } else {
+                  high = mid - 1;
+                }
+              }
+              scenarioN = Math.max(low, 10);
+              
               return (
                 <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex justify-between items-start gap-4">
