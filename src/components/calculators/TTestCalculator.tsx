@@ -10,6 +10,8 @@ import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExpo
 import { Download, AlertTriangle, Dna, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const TTestCalculator = () => {
   const { toast } = useToast();
