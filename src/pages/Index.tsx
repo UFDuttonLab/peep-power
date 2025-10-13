@@ -77,7 +77,7 @@ const Index = () => {
             <h1 className="text-4xl font-bold">PEEP - Power Estimator for Ecological Planning</h1>
           </div>
           <p className="text-lg opacity-90 max-w-3xl mx-auto">
-            Your friendly companion for sample size calculations, power analysis, and experimental design in ecology and field research
+            Your friendly companion for sample size calculations, power analysis, and experimental design
           </p>
         </div>
       </header>
