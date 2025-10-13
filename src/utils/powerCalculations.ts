@@ -116,8 +116,13 @@ export const calculateOneWayAnovaPower = (
   const summary = `For <strong>${groups} groups</strong> with <strong>${n} per group</strong> (total N=${N}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect an effect size of <strong>f=${effectSize.toFixed(2)}</strong> at α=${alpha}.`;
 
   // Power curve: vary TOTAL sample size N (x-axis)
+  // Make the curve range dynamic based on current sample size
+  const currentTotalN = n * groups;
+  const minTotalN = groups * 5;  // Minimum: 5 per group
+  const maxTotalN = Math.max(currentTotalN * 3, 200);  // Show 3x current or at least 200
+
   const curveData = [];
-  for (let totalN = groups * 5; totalN <= 1000; totalN += 2) {
+  for (let totalN = minTotalN; totalN <= maxTotalN; totalN += 2) {
     const nPerGroup = totalN / groups;
     if (nPerGroup < 2) continue;
     const df1Curve = groups - 1;
