@@ -76,8 +76,8 @@ const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSiz
     
     const matchesFilter = filterType === 'all' || item.studyType === filterType;
     
-    // For multi-group PERMANOVA, only show R² examples
-    if (isMicrobiome && isMultiGroup) {
+    // For microbiome tests, only show R² examples
+    if (isMicrobiome) {
       return matchesSearch && matchesFilter && item.effectType === 'R² (PERMANOVA)';
     }
     
@@ -91,8 +91,8 @@ const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSiz
     const value = parseFloat(customEffectSize);
     
     // Validation depends on whether it's R² or Cohen's d
-    if (isMicrobiome && isMultiGroup) {
-      // For multi-group PERMANOVA, expect R² (0 to 1)
+    if (isMicrobiome) {
+      // For microbiome tests, expect R² (0 to 1)
       if (!isNaN(value) && value > 0 && value < 1) {
         onSelect(value, 'R² (PERMANOVA)');
       }
@@ -116,10 +116,10 @@ const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSiz
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          {isMicrobiome && isMultiGroup ? (
+          {isMicrobiome ? (
             <>
-              <strong>Multi-group PERMANOVA:</strong> Use <strong>R² values</strong> (0-1) which represent the proportion of variance explained by your grouping variable. 
-              Cohen's d is only appropriate for 2-group comparisons.
+              <strong>PERMANOVA Analysis:</strong> Use <strong>R² values</strong> (0-1) which represent the proportion of variance explained by your grouping variable. 
+              These measure community composition differences between groups.
             </>
           ) : (
             <>Effect size represents the magnitude of difference you expect to find. Look for studies similar to yours!</>
@@ -206,7 +206,7 @@ const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSiz
         <h3 className="font-semibold">Or Enter Your Own Effect Size</h3>
         <div className="flex gap-4">
           <div className="flex-1">
-            {isMicrobiome && isMultiGroup ? (
+            {isMicrobiome ? (
               <>
                 <Label htmlFor="custom">Custom Effect Size (R²)</Label>
                 <Input
