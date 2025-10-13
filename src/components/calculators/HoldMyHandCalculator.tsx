@@ -125,7 +125,7 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
 
   return (
     <div className="max-w-5xl mx-auto">
-      {state.step > 0 && state.step < 5 && (
+      {state.step > 0 && state.step <= 5 && (
         <div className="mb-6">
           <Button variant="ghost" onClick={handleBack} className="gap-2">
             <ArrowLeft className="h-4 w-4" /> Back
