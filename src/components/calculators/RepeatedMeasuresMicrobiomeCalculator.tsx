@@ -261,10 +261,9 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
                   <p className="text-xs text-muted-foreground mb-3">
                     {getPowerInterpretation(result.power).text} power to detect the specified effect
                   </p>
-                  <div
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{ __html: result.summary }}
-                  />
+                  <div className="text-sm font-medium">
+                    {result.summary}
+                  </div>
                 </Card>
 
                 <Card className="p-4">

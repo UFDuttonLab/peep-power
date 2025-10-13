@@ -267,7 +267,7 @@ const BayesianModelComparisonCalculator = () => {
                 </div>
                 <Alert>
                   <Info className="h-4 w-4" />
-                  <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
+                  <AlertDescription>{result.summary}</AlertDescription>
                 </Alert>
 
                 <div className="mt-4 space-y-2">

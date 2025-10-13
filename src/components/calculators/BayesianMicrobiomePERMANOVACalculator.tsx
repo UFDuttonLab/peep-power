@@ -352,7 +352,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 text-sm" dangerouslySetInnerHTML={{ __html: result.summary }} />
+                  <div className="mt-4 text-sm font-medium">{result.summary}</div>
 
                   <Alert className="mt-4">
                     <Info className="h-4 w-4" />

@@ -149,10 +149,9 @@ const MicrobiomeCalculator = () => {
                   <p className="text-xs text-muted-foreground mb-3">
                     {getPowerInterpretation(permanovaResult.power).text} power to detect the specified effect
                   </p>
-                  <div
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{ __html: permanovaResult.summary }}
-                  />
+                  <div className="text-sm font-medium">
+                    {permanovaResult.summary}
+                  </div>
                 </Card>
 
                 <Card className="p-4">
@@ -320,10 +319,9 @@ const MicrobiomeCalculator = () => {
                   <p className="text-xs text-muted-foreground mb-3">
                     {getPowerInterpretation(alphaResult.power).text} power for detecting changes in diversity
                   </p>
-                  <div
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{ __html: alphaResult.summary }}
-                  />
+                  <div className="text-sm font-medium">
+                    {alphaResult.summary}
+                  </div>
                 </Card>
 
                 <Card className="p-4">

@@ -292,7 +292,7 @@ const BayesianHierarchicalCalculator = () => {
 
                   <Alert>
                     <Info className="h-4 w-4" />
-                    <AlertDescription dangerouslySetInnerHTML={{ __html: result.summary }} />
+                    <AlertDescription>{result.summary}</AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-3 gap-2 mb-4">

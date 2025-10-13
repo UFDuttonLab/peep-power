@@ -439,7 +439,7 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 text-sm" dangerouslySetInnerHTML={{ __html: result.summary }} />
+                  <div className="mt-4 text-sm font-medium">{result.summary}</div>
 
                   <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
                     <Info className="h-4 w-4" />

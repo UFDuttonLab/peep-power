@@ -184,7 +184,7 @@ const OneWayAnovaCalculator = () => {
         {result && (
           <>
             <Card className="p-6 bg-primary text-primary-foreground">
-              <div dangerouslySetInnerHTML={{ __html: result.summary }} />
+              <div className="font-medium">{result.summary}</div>
             </Card>
 
             <Card className="p-6">

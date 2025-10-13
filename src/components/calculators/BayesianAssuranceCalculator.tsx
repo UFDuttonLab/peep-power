@@ -376,7 +376,7 @@ export const BayesianAssuranceCalculator = () => {
                     </div>
                   </div>
                   
-                  <div className="mt-4 text-sm" dangerouslySetInnerHTML={{ __html: result.summary }} />
+                  <div className="mt-4 text-sm font-medium">{result.summary}</div>
                 </CardContent>
               </Card>
               
