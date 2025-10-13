@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, AlertTriangle, TrendingUp, RotateCcw, ArrowRight } from 'lucide-react';
 import { TestType } from './wizardConfig';
-import { calculateRequiredSampleSize } from '@/utils/powerCalculations';
+import { calculateRequiredSampleSize, calculatePERMANOVAPower } from '@/utils/powerCalculations';
 import { 
   calculateLMMPower,
   calculateRequiredSampleSizeNB,
@@ -529,39 +529,25 @@ const MinimumSampleSize = ({
     );
   }
   
-  // Special handling for microbiome (PERMANOVA) - needs different calculation than ANOVA
+  // Special handling for microbiome (PERMANOVA) - uses correct PERMANOVA power calculation
   if (testType === 'microbiome') {
-    let requiredNPerGroup = 5;
-    const maxIterations = 500;
-    
-    // Binary search for sample size that achieves target power
+    // Binary search for sample size that achieves target power using CORRECT power function
     let low = 5;
     let high = 500;
+    let requiredNPerGroup = 5;
     
     for (let iter = 0; iter < 50; iter++) {
       const mid = Math.floor((low + high) / 2);
-      const N = mid * groups;
-      const df1 = groups - 1;
-      const df2 = N - groups;
       
-      if (df2 <= 0) {
-        low = mid + 1;
-        continue;
-      }
+      // Use the CORRECT calculatePERMANOVAPower function
+      const result = calculatePERMANOVAPower(mid, groups, effectSize, alpha);
       
-      // Calculate power using PERMANOVA formula
-      const lambda = N * (effectSize / (1 - effectSize));
-      
-      // Approximate power using chi-square approximation
-      const criticalValue = 2.0 + (0.5 * df1); // Rough approximation of F critical value
-      const approxPower = 1 - Math.exp(-lambda / (criticalValue * df2));
-      
-      if (Math.abs(approxPower - targetPower) < 0.05) {
+      if (Math.abs(result.power - targetPower) < 0.01) {
         requiredNPerGroup = mid;
         break;
       }
       
-      if (approxPower < targetPower) {
+      if (result.power < targetPower) {
         low = mid + 1;
       } else {
         high = mid - 1;
@@ -569,54 +555,34 @@ const MinimumSampleSize = ({
     }
     
     requiredNPerGroup = low;
-    
     const requiredN = requiredNPerGroup;
     
-    // Calculate actual N for each power target instead of using multipliers
+    // Calculate budget scenarios using the CORRECT power function
     const budgetScenarios = [
       { label: 'Tight Budget', targetPower: 0.65 },
       { label: 'Recommended', targetPower: 0.80 },
       { label: 'Well-Funded', targetPower: 0.90 },
     ].map(scenario => {
-      // Binary search for N at this power level
-      let low = 5, high = 500;
-      let scenarioN = low;
-      let foundExact = false;
+      let scenarioLow = 5, scenarioHigh = 500;
+      let scenarioN = scenarioLow;
       
       for (let iter = 0; iter < 50; iter++) {
-        const mid = Math.floor((low + high) / 2);
-        const N = mid * groups;
-        const df1 = groups - 1;
-        const df2 = N - groups;
+        const mid = Math.floor((scenarioLow + scenarioHigh) / 2);
+        const result = calculatePERMANOVAPower(mid, groups, effectSize, alpha);
         
-        if (df2 <= 0) {
-          low = mid + 1;
-          continue;
-        }
-        
-        const lambda = N * (effectSize / (1 - effectSize));
-        const criticalValue = 2.0 + (0.5 * df1);
-        const approxPower = 1 - Math.exp(-lambda / (criticalValue * df2));
-        
-        if (Math.abs(approxPower - scenario.targetPower) < 0.02) {
+        if (Math.abs(result.power - scenario.targetPower) < 0.01) {
           scenarioN = mid;
-          foundExact = true;
           break;
         }
         
-        if (approxPower < scenario.targetPower) {
-          low = mid + 1;
+        if (result.power < scenario.targetPower) {
+          scenarioLow = mid + 1;
         } else {
-          high = mid - 1;
+          scenarioHigh = mid - 1;
         }
       }
       
-      // If we didn't find an exact match, use the converged value
-      if (!foundExact) {
-        scenarioN = low;
-      }
-      
-      scenarioN = scenarioN;
+      scenarioN = scenarioLow;
       
       return {
         label: scenario.label,
