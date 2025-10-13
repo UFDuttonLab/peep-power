@@ -31,8 +31,9 @@ import BayesianCalibrationCalculator from '@/components/calculators/BayesianCali
 import BayesianMicrobiomePERMANOVACalculator from '@/components/calculators/BayesianMicrobiomePERMANOVACalculator';
 import BayesianDifferentialAbundanceCalculator from '@/components/calculators/BayesianDifferentialAbundanceCalculator';
 import BayesianLongitudinalMicrobiomeCalculator from '@/components/calculators/BayesianLongitudinalMicrobiomeCalculator';
-import { Egg, Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
+import { Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
+import peepImage from '@/assets/peep.png';
 
 const Index = () => {
   const [categoryTab, setCategoryTab] = useState('start');
@@ -68,7 +69,11 @@ const Index = () => {
       <header className="bg-primary text-primary-foreground border-b-4 border-accent">
         <div className="container mx-auto px-4 py-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <Egg className="h-10 w-10" />
+            <img 
+              src={peepImage} 
+              alt="PEEP mascot - cute chick with calculator" 
+              className="h-12 w-12 object-contain"
+            />
             <h1 className="text-4xl font-bold">PEEP - Power Estimator for Ecological Planning</h1>
           </div>
           <p className="text-lg opacity-90 max-w-3xl mx-auto">
