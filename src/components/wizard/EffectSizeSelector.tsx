@@ -53,14 +53,19 @@ const effectSizeData: EffectSizeExample[] = [
 
 interface EffectSizeSelectorProps {
   testType: TestType;
+  numGroups?: number;
   onSelect: (effectSize: number, effectType: string) => void;
   onBack: () => void;
 }
 
-const EffectSizeSelector = ({ testType, onSelect, onBack }: EffectSizeSelectorProps) => {
+const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSizeSelectorProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [customEffectSize, setCustomEffectSize] = useState<string>('');
+  
+  // Determine if this is a multi-group PERMANOVA
+  const isMicrobiome = testType === 'microbiome' || testType === 'repeated-microbiome';
+  const isMultiGroup = numGroups && numGroups > 2;
 
   const filteredData = effectSizeData.filter((item) => {
     const matchesSearch =
@@ -71,15 +76,30 @@ const EffectSizeSelector = ({ testType, onSelect, onBack }: EffectSizeSelectorPr
     
     const matchesFilter = filterType === 'all' || item.studyType === filterType;
     
-    return matchesSearch && matchesFilter;
+    // For multi-group PERMANOVA, prioritize R² examples
+    const matchesTestType = isMicrobiome && isMultiGroup 
+      ? item.effectType === 'R² (PERMANOVA)' || matchesFilter
+      : matchesFilter;
+    
+    return matchesSearch && matchesTestType;
   });
 
   const studyTypes = ['all', ...Array.from(new Set(effectSizeData.map((d) => d.studyType)))];
 
   const handleCustomSubmit = () => {
     const value = parseFloat(customEffectSize);
-    if (!isNaN(value) && value > 0 && value <= 3) {
-      onSelect(value, "Cohen's d");
+    
+    // Validation depends on whether it's R² or Cohen's d
+    if (isMicrobiome && isMultiGroup) {
+      // For multi-group PERMANOVA, expect R² (0 to 1)
+      if (!isNaN(value) && value > 0 && value < 1) {
+        onSelect(value, 'R² (PERMANOVA)');
+      }
+    } else {
+      // For other tests, expect Cohen's d
+      if (!isNaN(value) && value > 0 && value <= 3) {
+        onSelect(value, "Cohen's d");
+      }
     }
   };
 
@@ -95,7 +115,14 @@ const EffectSizeSelector = ({ testType, onSelect, onBack }: EffectSizeSelectorPr
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Effect size represents the magnitude of difference you expect to find. Look for studies similar to yours!
+          {isMicrobiome && isMultiGroup ? (
+            <>
+              <strong>Multi-group PERMANOVA:</strong> Use <strong>R² values</strong> (0-1) which represent the proportion of variance explained by your grouping variable. 
+              Cohen's d is only appropriate for 2-group comparisons.
+            </>
+          ) : (
+            <>Effect size represents the magnitude of difference you expect to find. Look for studies similar to yours!</>
+          )}
         </AlertDescription>
       </Alert>
 
@@ -178,20 +205,41 @@ const EffectSizeSelector = ({ testType, onSelect, onBack }: EffectSizeSelectorPr
         <h3 className="font-semibold">Or Enter Your Own Effect Size</h3>
         <div className="flex gap-4">
           <div className="flex-1">
-            <Label htmlFor="custom">Custom Effect Size (Cohen's d)</Label>
-            <Input
-              id="custom"
-              type="number"
-              step="0.1"
-              min="0.1"
-              max="3"
-              placeholder="e.g., 0.5"
-              value={customEffectSize}
-              onChange={(e) => setCustomEffectSize(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Small = 0.2, Medium = 0.5, Large = 0.8
-            </p>
+            {isMicrobiome && isMultiGroup ? (
+              <>
+                <Label htmlFor="custom">Custom Effect Size (R²)</Label>
+                <Input
+                  id="custom"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max="0.99"
+                  placeholder="e.g., 0.10"
+                  value={customEffectSize}
+                  onChange={(e) => setCustomEffectSize(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Small = 0.05, Medium = 0.10, Large = 0.20 (proportion of variance explained)
+                </p>
+              </>
+            ) : (
+              <>
+                <Label htmlFor="custom">Custom Effect Size (Cohen's d)</Label>
+                <Input
+                  id="custom"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="3"
+                  placeholder="e.g., 0.5"
+                  value={customEffectSize}
+                  onChange={(e) => setCustomEffectSize(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Small = 0.2, Medium = 0.5, Large = 0.8
+                </p>
+              </>
+            )}
           </div>
           <div className="flex items-end">
             <Button onClick={handleCustomSubmit} disabled={!customEffectSize}>
