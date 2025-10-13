@@ -122,7 +122,8 @@ export const calculateOneWayAnovaPower = (
   const maxTotalN = Math.max(currentTotalN * 3, 200);  // Show 3x current or at least 200
 
   const curveData = [];
-  for (let totalN = minTotalN; totalN <= maxTotalN; totalN += 2) {
+  // Increment by number of groups to ensure totalN is always divisible by groups
+  for (let totalN = minTotalN; totalN <= maxTotalN; totalN += groups) {
     const nPerGroup = totalN / groups;
     if (nPerGroup < 2) continue;
     const df1Curve = groups - 1;
