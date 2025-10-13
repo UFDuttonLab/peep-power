@@ -21,9 +21,17 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
   const [alpha, setAlpha] = useState(0.05);
   const [result, setResult] = useState<BayesianAssuranceResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const runSimulation = () => {
     setIsCalculating(true);
+    setProgress(0);
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 15, 90));
+    }, 200);
+    
     setTimeout(() => {
       try {
         const newResult = calculateBayesianAssurance({
@@ -35,19 +43,25 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
           groups,
           alpha
         });
+        clearInterval(progressInterval);
+        setProgress(100);
         setResult(newResult);
         toast({
           title: "Simulation complete",
-          description: "Monte Carlo analysis with 5000 samples completed",
+          description: "Monte Carlo analysis with 2000 samples completed",
         });
       } catch (e) {
+        clearInterval(progressInterval);
         toast({
           title: "Error",
           description: "Simulation failed. Please check your parameters.",
           variant: "destructive",
         });
       } finally {
-        setIsCalculating(false);
+        setTimeout(() => {
+          setIsCalculating(false);
+          setProgress(0);
+        }, 500);
       }
     }, 100);
   };
@@ -302,10 +316,10 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                 size="lg"
               >
                 {isCalculating ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Running...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    <span>Calculating... {progress.toFixed(0)}%</span>
+                  </div>
                 ) : (
                   <>
                     <Play className="mr-2 h-4 w-4" />
@@ -313,6 +327,10 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   </>
                 )}
               </Button>
+              
+              <div className="text-xs text-muted-foreground text-center mt-2">
+                Monte Carlo simulation • Takes 2-3 seconds
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -344,8 +362,8 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Computation:</strong> 5,000 Monte Carlo iterations across 59 sample sizes 
-                      + 100 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                      <strong>Computation:</strong> 2,000 Monte Carlo iterations across 30 sample sizes 
+                      + 50 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
                     </AlertDescription>
                   </Alert>
 

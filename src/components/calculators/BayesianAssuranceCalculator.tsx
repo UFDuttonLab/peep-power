@@ -21,9 +21,17 @@ export const BayesianAssuranceCalculator = () => {
   const [alpha, setAlpha] = useState(0.05);
   const [result, setResult] = useState<BayesianAssuranceResult | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [progress, setProgress] = useState(0);
   
   const runSimulation = () => {
     setIsCalculating(true);
+    setProgress(0);
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 15, 90));
+    }, 200);
+    
     // Use setTimeout to allow UI to update before heavy calculation
     setTimeout(() => {
       try {
@@ -36,20 +44,26 @@ export const BayesianAssuranceCalculator = () => {
           groups: (testType === 'anova' || testType === 'permanova') ? groups : undefined,
           alpha
         });
+        clearInterval(progressInterval);
+        setProgress(100);
         setResult(newResult);
         toast({
           title: "Simulation complete",
-          description: `Monte Carlo simulation with 5000 samples completed successfully`,
+          description: `Monte Carlo simulation with 2000 samples completed successfully`,
         });
       } catch (e) {
         console.error('Bayesian calculation error:', e);
+        clearInterval(progressInterval);
         toast({
           title: "Simulation failed",
           description: "An error occurred during the calculation",
           variant: "destructive",
         });
       } finally {
-        setIsCalculating(false);
+        setTimeout(() => {
+          setIsCalculating(false);
+          setProgress(0);
+        }, 500);
       }
     }, 100);
   };
@@ -322,10 +336,10 @@ export const BayesianAssuranceCalculator = () => {
                 size="lg"
               >
                 {isCalculating ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Running Simulation...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    <span>Calculating... {progress.toFixed(0)}%</span>
+                  </div>
                 ) : (
                   <>
                     <Play className="mr-2 h-4 w-4" />
@@ -335,7 +349,7 @@ export const BayesianAssuranceCalculator = () => {
               </Button>
               
               <div className="text-xs text-muted-foreground text-center mt-2">
-                Monte Carlo simulation with 5,000 samples • Takes 2-5 seconds
+                Monte Carlo simulation with 2,000 samples • Takes 2-3 seconds
               </div>
             </CardContent>
           </Card>

@@ -44,7 +44,7 @@ const BayesianDifferentialAbundanceCalculator = () => {
       const adjustedAlpha = alpha / numTests; // Bonferroni
       const assuranceCurve: Array<{ n: number; assurance: number }> = [];
       const bootstrapResults: number[][] = [];
-      const nBootstrap = 100;
+      const nBootstrap = 50; // Reduced for performance
       
       // Process in chunks to allow UI updates
       const chunkSize = 5;
@@ -56,7 +56,7 @@ const BayesianDifferentialAbundanceCalculator = () => {
         for (const n of chunk) {
           // Monte Carlo: sample from prior, calculate power
           let successCount = 0;
-          const nSims = 1000;
+          const nSims = 500; // Reduced for performance
           const bootstrapAssurances: number[] = [];
           
           for (let i = 0; i < nSims; i++) {
@@ -132,7 +132,7 @@ const BayesianDifferentialAbundanceCalculator = () => {
 
       toast({
         title: "Simulation complete",
-        description: `${30000} Monte Carlo iterations with ${nBootstrap} bootstrap replicates`,
+        description: `${15000} Monte Carlo iterations with ${nBootstrap} bootstrap replicates`,
       });
     } catch (e) {
       toast({

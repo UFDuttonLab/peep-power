@@ -55,7 +55,7 @@ const normalRandom = (mean: number, sd: number): number => {
 export const calculateBayesianAssurance = (
   params: BayesianAssuranceInput
 ): BayesianAssuranceResult => {
-  const nSamples = 5000; // Monte Carlo samples for integration
+  const nSamples = 2000; // Monte Carlo samples for integration (reduced for performance)
   const assuranceCurve: Array<{n: number, assurance: number}> = [];
   let requiredN = 10;
   let foundRequiredN = false;
@@ -68,10 +68,10 @@ export const calculateBayesianAssurance = (
   }
   
   // Monte Carlo integration: calculate assurance for different sample sizes
-  const nBootstrap = 100;
+  const nBootstrap = 50; // Reduced for performance while maintaining statistical validity
   const bootstrapResults: number[][] = [];
   
-  for (let n = 10; n <= 300; n += 5) {
+  for (let n = 10; n <= 300; n += 10) { // Increased step size for performance
     let countSuccess = 0;
     const bootstrapAssurances: number[] = [];
     
@@ -415,7 +415,7 @@ export const calculateBayesianSequential = (
     throw new Error('Invalid parameters: maxN must be positive and interimLooks reasonable');
   }
   
-  const nSims = 2000;
+  const nSims = 1000; // Reduced for performance
   const interimSizes: number[] = [];
   
   for (let i = 1; i <= params.interimLooks; i++) {
@@ -635,7 +635,7 @@ export const calculateReplicationProbability = (
   
   const shrinkageFactor = posteriorMean / params.publishedEffect;
   
-  const nSims = 2000;
+  const nSims = 1000; // Reduced for performance
   let replicationSuccesses = 0;
   
   const chart: Array<{ trueEffect: number; replicationProb: number; posteriorDensity: number }> = [];
@@ -914,7 +914,7 @@ export const calculateHierarchicalPower = (
     throw new Error('Number of clusters and observations per cluster must be positive');
   }
   
-  const nSims = 2000;
+  const nSims = 1000; // Reduced for performance
   
   const designEffectMean = 1 + (params.nPerCluster - 1) * params.icc;
   const effectiveN = (params.nClusters * params.nPerCluster) / designEffectMean;
@@ -1096,7 +1096,7 @@ export const calculateAdaptiveAllocation = (
     throw new Error('Number of priors must match number of treatments');
   }
   
-  const nSims = 2000;
+  const nSims = 1000; // Reduced for performance
   const burnIn = Math.floor(params.maxN * 0.2);
   
   const allocationCounts = params.treatments.map(() => 0);
