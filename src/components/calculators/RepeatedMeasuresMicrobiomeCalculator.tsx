@@ -247,7 +247,10 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
               <>
                 <Card className="p-4 bg-background">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">Statistical Power</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">Statistical Power</h3>
+                      <FormulaDisplay formula={FORMULAS.REPEATED_MEASURES_MICROBIOME} buttonVariant="ghost" />
+                    </div>
                     <div className="flex items-center gap-2">
                       <TrendingUp className={`h-5 w-5 ${getPowerInterpretation(result.power).color}`} />
                       <span className={`text-2xl font-bold ${getPowerInterpretation(result.power).color}`}>

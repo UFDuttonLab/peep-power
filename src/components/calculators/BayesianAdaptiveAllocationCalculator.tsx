@@ -12,6 +12,8 @@ import { calculateAdaptiveAllocation } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { ADAPTIVE_ALLOCATION_CITATIONS } from '@/constants/bayesianConstants';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 // Define distinct colors for each treatment in the chart
 const CHART_COLORS = [
@@ -287,7 +289,10 @@ const BayesianAdaptiveAllocationCalculator = () => {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>Expected Allocations</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Expected Allocations</span>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_ADAPTIVE_ALLOCATION} buttonVariant="outline" />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">

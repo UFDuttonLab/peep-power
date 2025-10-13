@@ -11,6 +11,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { calculateInformationBasedDesign } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianInformationDesignCalculator = () => {
   const { toast } = useToast();
@@ -281,7 +283,10 @@ const BayesianInformationDesignCalculator = () => {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>Optimal Design</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Optimal Design</span>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_INFORMATION_DESIGN} buttonVariant="outline" />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center p-6 bg-primary/10 rounded-lg">

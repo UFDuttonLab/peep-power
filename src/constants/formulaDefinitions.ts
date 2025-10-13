@@ -472,4 +472,93 @@ Assurance = proportion meeting target`,
       { text: 'Kelly et al. (2015). Bioinformatics' },
     ],
   },
+
+  BAYESIAN_ADAPTIVE_ALLOCATION: {
+    title: 'Bayesian Adaptive Response Allocation',
+    formula: `Response-Adaptive Randomization:
+At interim i:
+  Success rate: theta_A, theta_B (posterior means)
+  Allocation ratio: P(A) = theta_A / (theta_A + theta_B)
+
+Expected Power with RAR:
+  E[Power] = Integral Power(n_A, n_B, theta) p(theta|data) dtheta`,
+    variables: [
+      { symbol: 'theta_A, theta_B', description: 'Treatment success rates' },
+      { symbol: 'n_A, n_B', description: 'Adaptive sample allocations' },
+      { symbol: 'RAR', description: 'Response-Adaptive Randomization' },
+    ],
+    notes: [
+      'Allocates more participants to better-performing treatment',
+      'Can improve ethical outcomes while maintaining power',
+      'Requires careful calibration to control Type I error',
+    ],
+    limitations: [
+      'May reduce power if allocation becomes too imbalanced',
+      'Interim analyses must be pre-specified',
+    ],
+    references: [
+      { text: 'Berry et al. (2010). Bayesian Adaptive Methods for Clinical Trials' },
+    ],
+  },
+
+  BAYESIAN_INFORMATION_DESIGN: {
+    title: 'Bayesian Information-Based Design',
+    formula: `Expected Information Gain:
+EIG = H(theta) - E[H(theta|y)]
+
+Utility Function:
+U(n) = Information - Cost × n
+
+Optimal n: maximize U(n)
+where Information = log det(I(theta))`,
+    variables: [
+      { symbol: 'H(theta)', description: 'Prior entropy' },
+      { symbol: 'I(theta)', description: 'Fisher information matrix' },
+      { symbol: 'EIG', description: 'Expected Information Gain' },
+    ],
+    notes: [
+      'Optimizes sample size based on information theory',
+      'Balances information gain against cost',
+      'Particularly useful for expensive experiments',
+    ],
+    limitations: [
+      'Requires specification of utility function',
+      'Computationally intensive for complex models',
+    ],
+    references: [
+      { text: 'Chaloner & Verdinelli (1995). Bayesian Experimental Design' },
+      { text: 'Ryan et al. (2016). Statistical Science' },
+    ],
+  },
+
+  REPEATED_MEASURES_MICROBIOME: {
+    title: 'Repeated Measures Microbiome Power (LMM)',
+    formula: `Linear Mixed Model Approximation:
+
+Design Effect = 1 + (k-1)×rho
+Effective N = (n × k) / Design Effect
+
+For beta-diversity (e.g., Bray-Curtis):
+  lambda = (Effective N × R²) / (1 - R²)
+  Power = P(F > F_crit | lambda)`,
+    variables: [
+      { symbol: 'n', description: 'Number of subjects' },
+      { symbol: 'k', description: 'Number of timepoints' },
+      { symbol: 'rho', description: 'Within-subject correlation' },
+      { symbol: 'R²', description: 'Effect size (variance explained)' },
+    ],
+    notes: [
+      'Accounts for repeated sampling from same subjects',
+      'Higher correlation reduces effective sample size',
+      'Can use PERMANOVA or distance-based methods',
+    ],
+    limitations: [
+      'Assumes compound symmetry',
+      'May need permutation-based inference for non-normal data',
+    ],
+    references: [
+      { text: 'Kelly et al. (2015). Microbiome power calculations. Bioinformatics' },
+      { text: 'Shields-Cutler et al. (2018). American Journal of Epidemiology' },
+    ],
+  },
 };
