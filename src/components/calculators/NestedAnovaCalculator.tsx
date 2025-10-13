@@ -64,14 +64,15 @@ function calculateNestedAnovaPower(
   
   // Generate power curve by varying number of clusters
   const curveData = [];
-  for (let c = 2; c <= 50; c++) {
+  for (let c = 2; c <= 100; c += 1) {
     const designEffectC = 1 + (nPerCluster - 1) * icc;
     const effectiveClustersC = (c * nPerCluster) / designEffectC;
-    const lambdaC = (effectiveClustersC * groups * effectSize * effectSize) / 2;
+    // CORRECTED: Lambda based on effective cluster count per group
+    const lambdaC = (c / groups) * (effectSize * effectSize);
     const dfBetween2C = groups * (c - 1);
     const critFC = jStat.centralF.inv(1 - alpha, dfBetween1, dfBetween2C);
     const powerC = noncentralFPower(lambdaC, dfBetween1, dfBetween2C, critFC);
-    curveData.push({ x: c, y: Math.max(0.05, Math.min(0.99, powerC)) });
+    curveData.push({ x: c, y: Math.max(0.01, Math.min(1.0, powerC)) });
   }
   
   return {

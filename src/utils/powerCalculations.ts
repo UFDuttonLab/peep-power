@@ -117,7 +117,7 @@ export const calculateOneWayAnovaPower = (
 
   // Power curve: vary TOTAL sample size N (x-axis)
   const curveData = [];
-  for (let totalN = groups * 5; totalN <= 500; totalN += 4) {
+  for (let totalN = groups * 5; totalN <= 1000; totalN += 2) {
     const nPerGroup = totalN / groups;
     if (nPerGroup < 2) continue;
     const df1Curve = groups - 1;
@@ -255,9 +255,8 @@ export const calculateRepeatedMeasuresPower = (
   // Power curve: vary number of subjects (x-axis shows subjects, not total observations)
   const curveData = [];
   for (let subj = 5; subj <= 200; subj += 2) {
-    const epsilonC = Math.max(0.5, Math.min(1.0, 
-      1 / (timepoints - 1) + (timepoints - 1) * (1 - correlation) / (timepoints * correlation + (timepoints - 1) * (1 - correlation))
-    ));
+    // USE THE SAME EPSILON AS THE MAIN CALCULATION
+    const epsilonC = 1.0;  // Match main calculation for consistency
     const df1C = (timepoints - 1) * epsilonC;
     const df2C = (subj - 1) * (timepoints - 1) * epsilonC;
     if (df2C <= 0) continue;
