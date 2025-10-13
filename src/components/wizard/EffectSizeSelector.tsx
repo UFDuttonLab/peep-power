@@ -76,12 +76,10 @@ const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSiz
     
     const matchesFilter = filterType === 'all' || item.studyType === filterType;
     
-    // For multi-group PERMANOVA, prioritize R² examples
-    const matchesTestType = isMicrobiome && isMultiGroup 
-      ? item.effectType === 'R² (PERMANOVA)' || matchesFilter
-      : matchesFilter;
+    // For multi-group PERMANOVA, only show R² examples
+    const matchesEffectType = !(isMicrobiome && isMultiGroup) || item.effectType === 'R² (PERMANOVA)';
     
-    return matchesSearch && matchesTestType;
+    return matchesSearch && matchesFilter && matchesEffectType;
   });
 
   const studyTypes = ['all', ...Array.from(new Set(effectSizeData.map((d) => d.studyType)))];
