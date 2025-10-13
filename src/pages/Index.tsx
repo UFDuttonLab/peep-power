@@ -31,7 +31,7 @@ import BayesianCalibrationCalculator from '@/components/calculators/BayesianCali
 import BayesianMicrobiomePERMANOVACalculator from '@/components/calculators/BayesianMicrobiomePERMANOVACalculator';
 import BayesianDifferentialAbundanceCalculator from '@/components/calculators/BayesianDifferentialAbundanceCalculator';
 import BayesianLongitudinalMicrobiomeCalculator from '@/components/calculators/BayesianLongitudinalMicrobiomeCalculator';
-import { Leaf, Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
+import { Egg, Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
 
 const Index = () => {
@@ -68,12 +68,11 @@ const Index = () => {
       <header className="bg-primary text-primary-foreground border-b-4 border-accent">
         <div className="container mx-auto px-4 py-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <Leaf className="h-10 w-10" />
-            <h1 className="text-4xl font-bold">Ecological Power Analysis Toolkit</h1>
+            <Egg className="h-10 w-10" />
+            <h1 className="text-4xl font-bold">PEEP - Power Estimator for Ecological Planning</h1>
           </div>
           <p className="text-lg opacity-90 max-w-3xl mx-auto">
-            A tool for planning field studies, grant proposals, and experimental designs 
-            with a focus on real ecological research scenarios
+            Your friendly companion for sample size calculations, power analysis, and experimental design in ecology and field research
           </p>
         </div>
       </header>
