@@ -40,12 +40,12 @@ For df <= 30:
     formula: `Power = P(F > F_crit | lambda)
 
 where:
-  lambda = (N × f²) / (1 + f²)  (non-centrality parameter)
+  lambda = N × f²  (non-centrality parameter)
   F_crit = critical F-value at alpha with df1 = k-1, df2 = N-k
   
-Patnaik's approximation:
-  h = 1 - (2×lambda)/(3×df1)
-  Power ~= 1 - CDF_F(F_crit/h, df1, df2) + correction`,
+Non-central F CDF via Poisson series expansion:
+  CDF = Sum[j=0 to inf] P(lambda/2; j) × I_y(df1/2+j, df2/2)
+  where y = (x×df1)/(df2 + x×df1)`,
     variables: [
       { symbol: 'f', description: 'Cohen\'s f effect size' },
       { symbol: 'N', description: 'Total sample size across all groups' },
@@ -126,15 +126,15 @@ Patnaik approximation:
 Power = P(F > F_crit | lambda)
 
 Main Effect A:
-  lambda_A = (N × f²_A) / (1 + f²_A)
+  lambda_A = N × f²_A
   df1 = a-1, df2 = ab(n-1)
 
 Main Effect B:
-  lambda_B = (N × f²_B) / (1 + f²_B)
+  lambda_B = N × f²_B
   df1 = b-1, df2 = ab(n-1)
 
 Interaction:
-  lambda_AB = (N × f²_AB) / (1 + f²_AB)
+  lambda_AB = N × f²_AB
   df1 = (a-1)(b-1), df2 = ab(n-1)`,
     variables: [
       { symbol: 'a', description: 'Levels of Factor A' },
@@ -161,7 +161,7 @@ Interaction:
 
 Design Effect = 1 + (k-1)×rho
 Effective N = (n × k) / Design Effect
-lambda = (Effective N × f²) / (1 + f²)
+lambda = Effective N × f²
 
 df1 = (k-1)×epsilon
 df2 = (n-1)(k-1)×epsilon`,
