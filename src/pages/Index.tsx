@@ -33,7 +33,7 @@ import BayesianDifferentialAbundanceCalculator from '@/components/calculators/Ba
 import BayesianLongitudinalMicrobiomeCalculator from '@/components/calculators/BayesianLongitudinalMicrobiomeCalculator';
 import { Brain, Lightbulb, FlaskConical, Dna, Wrench, HelpCircle, HandHeart } from 'lucide-react';
 import { TestType } from '@/components/wizard/wizardConfig';
-import peepImage from '@/assets/peep.png';
+import peepImage from '@/assets/peep.gif';
 
 const Index = () => {
   const [categoryTab, setCategoryTab] = useState('start');
