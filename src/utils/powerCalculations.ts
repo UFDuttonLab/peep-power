@@ -121,9 +121,15 @@ export const calculateOneWayAnovaPower = (
   const minTotalN = groups * 5;  // Minimum: 5 per group
   const maxTotalN = Math.max(currentTotalN * 3, 200);  // Show 3x current or at least 200
 
+  // Calculate adaptive step size to ensure smooth curves with ~100 data points
+  const targetPoints = 100;
+  const rangeSize = maxTotalN - minTotalN;
+  const idealStep = Math.max(groups, Math.floor(rangeSize / targetPoints));
+  // Ensure step size is a multiple of groups so nPerGroup is always an integer
+  const stepSize = Math.ceil(idealStep / groups) * groups;
+
   const curveData = [];
-  // Increment by number of groups to ensure totalN is always divisible by groups
-  for (let totalN = minTotalN; totalN <= maxTotalN; totalN += groups) {
+  for (let totalN = minTotalN; totalN <= maxTotalN; totalN += stepSize) {
     const nPerGroup = totalN / groups;
     if (nPerGroup < 2) continue;
     const df1Curve = groups - 1;
