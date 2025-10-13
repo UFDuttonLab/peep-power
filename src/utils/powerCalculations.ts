@@ -11,7 +11,7 @@ export interface PowerResult {
 }
 
 // Improved approximation for noncentral t distribution power
-function noncentralTPower(ncp: number, df: number, criticalValue: number): number {
+function noncentralTPower(ncp: number, df: number, criticalValue: number, alpha: number): number {
   // Use Owen's Q function approximation for better accuracy
   // This approximates the noncentral t-distribution more accurately
   const delta = ncp;
@@ -23,7 +23,7 @@ function noncentralTPower(ncp: number, df: number, criticalValue: number): numbe
   // Approximate using normal distribution when df is large, otherwise use shifted t
   if (df > 30) {
     // Normal approximation works well for large df
-    const z = jStat.normal.inv(1 - 0.05/2, 0, 1); // for alpha = 0.05 two-tailed
+    const z = jStat.normal.inv(1 - alpha/2, 0, 1);
     const power = 1 - jStat.normal.cdf(t - delta, 0, 1) + jStat.normal.cdf(-t - delta, 0, 1);
     return Math.max(0, Math.min(0.999, power));
   } else {
@@ -98,9 +98,9 @@ export const calculateTTestPower = (
   const df = totalN - 2;
   const ncp = effectSize * Math.sqrt(n / 2);
   const critT = jStat.studentt.inv(1 - alpha / 2, df);
-  const power = noncentralTPower(ncp, df, critT);
+  const power = noncentralTPower(ncp, df, critT, alpha);
 
-  const summary = `With <strong>${n} per group</strong> (total N=${totalN}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect an effect size of <strong>d=${effectSize.toFixed(2)}</strong> at α=${alpha}.`;
+  const summary = `With ${n} per group (total N=${totalN}), you have ${(power * 100).toFixed(1)}% power to detect an effect size of d=${effectSize.toFixed(2)} at α=${alpha}.`;
 
   // Power curve: vary TOTAL sample size N (x-axis), calculate power
   const curveData = [];
@@ -109,7 +109,7 @@ export const calculateTTestPower = (
     const dfCurve = totalSampleSize - 2;
     const ncpCurve = effectSize * Math.sqrt(nPerGroup / 2);
     const critTCurve = jStat.studentt.inv(1 - alpha / 2, dfCurve);
-    const powerCurve = noncentralTPower(ncpCurve, dfCurve, critTCurve);
+    const powerCurve = noncentralTPower(ncpCurve, dfCurve, critTCurve, alpha);
     curveData.push({ x: totalSampleSize, y: Math.max(0, Math.min(1, powerCurve)) });
   }
 
@@ -141,7 +141,7 @@ export const calculateOneWayAnovaPower = (
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
 
-  const summary = `For <strong>${groups} groups</strong> with <strong>${n} per group</strong> (total N=${N}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect an effect size of <strong>f=${effectSize.toFixed(2)}</strong> at α=${alpha}.`;
+  const summary = `For ${groups} groups with ${n} per group (total N=${N}), you have ${(power * 100).toFixed(1)}% power to detect an effect size of f=${effectSize.toFixed(2)} at α=${alpha}.`;
 
   // Power curve: vary TOTAL sample size N (x-axis)
   // Make the curve range dynamic based on current sample size
@@ -211,7 +211,7 @@ export const calculateTwoWayAnovaPower = (
   const powerB = noncentralFPower(lambdaB, dfB, dfError, critB);
   const powerAB = noncentralFPower(lambdaAB, dfAB, dfError, critAB);
 
-  const summary = `Design: <strong>${factorA}×${factorB}</strong> with <strong>${n} per cell</strong> (total N=${N}). Power: <strong>A ${(powerA * 100).toFixed(1)}%</strong>, <strong>B ${(powerB * 100).toFixed(1)}%</strong>, <strong>A×B ${(powerAB * 100).toFixed(1)}%</strong> at α=${alpha}.`;
+  const summary = `Design: ${factorA}×${factorB} with ${n} per cell (total N=${N}). Power: A ${(powerA * 100).toFixed(1)}%, B ${(powerB * 100).toFixed(1)}%, A×B ${(powerAB * 100).toFixed(1)}% at α=${alpha}.`;
 
   // Power curve for interaction effect (default)
   const curveData = [];
@@ -290,7 +290,7 @@ export const calculateRepeatedMeasuresPower = (
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
 
-  const summary = `With <strong>${subjects} subjects</strong> at <strong>${timepoints} timepoints</strong> (ε=${epsilon.toFixed(2)}, ρ=${correlation.toFixed(2)}), power is <strong>${(power * 100).toFixed(1)}%</strong> for effect size <strong>f=${effectSize.toFixed(2)}</strong> at α=${alpha}.`;
+  const summary = `With ${subjects} subjects at ${timepoints} timepoints (ε=${epsilon.toFixed(2)}, ρ=${correlation.toFixed(2)}), power is ${(power * 100).toFixed(1)}% for effect size f=${effectSize.toFixed(2)} at α=${alpha}.`;
 
   // Power curve: vary number of subjects (x-axis shows subjects, not total observations)
   const curveData = [];
@@ -333,7 +333,7 @@ export const calculateCorrelationPower = (
     jStat.normal.cdf(-critNorm - z / se, 0, 1)
   );
 
-  const summary = `With a total sample size of <strong>${n}</strong>, you have a <strong>${(power * 100).toFixed(1)}% chance (power)</strong> to detect a correlation of <strong>ρ=${rho.toFixed(2)}</strong> at an alpha level of <strong>${alpha}</strong>.`;
+  const summary = `With a total sample size of ${n}, you have a ${(power * 100).toFixed(1)}% chance (power) to detect a correlation of ρ=${rho.toFixed(2)} at an alpha level of ${alpha}.`;
 
   const curveData = [];
   for (let i = 5; i <= 200; i += 2) {
@@ -377,7 +377,7 @@ export const calculateChiSquarePower = (
   const critChiAdjusted = critChi / h;
   const power = Math.min(0.999, 1 - jStat.chisquare.cdf(critChiAdjusted, dfAdjusted));
 
-  const summary = `With a total sample size of <strong>${n}</strong> and <strong>${df} degrees of freedom</strong>, you have a <strong>${(power * 100).toFixed(1)}% chance (power)</strong> to detect an effect size of <strong>w=${w.toFixed(2)}</strong> at an alpha level of <strong>${alpha}</strong>.`;
+  const summary = `With a total sample size of ${n} and ${df} degrees of freedom, you have a ${(power * 100).toFixed(1)}% chance (power) to detect an effect size of w=${w.toFixed(2)} at an alpha level of ${alpha}.`;
 
   const curveData = [];
   for (let i = 10; i <= 500; i += 4) {
@@ -504,7 +504,7 @@ export const calculatePERMANOVAPower = (
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
   
-  const summary = `For <strong>${groups} groups</strong> with <strong>${nPerGroup} per group</strong> (N=${N}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect R²=<strong>${(rSquared * 100).toFixed(1)}%</strong> variance explained at α=${alpha}.`;
+  const summary = `For ${groups} groups with ${nPerGroup} per group (N=${N}), you have ${(power * 100).toFixed(1)}% power to detect R²=${(rSquared * 100).toFixed(1)}% variance explained at α=${alpha}.`;
   
   // Power curve: vary total N
   const curveData = [];
@@ -548,7 +548,7 @@ export const calculateRepeatedMeasuresPERMANOVAPower = (
   const critF = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, critF);
   
-  const summary = `With <strong>${subjects} subjects</strong> measured at <strong>${timepoints} timepoints</strong> (r=${correlation.toFixed(2)}), you have <strong>${(power * 100).toFixed(1)}% power</strong> to detect R²=<strong>${(rSquared * 100).toFixed(2)}</strong> at α=${alpha}.`;
+  const summary = `With ${subjects} subjects measured at ${timepoints} timepoints (r=${correlation.toFixed(2)}), you have ${(power * 100).toFixed(1)}% power to detect R²=${(rSquared * 100).toFixed(2)} at α=${alpha}.`;
   
   // Power curve: vary number of subjects (x-axis shows subjects, not total samples)
   const curveData = [];

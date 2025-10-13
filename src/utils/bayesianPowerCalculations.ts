@@ -229,9 +229,9 @@ export const calculateBayesianAssurance = (
   
   let summary = '';
   if (params.testType === 'permanova') {
-    summary = `With uncertainty in effect size (R²: mean=${params.effectSizeMean.toFixed(3)}, SD=${params.effectSizeSD.toFixed(3)}), you need <strong>${requiredN}</strong> per group to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional PERMANOVA power analysis (ignoring uncertainty) suggests ${frequentistN} per group. <strong>Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%</strong>, which is especially important in microbiome studies with high variability.`;
+    summary = `With uncertainty in effect size (R²: mean=${params.effectSizeMean.toFixed(3)}, SD=${params.effectSizeSD.toFixed(3)}), you need ${requiredN} per group to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional PERMANOVA power analysis (ignoring uncertainty) suggests ${frequentistN} per group. Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%, which is especially important in microbiome studies with high variability.`;
   } else {
-    summary = `With uncertainty in effect size (mean=${params.effectSizeMean.toFixed(2)}, SD=${params.effectSizeSD.toFixed(2)}), you need <strong>${requiredN}</strong> ${params.testType === 'correlation' ? 'total' : 'per group'} to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional power analysis (ignoring uncertainty) suggests ${frequentistN} ${params.testType === 'correlation' ? 'total' : 'per group'}. <strong>Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%</strong>.`;
+    summary = `With uncertainty in effect size (mean=${params.effectSizeMean.toFixed(2)}, SD=${params.effectSizeSD.toFixed(2)}), you need ${requiredN} ${params.testType === 'correlation' ? 'total' : 'per group'} to have ${(params.targetAssurance*100).toFixed(0)}% assurance of achieving ${(params.targetPower*100).toFixed(0)}% power. Traditional power analysis (ignoring uncertainty) suggests ${frequentistN} ${params.testType === 'correlation' ? 'total' : 'per group'}. Accounting for uncertainty increases required sample size by ${Math.round((requiredN - frequentistN) / frequentistN * 100)}%.`;
   }
   
   return { 
@@ -540,7 +540,7 @@ export const calculateBayesianSequential = (
   
   const percentReduction = ((params.maxN - expectedN) / params.maxN) * 100;
   
-  const summary = `Sequential design with ${params.interimLooks} interim analyses can save approximately <strong>${Math.round(percentReduction)}%</strong> of resources. Expected sample size: <strong>${Math.round(expectedN)}</strong> per group (vs. ${params.maxN} for fixed design). Power under prior: <strong>${(powerUnderPrior * 100).toFixed(1)}%</strong>.`;
+  const summary = `Sequential design with ${params.interimLooks} interim analyses can save approximately ${Math.round(percentReduction)}% of resources. Expected sample size: ${Math.round(expectedN)} per group (vs. ${params.maxN} for fixed design). Power under prior: ${(powerUnderPrior * 100).toFixed(1)}%.`;
   
   return {
     expectedN: Math.round(expectedN),
@@ -728,7 +728,7 @@ export const calculateReplicationProbability = (
     ? `With ${(replicationProbability * 100).toFixed(0)}% replication probability and adjusted effect size of ${posteriorMean.toFixed(2)}, replication is worthwhile.`
     : `Low replication probability (${(replicationProbability * 100).toFixed(0)}%) suggests high risk of failure. Consider pilot study first.`;
   
-  const summary = `Published effect (${params.publishedEffect.toFixed(2)}) likely <strong>inflated by ${((1 - shrinkageFactor) * 100).toFixed(0)}%</strong> due to ${params.publicationBias} publication bias. Adjusted effect: <strong>${posteriorMean.toFixed(2)}</strong> (95% CI: ${(posteriorMean - 1.96 * posteriorSD).toFixed(2)} - ${(posteriorMean + 1.96 * posteriorSD).toFixed(2)}). Replication probability with N=${params.replicationN}: <strong>${(replicationProbability * 100).toFixed(0)}%</strong>. Recommended N for 80% power: <strong>${minNForAdequatePower}</strong>.`;
+  const summary = `Published effect (${params.publishedEffect.toFixed(2)}) likely inflated by ${((1 - shrinkageFactor) * 100).toFixed(0)}% due to ${params.publicationBias} publication bias. Adjusted effect: ${posteriorMean.toFixed(2)} (95% CI: ${(posteriorMean - 1.96 * posteriorSD).toFixed(2)} - ${(posteriorMean + 1.96 * posteriorSD).toFixed(2)}). Replication probability with N=${params.replicationN}: ${(replicationProbability * 100).toFixed(0)}%. Recommended N for 80% power: ${minNForAdequatePower}.`;
   
   return {
     replicationProbability,
@@ -860,7 +860,7 @@ export const calculateInformationBasedDesign = (
     efficiency: d.expectedInfo / d.costPerInfo
   }));
   
-  const summary = `Optimal design: <strong>${optimalDesign}</strong> (${params.objective}). This design reduces uncertainty by <strong>${sortedDesigns[0].uncertaintyReduction.toFixed(0)}%</strong> (from SD=${params.priorUncertainty.sd.toFixed(2)} to SD=${sortedDesigns[0].posteriorSD.toFixed(2)}). Expected Fisher information: <strong>${sortedDesigns[0].expectedInfo.toFixed(1)}</strong>.`;
+  const summary = `Optimal design: ${optimalDesign} (${params.objective}). This design reduces uncertainty by ${sortedDesigns[0].uncertaintyReduction.toFixed(0)}% (from SD=${params.priorUncertainty.sd.toFixed(2)} to SD=${sortedDesigns[0].posteriorSD.toFixed(2)}). Expected Fisher information: ${sortedDesigns[0].expectedInfo.toFixed(1)}.`;
   
   return {
     rankedDesigns: sortedDesigns,
@@ -1041,7 +1041,7 @@ export const calculateHierarchicalPower = (
   
   const inflationFactor = (requiredClusters * params.nPerCluster) / naiveN;
   
-  const summary = `For hierarchical design with ICC=${params.icc.toFixed(2)} (±${params.iccUncertainty.toFixed(2)}), you need <strong>${requiredClusters} clusters</strong> with ${params.nPerCluster} per cluster (total N=${requiredClusters * params.nPerCluster}). Design effect: <strong>${designEffectMean.toFixed(2)}</strong> (95% CI: ${deLower.toFixed(2)}-${deUpper.toFixed(2)}). Effective N: <strong>${Math.round(effectiveN)}</strong>. Ignoring clustering would underestimate required N by <strong>${((inflationFactor - 1) * 100).toFixed(0)}%</strong>.`;
+  const summary = `For hierarchical design with ICC=${params.icc.toFixed(2)} (±${params.iccUncertainty.toFixed(2)}), you need ${requiredClusters} clusters with ${params.nPerCluster} per cluster (total N=${requiredClusters * params.nPerCluster}). Design effect: ${designEffectMean.toFixed(2)} (95% CI: ${deLower.toFixed(2)}-${deUpper.toFixed(2)}). Effective N: ${Math.round(effectiveN)}. Ignoring clustering would underestimate required N by ${((inflationFactor - 1) * 100).toFixed(0)}%.`;
   
   return {
     requiredClusters,
@@ -1210,7 +1210,7 @@ export const calculateAdaptiveAllocation = (
   
   const ethicalBenefit = `${bestTreatment.treatment} receives ${bestTreatment.n} samples (most promising), while ${worstTreatment.treatment} receives only ${worstTreatment.n} (least effective). This minimizes exposure to inferior treatments.`;
   
-  const summary = `Adaptive ${params.allocationRule} allocation assigns more samples to promising treatments. Best treatment receives <strong>${bestTreatment.n}</strong> samples vs. ${Math.round(nPerGroup)} under equal allocation. Expected power: <strong>${(adaptivePower * 100).toFixed(0)}%</strong> (${powerGain > 0 ? '+' : ''}${powerGain.toFixed(0)}% vs. equal allocation).`;
+  const summary = `Adaptive ${params.allocationRule} allocation assigns more samples to promising treatments. Best treatment receives ${bestTreatment.n} samples vs. ${Math.round(nPerGroup)} under equal allocation. Expected power: ${(adaptivePower * 100).toFixed(0)}% (${powerGain > 0 ? '+' : ''}${powerGain.toFixed(0)}% vs. equal allocation).`;
   
   return {
     expectedAllocations,
@@ -1350,7 +1350,7 @@ export const calculateEquivalenceN = (
   const posteriorProbEquivalent = jStat.normal.cdf(params.equivalenceMargin, params.priorEffect.mean, posteriorSD) -
                                     jStat.normal.cdf(-params.equivalenceMargin, params.priorEffect.mean, posteriorSD);
   
-  const summary = `To establish equivalence within ±${params.equivalenceMargin} with ${(params.targetProbability * 100).toFixed(0)}% probability, you need <strong>N=${requiredN}</strong>. ROPE analysis: <strong>${(ropeAnalysis.probInROPE * 100).toFixed(0)}%</strong> probability effect is practically equivalent. Bayesian approach requires ${((tostN - requiredN) / tostN * 100).toFixed(0)}% ${tostN > requiredN ? 'less' : 'more'} samples than TOST (N=${tostN}).`;
+  const summary = `To establish equivalence within ±${params.equivalenceMargin} with ${(params.targetProbability * 100).toFixed(0)}% probability, you need N=${requiredN}. ROPE analysis: ${(ropeAnalysis.probInROPE * 100).toFixed(0)}% probability effect is practically equivalent. Bayesian approach requires ${((tostN - requiredN) / tostN * 100).toFixed(0)}% ${tostN > requiredN ? 'less' : 'more'} samples than TOST (N=${tostN}).`;
   
   return {
     requiredN,
@@ -1488,7 +1488,7 @@ export const calculateModelComparisonN = (
   
   const probabilityCorrectSelection = finalModelProbs[bestModel.name];
   
-  const summary = `To achieve Bayes Factor ≥ ${params.targetBayesFactor} for model selection among ${params.models.length} models, you need <strong>N=${requiredN}</strong> per group. Best model (<strong>${bestModel.name}</strong>) has <strong>${(probabilityCorrectSelection * 100).toFixed(0)}%</strong> posterior probability. Complexity penalties ensure parsimony.`;
+  const summary = `To achieve Bayes Factor ≥ ${params.targetBayesFactor} for model selection among ${params.models.length} models, you need N=${requiredN} per group. Best model (${bestModel.name}) has ${(probabilityCorrectSelection * 100).toFixed(0)}% posterior probability. Complexity penalties ensure parsimony.`;
   
   return {
     requiredN,
@@ -1566,7 +1566,7 @@ export const calibrateFrequentistToBayesian = (
   
   if (bayesianAssurance >= params.frequentistPower) {
     // Current N is sufficient
-    summary = `✓ Your current sample size of <strong>N=${params.nPerGroup}</strong> per group is <strong>sufficient</strong> to maintain <strong>${(params.frequentistPower * 100).toFixed(0)}%</strong> assurance given the effect size uncertainty (SD=${params.effectUncertainty.toFixed(2)}). Actual Bayesian assurance is <strong>${(bayesianAssurance * 100).toFixed(0)}%</strong>.`;
+    summary = `✓ Your current sample size of N=${params.nPerGroup} per group is sufficient to maintain ${(params.frequentistPower * 100).toFixed(0)}% assurance given the effect size uncertainty (SD=${params.effectUncertainty.toFixed(2)}). Actual Bayesian assurance is ${(bayesianAssurance * 100).toFixed(0)}%.`;
   } else {
     // Need to search for required N
     for (let n = params.nPerGroup + 5; n <= 500; n += 5) {
@@ -1592,7 +1592,7 @@ export const calibrateFrequentistToBayesian = (
       }
     }
     
-    summary = `⚠ Frequentist power of <strong>${(params.frequentistPower * 100).toFixed(0)}%</strong> (assuming exact effect=${params.effectSize.toFixed(2)}) translates to Bayesian assurance of only <strong>${(bayesianAssurance * 100).toFixed(0)}%</strong> when accounting for uncertainty (SD=${params.effectUncertainty.toFixed(2)}). This represents a <strong>${assuranceLoss.toFixed(0)}%</strong> loss. To maintain ${(params.frequentistPower * 100).toFixed(0)}% assurance, increase N from <strong>${params.nPerGroup}</strong> to <strong>${recommendedN}</strong> per group.`;
+    summary = `⚠ Frequentist power of ${(params.frequentistPower * 100).toFixed(0)}% (assuming exact effect=${params.effectSize.toFixed(2)}) translates to Bayesian assurance of only ${(bayesianAssurance * 100).toFixed(0)}% when accounting for uncertainty (SD=${params.effectUncertainty.toFixed(2)}). This represents a ${assuranceLoss.toFixed(0)}% loss. To maintain ${(params.frequentistPower * 100).toFixed(0)}% assurance, increase N from ${params.nPerGroup} to ${recommendedN} per group.`;
   }
   
   // Step 3: Generate calibration curve
