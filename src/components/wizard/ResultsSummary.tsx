@@ -5,6 +5,20 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, AlertTriangle, XCircle, ArrowRight, RotateCcw } from 'lucide-react';
 import { TestType } from './wizardConfig';
 import SimplePowerChart from '@/components/SimplePowerChart';
+import { 
+  calculateTTestPower, 
+  calculateOneWayAnovaPower, 
+  calculateRepeatedMeasuresPower,
+  calculateCorrelationPower,
+  calculateChiSquarePower,
+  calculatePERMANOVAPower,
+  calculateRepeatedMeasuresPERMANOVAPower
+} from '@/utils/powerCalculations';
+import { 
+  calculateLMMPower, 
+  calculateNegBinomialPower, 
+  calculateZINBPower 
+} from '@/utils/microbiomePowerCalculations';
 
 interface ResultsSummaryProps {
   testType: TestType;
@@ -67,14 +81,140 @@ const ResultsSummary = ({ testType, power, parameters, onGoToCalculator, onResta
   const interpretation = getInterpretation();
   const Icon = interpretation.icon;
 
-  // Simple power curve data
-  const curveData = Array.from({ length: 20 }, (_, i) => {
-    const sampleSize = 5 + i * 5;
-    // Simplified power calculation for visualization
-    const ncp = parameters.effectSize * Math.sqrt(sampleSize / 2);
-    const approxPower = Math.min(0.99, 1 - Math.exp(-0.5 * ncp * ncp));
-    return { x: sampleSize, y: approxPower };
-  });
+  // Generate test-specific power curve data
+  const curveData = (() => {
+    const points = 50; // More points for smoother curves
+    const data: { x: number; y: number }[] = [];
+    
+    switch (testType) {
+      case 'ttest': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateTTestPower(n, parameters.effectSize, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'oneway': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateOneWayAnovaPower(n, 3, parameters.effectSize, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'repeated': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateRepeatedMeasuresPower(n, 4, parameters.effectSize, 0.5, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'correlation': {
+        const minN = Math.max(10, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateCorrelationPower(n, parameters.effectSize, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'chisquare': {
+        const minN = Math.max(20, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateChiSquarePower(n, parameters.effectSize, 1, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'microbiome': {
+        const minN = Math.max(10, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        const rSquared = parameters.effectSize * parameters.effectSize / (1 + parameters.effectSize * parameters.effectSize);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculatePERMANOVAPower(n, 2, rSquared, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'repeated-microbiome': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        const rSquared = parameters.effectSize * parameters.effectSize / (1 + parameters.effectSize * parameters.effectSize);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateRepeatedMeasuresPERMANOVAPower(n, 4, rSquared, 0.5, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+        break;
+      }
+      
+      case 'deseq': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        const log2FC = parameters.effectSize * 0.693; // Convert effect size to log2FC
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const calculatedPower = calculateNegBinomialPower(n, log2FC, 0.1, 100, parameters.alpha, 1);
+          data.push({ x: n, y: calculatedPower });
+        }
+        break;
+      }
+      
+      case 'zinb': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        const log2FC = parameters.effectSize * 0.693;
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const calculatedPower = calculateZINBPower(n, 0.2, 50, 0.2, log2FC, parameters.alpha, 'both');
+          data.push({ x: n, y: calculatedPower });
+        }
+        break;
+      }
+      
+      case 'lmm-microbiome': {
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const calculatedPower = calculateLMMPower(n, 4, parameters.effectSize, 0.5, 0.1, 0, 0, parameters.alpha);
+          data.push({ x: n, y: calculatedPower });
+        }
+        break;
+      }
+      
+      default: {
+        // Fallback for other test types
+        const minN = Math.max(5, Math.floor(parameters.n * 0.3));
+        const maxN = Math.ceil(parameters.n * 2);
+        for (let i = 0; i < points; i++) {
+          const n = Math.round(minN + (maxN - minN) * (i / (points - 1)));
+          const result = calculateTTestPower(n, parameters.effectSize, parameters.alpha);
+          data.push({ x: n, y: result.power });
+        }
+      }
+    }
+    
+    return data;
+  })();
 
   return (
     <div className="space-y-6">
