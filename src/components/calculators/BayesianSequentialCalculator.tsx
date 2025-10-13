@@ -10,6 +10,8 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { calculateBayesianSequential } from '@/utils/bayesianPowerCalculations';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const BayesianSequentialCalculator = () => {
   const { toast } = useToast();
@@ -298,7 +300,10 @@ ${result.summary}`;
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>Sequential Design Results</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Sequential Design Results</CardTitle>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_SEQUENTIAL} buttonVariant="ghost" />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">

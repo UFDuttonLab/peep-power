@@ -9,6 +9,8 @@ import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExpo
 import { Download, Dna, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const OneWayAnovaCalculator = () => {
   const { toast } = useToast();
@@ -174,7 +176,10 @@ const OneWayAnovaCalculator = () => {
       </Card>
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold">Results</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Results</h2>
+          <FormulaDisplay formula={FORMULAS.ONE_WAY_ANOVA} />
+        </div>
         
         {result && (
           <>

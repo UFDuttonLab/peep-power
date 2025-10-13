@@ -12,6 +12,8 @@ import { calculateChiSquarePower } from '@/utils/powerCalculations';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const ChiSquareCalculator = () => {
   const { toast } = useToast();
@@ -186,7 +188,10 @@ const ChiSquareCalculator = () => {
           </Alert>
         )}
         
-        <h2 className="text-2xl font-bold">Results</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Results</h2>
+          <FormulaDisplay formula={FORMULAS.CHI_SQUARE} />
+        </div>
         
         {result && (
           <>

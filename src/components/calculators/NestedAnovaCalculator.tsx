@@ -7,6 +7,8 @@ import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExpo
 import { Download, Info, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 interface NestedPowerResult {
   powerBetween: number;
@@ -243,7 +245,10 @@ export const NestedAnovaCalculator = () => {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Power Analysis Results</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Power Analysis Results</CardTitle>
+              <FormulaDisplay formula={FORMULAS.NESTED_ANOVA} buttonVariant="ghost" />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-primary/5 rounded-lg">
