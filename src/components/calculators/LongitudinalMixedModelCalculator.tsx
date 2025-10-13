@@ -11,6 +11,8 @@ import { calculateLMMPower, calculateRequiredSampleSizeLMM } from '@/utils/micro
 import { AlertCircle, TrendingUp, Clock, Info, Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const LongitudinalMixedModelCalculator = () => {
   const { toast } = useToast();
@@ -176,7 +178,10 @@ const LongitudinalMixedModelCalculator = () => {
       </Alert>
 
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
-        <h2 className="text-2xl font-bold mb-4">Power Analysis</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">Power Analysis</h2>
+          <FormulaDisplay formula={FORMULAS.LINEAR_MIXED_MODEL} />
+        </div>
         
         <div className="grid md:grid-cols-[1fr_2fr] gap-6">
           {/* Left Column: Study Parameters */}

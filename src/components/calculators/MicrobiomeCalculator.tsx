@@ -9,6 +9,8 @@ import BetaDiversityVisualizer from '@/components/BetaDiversityVisualizer';
 import EffectSizeConversionGuide from '@/components/EffectSizeConversionGuide';
 import { calculatePERMANOVAPower, calculateTTestPower } from '@/utils/powerCalculations';
 import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 const MicrobiomeCalculator = () => {
   // PERMANOVA calculator state
@@ -66,10 +68,13 @@ const MicrobiomeCalculator = () => {
 
       {/* PERMANOVA Interactive Calculator */}
       <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20">
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <FlaskConical className="h-6 w-6 text-primary" />
-          PERMANOVA Power Calculator
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <FlaskConical className="h-6 w-6 text-primary" />
+            PERMANOVA Power Calculator
+          </h2>
+          <FormulaDisplay formula={FORMULAS.PERMANOVA} />
+        </div>
         
         <div className="grid md:grid-cols-[1fr_2fr] gap-6 mb-6">
           {/* Controls */}

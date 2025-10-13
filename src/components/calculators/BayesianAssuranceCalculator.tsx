@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { calculateBayesianAssurance, BayesianAssuranceResult } from '@/utils/bayesianPowerCalculations';
+import FormulaDisplay from '@/components/FormulaDisplay';
+import { FORMULAS } from '@/constants/formulaDefinitions';
 
 export const BayesianAssuranceCalculator = () => {
   const { toast } = useToast();
@@ -380,7 +382,10 @@ export const BayesianAssuranceCalculator = () => {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Assurance Curve with Confidence Regions</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Assurance Curve with Confidence Regions</CardTitle>
+                    <FormulaDisplay formula={FORMULAS.BAYESIAN_ASSURANCE} buttonVariant="ghost" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <BayesianAssuranceChart
