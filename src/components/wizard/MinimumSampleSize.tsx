@@ -522,7 +522,7 @@ const MinimumSampleSize = ({
                   high = mid - 1;
                 }
               }
-              scenarioN = Math.max(low, 10);
+              scenarioN = Math.max(scenarioN, 10);
               
               return (
                 <div key={scenario.label} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -663,7 +663,7 @@ const MinimumSampleSize = ({
           high = mid - 1;
         }
       }
-      scenarioN = Math.max(low, 5);
+      scenarioN = Math.max(scenarioN, 5);
       
       return {
         label: scenario.label,
