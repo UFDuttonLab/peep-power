@@ -34,30 +34,58 @@ function noncentralTPower(ncp: number, df: number, criticalValue: number): numbe
   }
 }
 
-// Improved approximation for noncentral F distribution power
-export function noncentralFPower(lambda: number, df1: number, df2: number, criticalValue: number): number {
-  // Better approximation using Patnaik's two-moment central chi-square approximation
-  // Noncentral F ~ (chi2(df1, lambda) / df1) / (chi2(df2) / df2)
+/**
+ * Calculates the cumulative distribution function (CDF) of the non-central F-distribution
+ * using Poisson series expansion with incomplete beta function.
+ * This provides accurate power calculations without jumps in the curve.
+ */
+function nonCentralFCDF(x: number, df1: number, df2: number, ncp: number): number {
+  if (x <= 0) return 0;
   
+  const maxIter = 1000;
+  const epsilon = 1e-12; // Convergence tolerance
+  
+  let sum = 0;
+  const lambda = ncp / 2;
+  
+  // Transform to beta distribution variable
+  const y = (x * df1) / (df2 + x * df1);
+  
+  // Start with j=0 term of the Poisson sum
+  let logPoisTerm = -lambda;
+  
+  for (let j = 0; j < maxIter; j++) {
+    const poisTerm = Math.exp(logPoisTerm);
+    
+    // Use incomplete beta function (regularized)
+    const betaTerm = jStat.ibeta(y, df1 / 2 + j, df2 / 2);
+    
+    const term = poisTerm * betaTerm;
+    sum += term;
+    
+    // Check for convergence after the peak of the Poisson distribution
+    if (term < epsilon && j > lambda) {
+      break;
+    }
+    
+    // Update log of Poisson term for next iteration (j+1)
+    logPoisTerm += Math.log(lambda) - Math.log(j + 1);
+  }
+  
+  return sum;
+}
+
+// Proper non-central F distribution power calculation using Poisson series expansion
+export function noncentralFPower(lambda: number, df1: number, df2: number, criticalValue: number): number {
   if (lambda === 0) {
     return 1 - jStat.centralF.cdf(criticalValue, df1, df2);
   }
   
-  // Use shifted F distribution approximation
-  const h = 1 - (2 * lambda) / (3 * df1);
-  const adjustedF = criticalValue / h;
-  const power = 1 - jStat.centralF.cdf(adjustedF, df1, df2);
+  // Calculate CDF at critical value using Poisson series expansion
+  const cdfValue = nonCentralFCDF(criticalValue, df1, df2, lambda);
   
-  // Add correction factor for noncentrality
-  const correction = lambda / (df1 + lambda);
-  const estimatedPower = Math.max(0, Math.min(0.999, power + correction * (1 - power)));
-  
-  // Warn if approximation may be inaccurate
-  if (lambda > 30 || df2 < 15) {
-    console.warn('Noncentral F approximation may be inaccurate for lambda > 30 or df2 < 15');
-  }
-  
-  return estimatedPower;
+  // Power is 1 - CDF (probability beyond critical value)
+  return Math.max(0, Math.min(0.999, 1 - cdfValue));
 }
 
 export const calculateTTestPower = (
