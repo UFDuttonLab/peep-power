@@ -67,8 +67,8 @@ function calculateNestedAnovaPower(
   for (let c = 2; c <= 100; c += 1) {
     const designEffectC = 1 + (nPerCluster - 1) * icc;
     const effectiveClustersC = (c * nPerCluster) / designEffectC;
-    // CORRECTED: Lambda based on effective cluster count per group
-    const lambdaC = (c / groups) * (effectSize * effectSize);
+    // CORRECTED: Lambda based on effective cluster count, matching displayed power calculation
+    const lambdaC = (effectiveClustersC * groups * effectSize * effectSize) / 2;
     const dfBetween2C = groups * (c - 1);
     const critFC = jStat.centralF.inv(1 - alpha, dfBetween1, dfBetween2C);
     const powerC = noncentralFPower(lambdaC, dfBetween1, dfBetween2C, critFC);
