@@ -48,7 +48,7 @@ const BayesianReplicationCalculator = () => {
         setResult(res);
         toast({ title: "Success", description: "Replication probability calculated!" });
       } catch (error) {
-        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -157,12 +157,12 @@ const BayesianReplicationCalculator = () => {
                 step={0.05}
               />
               <p className="text-xs text-muted-foreground">
-                Cohen's d for t-test/ANOVA, r for correlation
+                Cohen's d for t-test, Cohen's f for ANOVA, r for correlation
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Published Sample Size Per Group</Label>
+              <Label>Published Sample Size {testType === 'correlation' ? '(Total)' : 'Per Group'}</Label>
               <Input
                 type="number"
                 value={publishedN}
@@ -172,6 +172,9 @@ const BayesianReplicationCalculator = () => {
 
             <div className="space-y-2">
               <Label>Published p-value</Label>
+              <p className="text-xs text-muted-foreground">
+                Sets the standard error for ANOVA; for t-tests and correlations it is derived from the sample size
+              </p>
               <Input
                 type="number"
                 value={publishedP}
@@ -211,7 +214,7 @@ const BayesianReplicationCalculator = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Replication Study N Per Group: {replicationN}</Label>
+              <Label>Replication Study N {testType === 'correlation' ? '(Total)' : 'Per Group'}: {replicationN}</Label>
               <Slider
                 value={[replicationN]}
                 onValueChange={(v) => setReplicationN(v[0])}
@@ -262,9 +265,11 @@ const BayesianReplicationCalculator = () => {
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Effect Shrinkage</p>
+                      <p className="text-sm text-muted-foreground">
+                        {result.shrinkageFactor <= 1 ? 'Effect Shrinkage' : 'Effect Increase'}
+                      </p>
                       <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                        {((1 - result.shrinkageFactor) * 100).toFixed(0)}%
+                        {(Math.abs(1 - result.shrinkageFactor) * 100).toFixed(0)}%
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -279,9 +284,13 @@ const BayesianReplicationCalculator = () => {
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Recommended N</p>
                       <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {result.recommendations.minNForAdequatePower}
+                        {Number.isFinite(result.recommendations.minNForAdequatePower)
+                          ? result.recommendations.minNForAdequatePower
+                          : 'Not reachable'}
                       </p>
-                      <p className="text-xs text-muted-foreground">For 80% power</p>
+                      <p className="text-xs text-muted-foreground">
+                        For 80% power at the adjusted effect ({testType === 'correlation' ? 'total' : 'per group'})
+                      </p>
                     </div>
                   </div>
 
@@ -378,15 +387,18 @@ const BayesianReplicationCalculator = () => {
                     <p className="font-semibold mb-2">Effect Size Inflation</p>
                     <p className="text-sm text-muted-foreground">
                       Published effect ({publishedEffect.toFixed(2)}) → Adjusted effect ({result.adjustedEffectSize.mean.toFixed(2)}). 
-                      The {((1 - result.shrinkageFactor) * 100).toFixed(0)}% shrinkage accounts for winner's curse and publication bias.
+                      The {(Math.abs(1 - result.shrinkageFactor) * 100).toFixed(0)}% {result.shrinkageFactor <= 1 ? 'shrinkage' : 'increase'} combines the bias-adjusted prior with the published estimate and its precision.
                     </p>
                   </div>
                   
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="font-semibold mb-2">Replication Risk</p>
                     <p className="text-sm text-muted-foreground">
-                      With N={replicationN}, there's only a {(result.replicationProbability * 100).toFixed(0)}% chance 
-                      of getting p&lt;{alpha}. Use N={result.recommendations.minNForAdequatePower} for 80% power.
+                      With N={replicationN}, there is a {(result.replicationProbability * 100).toFixed(0)}% chance 
+                      of a significant result (p&lt;{alpha}) in the same direction.{' '}
+                      {Number.isFinite(result.recommendations.minNForAdequatePower)
+                        ? `Use N=${result.recommendations.minNForAdequatePower} for 80% power at the adjusted effect.`
+                        : '80% power is not reachable at the adjusted effect.'}
                     </p>
                   </div>
 

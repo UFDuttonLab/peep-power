@@ -51,7 +51,7 @@ export const BayesianAssuranceCalculator = () => {
         setResult(newResult);
         toast({
           title: "Simulation complete",
-          description: `Monte Carlo simulation with 2000 samples completed successfully`,
+          description: `Assurance calculated for sample sizes up to ${newResult.maxSearchN}`,
         });
       } catch (e) {
         console.error('Bayesian calculation error:', e);
@@ -73,8 +73,8 @@ export const BayesianAssuranceCalculator = () => {
   const exportResults = () => {
     if (!result) return;
     const csv = [
-      ['Sample Size', 'Assurance'],
-      ...result.assuranceCurve.map((d) => [d.n, d.assurance]),
+      ['Sample Size', 'Assurance', 'Expected Power'],
+      ...result.assuranceCurve.map((d) => [d.n, d.assurance, d.expectedPower]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -136,8 +136,8 @@ export const BayesianAssuranceCalculator = () => {
           <strong>Bayesian Assurance Calculator</strong>: Unlike traditional power analysis, 
           this accounts for <strong>uncertainty about the effect size</strong>. If you're not 
           100% sure what the true effect is, Bayesian assurance gives you the probability of 
-          achieving your target power. Set your parameters below, then click "Run Simulation" 
-          to perform Monte Carlo analysis (5000 samples).
+          achieving your target power. Set your parameters below, then click "Run Simulation"; 
+          assurance is calculated exactly from the prior (no simulation noise).
         </AlertDescription>
       </Alert>
 
@@ -351,7 +351,7 @@ export const BayesianAssuranceCalculator = () => {
               </Button>
               
               <div className="text-xs text-muted-foreground text-center mt-2">
-                Monte Carlo simulation with 2,000 samples • Takes 2-3 seconds
+                Exact calculation over the prior, results are identical on every run
               </div>
             </CardContent>
           </Card>
@@ -369,7 +369,7 @@ export const BayesianAssuranceCalculator = () => {
                   <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
                     <div className="text-sm text-muted-foreground mb-2">Sample Size Needed</div>
                     <div className="text-5xl font-bold text-primary mb-2">
-                      {result.requiredN}
+                      {result.reached ? result.requiredN : `>${result.maxSearchN}`}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {testType === 'correlation' ? 'total' : 'per group'}
@@ -383,29 +383,22 @@ export const BayesianAssuranceCalculator = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Assurance Curve with Confidence Regions</CardTitle>
+                    <CardTitle>Assurance Curve with Prior Sensitivity</CardTitle>
                     <FormulaDisplay formula={FORMULAS.BAYESIAN_ASSURANCE} buttonVariant="ghost" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
-                    confidenceRegions={{
-                      lower: result.assuranceCurve.map(d => ({ 
-                        x: d.n, 
-                        y: Math.max(0, d.assurance - 0.1) 
-                      })),
-                      upper: result.assuranceCurve.map(d => ({ 
-                        x: d.n, 
-                        y: Math.min(1, d.assurance + 0.1) 
-                      }))
-                    }}
+                    confidenceRegions={result.confidenceRegions}
+                    bandLabel="Assurance if the prior SD is 25% smaller or larger"
+                    target={targetAssurance}
                     currentValue={result.requiredN}
                     xLabel={`Sample Size ${testType === 'correlation' ? '(Total)' : '(per Group)'}`}
                     title="Assurance vs Sample Size"
                   />
                   <div className="text-xs text-muted-foreground mt-2 text-center">
-                    Shaded region represents 95% confidence interval for assurance estimates
+                    Shaded region shows how assurance changes if the prior SD is 25% smaller or larger
                   </div>
                 </CardContent>
               </Card>
@@ -472,11 +465,11 @@ export const BayesianAssuranceCalculator = () => {
               <CardContent className="p-12 text-center">
                 <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground mb-2">
-                  Configure your parameters and click "Run Monte Carlo Simulation" to calculate 
+                  Configure your parameters and click "Run Simulation" to calculate 
                   the required sample size with Bayesian assurance.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  This will perform 5,000 Monte Carlo simulations to account for effect size uncertainty.
+                  Assurance is the probability, under your prior, that the study reaches the target power.
                 </p>
               </CardContent>
             </Card>

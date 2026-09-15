@@ -2,13 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
-import { calculateChiSquarePower } from '@/utils/powerCalculations';
+import { calculateChiSquarePower, type PowerResult } from '@/utils/powerCalculations';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -21,21 +17,19 @@ const ChiSquareCalculator = () => {
   const [w, setW] = useState(0.3);
   const [df, setDf] = useState(3);
   const [alpha, setAlpha] = useState(0.05);
-  const [assumeEqualProportions, setAssumeEqualProportions] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PowerResult | null>(null);
 
   useEffect(() => {
     const res = calculateChiSquarePower(n, w, df, alpha);
     setResult(res);
   }, [n, w, df, alpha]);
 
-  const lambda = w * w * n;
-  const showLambdaWarning = lambda > 30 || df < 5;
 
   const exportResults = () => {
+    if (!result) return;
     const csv = [
       ['Sample Size', 'Power'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ...result.curveData.map((d: { x: number; y: number }) => [d.x, d.y]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -128,28 +122,10 @@ const ChiSquareCalculator = () => {
             tooltip="For contingency table: df = (rows - 1) × (columns - 1). For goodness-of-fit: df = categories - 1."
           />
 
-          <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md">
-            <Checkbox 
-              id="equal-props" 
-              checked={assumeEqualProportions}
-              onCheckedChange={(checked) => setAssumeEqualProportions(checked as boolean)}
-            />
-            <Label 
-              htmlFor="equal-props" 
-              className="text-sm cursor-pointer flex-1"
-            >
-              Assume equal expected proportions
-            </Label>
-          </div>
-          
-          {assumeEqualProportions && (
-            <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-              <AlertDescription className="text-xs">
-                Using equal expected proportions (uniform distribution). This is common for goodness-of-fit tests 
-                where you expect all categories to occur with equal frequency.
-              </AlertDescription>
-            </Alert>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Cohen's w is defined relative to your expected proportions (w = √Σ[(p₁ - p₀)² / p₀]). For a goodness-of-fit
+            test against equal proportions, use p₀ = 1/k for each of the k categories when computing w.
+          </p>
 
           <div className="space-y-2">
             <ControlSlider
@@ -169,7 +145,7 @@ const ChiSquareCalculator = () => {
               <SelectContent>
                 <SelectItem value="0.01">0.01</SelectItem>
                 <SelectItem value="0.05">0.05</SelectItem>
-                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="0.1">0.10</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -177,17 +153,6 @@ const ChiSquareCalculator = () => {
       </Card>
 
       <div className="space-y-6">
-        {showLambdaWarning && (
-          <Alert variant="warning">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>⚠️ Large Effect Warning:</strong> The non-centrality parameter (λ={lambda.toFixed(1)}) is large
-              {df < 5 && ' and df is small'}. Power approximation may be less accurate. 
-              Consider simulation-based methods or consult the R export code.
-            </AlertDescription>
-          </Alert>
-        )}
-        
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Results</h2>
           <FormulaDisplay formula={FORMULAS.CHI_SQUARE} />

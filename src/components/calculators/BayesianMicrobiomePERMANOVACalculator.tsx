@@ -50,7 +50,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
         setResult(newResult);
         toast({
           title: "Simulation complete",
-          description: "Monte Carlo analysis with 2000 samples completed",
+          description: "Assurance calculated",
         });
       } catch (e) {
         clearInterval(progressInterval);
@@ -91,8 +91,8 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
   const exportToCSV = () => {
     if (!result) return;
     const csv = [
-      ['Sample Size', 'Assurance'],
-      ...result.assuranceCurve.map((d) => [d.n, d.assurance]),
+      ['Sample Size', 'Assurance', 'Expected Power'],
+      ...result.assuranceCurve.map((d) => [d.n, d.assurance, d.expectedPower]),
     ]
       .map((row) => row.join(','))
       .join('\n');
@@ -331,7 +331,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
               </Button>
               
               <div className="text-xs text-muted-foreground text-center mt-2">
-                Monte Carlo simulation • Takes 2-3 seconds
+                Exact calculation over the prior
               </div>
             </CardContent>
           </Card>
@@ -348,7 +348,7 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
                     <div className="text-sm text-muted-foreground mb-2">Samples Per Group</div>
                     <div className="text-5xl font-bold text-primary mb-2">
-                      {result.requiredN}
+                      {result.reached ? result.requiredN : `>${result.maxSearchN}`}
                     </div>
                   </div>
 
@@ -364,8 +364,9 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Computation:</strong> 2,000 Monte Carlo iterations across 30 sample sizes 
-                      + 50 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                      <strong>Computation:</strong> assurance is the probability under the R² prior that power
+                      reaches the target, calculated exactly (no simulation noise). The shaded region shows how
+                      assurance changes if the prior SD is 25% smaller or larger.
                     </AlertDescription>
                   </Alert>
 
@@ -397,6 +398,8 @@ const BayesianMicrobiomePERMANOVACalculator = () => {
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
                     confidenceRegions={result.confidenceRegions}
+                    bandLabel="Assurance if the prior SD is 25% smaller or larger"
+                    target={targetAssurance}
                     currentValue={result.requiredN}
                     xLabel="Samples Per Group"
                     title="Assurance vs Sample Size"

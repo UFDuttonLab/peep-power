@@ -4,13 +4,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
-import { calculateOneWayAnovaPower } from '@/utils/powerCalculations';
+import { calculateOneWayAnovaPower, type PowerResult } from '@/utils/powerCalculations';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { Download, Dna, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
+import { MINIMUM_SAMPLE_SIZES } from '@/constants/effectSizeConstants';
 
 const OneWayAnovaCalculator = () => {
   const { toast } = useToast();
@@ -18,7 +19,7 @@ const OneWayAnovaCalculator = () => {
   const [groups, setGroups] = useState(3);
   const [effectSize, setEffectSize] = useState(0.25);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PowerResult | null>(null);
 
   useEffect(() => {
     const res = calculateOneWayAnovaPower(n, groups, effectSize, alpha);
@@ -40,9 +41,10 @@ const OneWayAnovaCalculator = () => {
   };
 
   const exportResults = () => {
+    if (!result) return;
     const csv = [
-      ['Sample Size per Group', 'Power'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ['Total Sample Size (N)', 'Power'],
+      ...result.curveData.map((d: { x: number; y: number }) => [d.x, d.y]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -91,13 +93,13 @@ const OneWayAnovaCalculator = () => {
             id="oneway-n"
             label="Sample Size (n) per group"
             value={n}
-            min={5}
+            min={MINIMUM_SAMPLE_SIZES.anova.absolute_minimum}
             max={200}
             step={1}
             onChange={setN}
             decimals={0}
             tooltip="Number of independent observations in each group."
-            warningThreshold={{ min: 15, message: "ANOVA requires at least 15 per group for reliable results" }}
+            warningThreshold={{ min: MINIMUM_SAMPLE_SIZES.anova.recommended, message: MINIMUM_SAMPLE_SIZES.anova.warning }}
           />
 
           <ControlSlider
@@ -154,7 +156,7 @@ const OneWayAnovaCalculator = () => {
               <SelectContent>
                 <SelectItem value="0.01">0.01</SelectItem>
                 <SelectItem value="0.05">0.05</SelectItem>
-                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="0.1">0.10</SelectItem>
               </SelectContent>
             </Select>
           </div>

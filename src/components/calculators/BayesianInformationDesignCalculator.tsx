@@ -67,7 +67,7 @@ const BayesianInformationDesignCalculator = () => {
         setResult(res);
         toast({ title: "Success", description: "Design comparison complete!" });
       } catch (error) {
-        toast({ title: "Error", description: "Analysis failed. Please check your parameters.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Analysis failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }

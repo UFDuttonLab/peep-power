@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { generateNMDSData, NMDSPoint, EllipseParams } from '@/utils/nmdSimulation';
 import { calculatePERMANOVAPower } from '@/utils/powerCalculations';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,8 +18,11 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
   const [simulationSeed, setSimulationSeed] = useState(() => Math.floor(Math.random() * 1000000));
   const [calculatedPower, setCalculatedPower] = useState<number | null>(null);
 
-  // Regenerate seed only when number of groups changes
+  // Regenerate seed only when number of groups changes (not on first mount)
+  const prevGroups = useRef(groups);
   useEffect(() => {
+    if (prevGroups.current === groups) return;
+    prevGroups.current = groups;
     setSimulationSeed(Math.floor(Math.random() * 1000000));
   }, [groups]);
 
@@ -51,11 +54,14 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
   const rangeX = maxX - minX;
   const rangeY = maxY - minY;
   
-  // Coordinate transformation
-  const toSVGX = (x: number) => padding + ((x - minX) / rangeX) * plotWidth;
-  const toSVGY = (y: number) => padding + plotHeight - ((y - minY) / rangeY) * plotHeight;
-  const scaleX = (val: number) => (val / rangeX) * plotWidth;
-  const scaleY = (val: number) => (val / rangeY) * plotHeight;
+  // Coordinate transformation with one pixels-per-unit scale on both axes,
+  // so rotated ellipses keep their true shape. Data are centered in the plot.
+  const pxPerUnit = Math.min(plotWidth / rangeX, plotHeight / rangeY);
+  const offsetX = padding + (plotWidth - rangeX * pxPerUnit) / 2;
+  const offsetY = padding + (plotHeight - rangeY * pxPerUnit) / 2;
+  const toSVGX = (x: number) => offsetX + (x - minX) * pxPerUnit;
+  const toSVGY = (y: number) => offsetY + (maxY - y) * pxPerUnit;
+  const scaleLen = (val: number) => val * pxPerUnit;
 
   return (
     <div className="w-full bg-card border rounded-lg p-4">
@@ -105,8 +111,8 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
             key={`uncertainty-${i}`}
             cx={toSVGX(ellipse.cx)}
             cy={toSVGY(ellipse.cy)}
-            rx={scaleX(ellipse.rx * 1.5)}
-            ry={scaleY(ellipse.ry * 1.5)}
+            rx={scaleLen(ellipse.rx * 1.5)}
+            ry={scaleLen(ellipse.ry * 1.5)}
             transform={`rotate(${-ellipse.rotation} ${toSVGX(ellipse.cx)} ${toSVGY(ellipse.cy)})`}
             fill={ellipse.color}
             fillOpacity="0.05"
@@ -123,8 +129,8 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
             key={`ellipse-${i}`}
             cx={toSVGX(ellipse.cx)}
             cy={toSVGY(ellipse.cy)}
-            rx={scaleX(ellipse.rx)}
-            ry={scaleY(ellipse.ry)}
+            rx={scaleLen(ellipse.rx)}
+            ry={scaleLen(ellipse.ry)}
             transform={`rotate(${-ellipse.rotation} ${toSVGX(ellipse.cx)} ${toSVGY(ellipse.cy)})`}
             fill={ellipse.color}
             fillOpacity="0.15"
@@ -176,7 +182,7 @@ const BetaDiversityVisualizer = ({ nPerGroup, groups, rSquared }: Props) => {
       <div className="mt-3 space-y-2">
         <div className="text-xs text-muted-foreground">
           <p className="mb-1">
-            Dashed ellipses represent 95% confidence intervals. 
+            Dashed ellipses are 95% confidence regions for each group centroid. 
             R² = {(rSquared * 100).toFixed(1)}% variance explained 
             ({rSquared < 0.05 ? 'small' : rSquared < 0.12 ? 'moderate' : 'large'} effect size).
           </p>

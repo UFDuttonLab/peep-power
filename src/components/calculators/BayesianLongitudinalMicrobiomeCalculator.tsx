@@ -10,19 +10,12 @@ import { Clock, Brain, Info, Download, Code2, Copy, Play, AlertCircle } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
+import { calculateLongitudinalAssurance } from '@/utils/bayesianPowerCalculations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
 
-interface AssuranceResult {
-  requiredN: number;
-  assuranceCurve: Array<{ n: number; assurance: number }>;
-  confidenceRegions: {
-    lower: Array<{ x: number; y: number }>;
-    upper: Array<{ x: number; y: number }>;
-  };
-  summary: string;
-}
+type AssuranceResult = ReturnType<typeof calculateLongitudinalAssurance>;
 
 const BayesianLongitudinalMicrobiomeCalculator = () => {
   const { toast } = useToast();
@@ -41,107 +34,19 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
   const runSimulation = async () => {
     setIsCalculating(true);
     setProgress(0);
-    
+    // Let the UI show the busy state before the (fast, deterministic) calculation
+    await new Promise(resolve => setTimeout(resolve, 20));
     try {
-      // Simplified Bayesian assurance for LMM
-      const nRange = Array.from({ length: 30 }, (_, i) => (i + 1) * 3);
-      const assuranceCurve: Array<{ n: number; assurance: number }> = [];
-      const bootstrapResults: number[][] = [];
-      const nBootstrap = 50; // Reduced for performance
-      
-      // Process in chunks to allow UI updates
-      const chunkSize = 5;
-      for (let chunkIdx = 0; chunkIdx < nRange.length; chunkIdx += chunkSize) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        const chunk = nRange.slice(chunkIdx, chunkIdx + chunkSize);
-        
-        for (const n of chunk) {
-          let successCount = 0;
-          const nSims = 500; // Reduced for performance
-          const bootstrapAssurances: number[] = [];
-          
-          for (let i = 0; i < nSims; i++) {
-            // Sample effect size from prior
-            const sampledES = Math.max(0.05, effectSizeMean + (Math.random() - 0.5) * 2 * effectSizeSD * 1.96);
-            
-            // Account for correlation and dropout
-            const effectiveN = n * Math.pow(1 - dropoutRate, nTimepoints - 1);
-            const designEffect = 1 + (nTimepoints - 1) * withinCorr;
-            const adjustedN = effectiveN / designEffect;
-            
-            // Simple power calculation for time × treatment interaction
-            const ncp = sampledES * Math.sqrt(adjustedN * nTimepoints / 2);
-            const power = 1 - Math.exp(-Math.pow(ncp, 2) / 2);
-            
-            if (power >= targetPower) successCount++;
-          }
-          
-          assuranceCurve.push({ n, assurance: successCount / nSims });
-          
-          // Bootstrap for confidence intervals
-          for (let boot = 0; boot < nBootstrap; boot++) {
-            let bootSuccess = 0;
-            const bootSamples = 100;
-            
-            for (let i = 0; i < bootSamples; i++) {
-              const sampledES = Math.max(0.05, effectSizeMean + (Math.random() - 0.5) * 2 * effectSizeSD * 1.96);
-              const effectiveN = n * Math.pow(1 - dropoutRate, nTimepoints - 1);
-              const designEffect = 1 + (nTimepoints - 1) * withinCorr;
-              const adjustedN = effectiveN / designEffect;
-              const ncp = sampledES * Math.sqrt(adjustedN * nTimepoints / 2);
-              const power = 1 - Math.exp(-Math.pow(ncp, 2) / 2);
-              
-              if (power >= targetPower) bootSuccess++;
-            }
-            
-            bootstrapAssurances.push(bootSuccess / bootSamples);
-          }
-          
-          bootstrapResults.push(bootstrapAssurances);
-        }
-        
-        setProgress(((chunkIdx + chunk.length) / nRange.length) * 100);
-      }
-      
-      // Calculate confidence intervals
-      const confidenceLower = assuranceCurve.map((d, idx) => {
-        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
-        const lower = sorted[Math.floor(0.025 * nBootstrap)] || 0;
-        return { x: d.n, y: Math.max(0, lower) };
-      });
-      
-      const confidenceUpper = assuranceCurve.map((d, idx) => {
-        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
-        const upper = sorted[Math.floor(0.975 * nBootstrap)] || 1;
-        return { x: d.n, y: Math.min(1, upper) };
-      });
-
-      const requiredN = assuranceCurve.find(d => d.assurance >= targetAssurance)?.n || 90;
-      const finalN = Math.round(requiredN * Math.pow(1 - dropoutRate, nTimepoints - 1));
-
-      setResult({
-        requiredN,
-        assuranceCurve,
-        confidenceRegions: {
-          lower: confidenceLower,
-          upper: confidenceUpper
-        },
-        summary: `To achieve <strong>${(targetPower * 100).toFixed(0)}% power</strong> with <strong>${(targetAssurance * 100).toFixed(0)}% assurance</strong>
-                 (accounting for uncertainty in the time × treatment effect size of ${effectSizeMean.toFixed(2)} ± ${effectSizeSD.toFixed(2)}),
-                 you need <strong>${requiredN} subjects</strong> to start.
-                 With ${(dropoutRate * 100).toFixed(0)}% dropout per timepoint over ${nTimepoints} timepoints,
-                 expect approximately <strong>${finalN} subjects</strong> at the final timepoint.`
-      });
-
+      setResult(calculateLongitudinalAssurance({ effectSizeMean, effectSizeSD, nTimepoints, withinCorr, dropoutRate, targetPower, targetAssurance, alpha }));
+      setProgress(100);
       toast({
-        title: "Simulation complete",
-        description: `${15000} Monte Carlo iterations with ${nBootstrap} bootstrap replicates`,
+        title: "Calculation complete",
+        description: "Assurance calculated exactly over the prior (no simulation noise)",
       });
     } catch (e) {
       toast({
         title: "Error",
-        description: "Simulation failed",
+        description: e instanceof Error ? e.message : "Calculation failed",
         variant: "destructive",
       });
     } finally {
@@ -182,8 +87,8 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
   const exportToCSV = () => {
     if (!result) return;
     const csv = [
-      ['Sample Size', 'Assurance'],
-      ...result.assuranceCurve.map((d) => [d.n, d.assurance]),
+      ['Sample Size', 'Assurance', 'Expected Power'],
+      ...result.assuranceCurve.map((d) => [d.n, d.assurance, d.expectedPower]),
     ]
       .map((row) => row.join(','))
       .join('\n');
@@ -407,8 +312,7 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
                 {isCalculating ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    <span>Simulating... {progress.toFixed(0)}%</span>
-                    <span className="text-xs opacity-70">({Math.floor(progress * 300 / 100)} / 300)</span>
+                    <span>Calculating... {progress.toFixed(0)}%</span>
                   </div>
                 ) : (
                   <>
@@ -430,12 +334,12 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
-                    <div className="text-sm text-muted-foreground mb-2">Starting Subjects</div>
+                    <div className="text-sm text-muted-foreground mb-2">Starting Subjects (total, both groups)</div>
                     <div className="text-5xl font-bold text-primary mb-2">
-                      {result.requiredN}
+                      {result.reached ? result.requiredN : `>${result.maxSearchN}`}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Expected final N: {Math.round(result.requiredN * Math.pow(1 - dropoutRate, nTimepoints - 1))}
+                      Expected completers: {result.expectedCompleters} ({(result.totalDropout * 100).toFixed(0)}% total dropout)
                     </div>
                   </div>
 
@@ -444,8 +348,9 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
                   <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Computation:</strong> 30,000 Monte Carlo iterations (1,000 samples × 30 sample sizes) 
-                      + 100 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                      <strong>Computation:</strong> exact noncentral F power for the time x treatment interaction
+                      (completers only), averaged exactly over the effect-size prior. The shaded region shows how assurance
+                      changes if the prior SD is 25% smaller or larger.
                     </AlertDescription>
                   </Alert>
 
@@ -469,7 +374,7 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
+                    <CardTitle>Assurance Curve with Prior Sensitivity</CardTitle>
                     <FormulaDisplay formula={FORMULAS.LINEAR_MIXED_MODEL} buttonVariant="ghost" />
                   </div>
                 </CardHeader>
@@ -477,6 +382,8 @@ const BayesianLongitudinalMicrobiomeCalculator = () => {
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
                     confidenceRegions={result.confidenceRegions}
+                    bandLabel="Assurance if the prior SD is 25% smaller or larger"
+                    target={targetAssurance}
                     currentValue={result.requiredN}
                     xLabel="Starting Subjects"
                     title="Assurance vs Sample Size"

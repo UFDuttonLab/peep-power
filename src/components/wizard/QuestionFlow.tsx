@@ -16,10 +16,8 @@ const QuestionFlow = ({ dataType, onTestSelected }: QuestionFlowProps) => {
     return <CategoricalFlow onTestSelected={onTestSelected} />;
   } else if (dataType === 'microbiome') {
     return <MicrobiomeFlow onTestSelected={onTestSelected} />;
-  } else if (dataType === 'correlation') {
-    onTestSelected('correlation');
-    return null;
   }
+  // 'correlation' needs no follow-up question; HoldMyHandCalculator skips this step for it.
   return null;
 };
 

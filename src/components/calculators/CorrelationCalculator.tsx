@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
-import { calculateCorrelationPower } from '@/utils/powerCalculations';
+import { calculateCorrelationPower, type PowerResult } from '@/utils/powerCalculations';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ const CorrelationCalculator = () => {
   const [n, setN] = useState(40);
   const [rho, setRho] = useState(0.3);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PowerResult | null>(null);
 
   useEffect(() => {
     const res = calculateCorrelationPower(n, rho, alpha);
@@ -24,9 +24,10 @@ const CorrelationCalculator = () => {
   }, [n, rho, alpha]);
 
   const exportResults = () => {
+    if (!result) return;
     const csv = [
       ['Sample Size', 'Power'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ...result.curveData.map((d: { x: number; y: number }) => [d.x, d.y]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -128,7 +129,7 @@ const CorrelationCalculator = () => {
               <SelectContent>
                 <SelectItem value="0.01">0.01</SelectItem>
                 <SelectItem value="0.05">0.05</SelectItem>
-                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="0.1">0.10</SelectItem>
               </SelectContent>
             </Select>
           </div>

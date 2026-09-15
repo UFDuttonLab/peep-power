@@ -8,19 +8,12 @@ import { Dna, Brain, Info, Download, Code2, Copy, Play, AlertCircle } from 'luci
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
+import { calculateDifferentialAbundanceAssurance, type MicrobiomeAssuranceResult } from '@/utils/bayesianPowerCalculations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
 
-interface AssuranceResult {
-  requiredN: number;
-  assuranceCurve: Array<{ n: number; assurance: number }>;
-  confidenceRegions: {
-    lower: Array<{ x: number; y: number }>;
-    upper: Array<{ x: number; y: number }>;
-  };
-  summary: string;
-}
+type AssuranceResult = MicrobiomeAssuranceResult;
 
 const BayesianDifferentialAbundanceCalculator = () => {
   const { toast } = useToast();
@@ -39,107 +32,19 @@ const BayesianDifferentialAbundanceCalculator = () => {
   const runSimulation = async () => {
     setIsCalculating(true);
     setProgress(0);
-    
+    // Let the UI show the busy state before the (fast, deterministic) calculation
+    await new Promise(resolve => setTimeout(resolve, 20));
     try {
-      // Simplified Bayesian assurance for differential abundance
-      const nRange = Array.from({ length: 30 }, (_, i) => (i + 1) * 5);
-      const adjustedAlpha = alpha / numTests; // Bonferroni
-      const assuranceCurve: Array<{ n: number; assurance: number }> = [];
-      const bootstrapResults: number[][] = [];
-      const nBootstrap = 50; // Reduced for performance
-      
-      // Process in chunks to allow UI updates
-      const chunkSize = 5;
-      for (let chunkIdx = 0; chunkIdx < nRange.length; chunkIdx += chunkSize) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        const chunk = nRange.slice(chunkIdx, chunkIdx + chunkSize);
-        
-        for (const n of chunk) {
-          // Monte Carlo: sample from prior, calculate power
-          let successCount = 0;
-          const nSims = 500; // Reduced for performance
-          const bootstrapAssurances: number[] = [];
-          
-          for (let i = 0; i < nSims; i++) {
-            // Sample effect size from prior
-            const sampledFC = Math.max(0.1, log2FCMean + (Math.random() - 0.5) * 2 * log2FCSD * 1.96);
-            // CORRECTED: Proper negative binomial Wald test for DESeq2/edgeR
-            // SE for log2FC = sqrt(dispersion/(n*baseMean) + dispersion/(n*baseMean))
-            const se = Math.sqrt((dispersion / (n * Math.max(1, baseMean))) + (dispersion / (n * Math.max(1, baseMean))));
-            const zCrit = 1.96; // For alpha = 0.05 two-tailed
-            const zStat = Math.abs(sampledFC) / se;
-            // Two-tailed power for Wald z-test
-            const power = Math.min(0.999, 1 - (1 - 2 * (1 - Math.exp(-0.717 * zStat - 0.416 * zStat * zStat))) * 
-                          Math.exp(Math.pow(zCrit - zStat, 2) / -2));
-            
-            if (power >= targetPower) successCount++;
-          }
-          
-          assuranceCurve.push({ n, assurance: successCount / nSims });
-          
-          // Bootstrap for confidence intervals
-          for (let boot = 0; boot < nBootstrap; boot++) {
-            let bootSuccess = 0;
-            const bootSamples = 100;
-            
-            for (let i = 0; i < bootSamples; i++) {
-              const sampledFC = Math.max(0.1, log2FCMean + (Math.random() - 0.5) * 2 * log2FCSD * 1.96);
-              const se = Math.sqrt((dispersion / (n * Math.max(1, baseMean))) + (dispersion / (n * Math.max(1, baseMean))));
-              const zStat = Math.abs(sampledFC) / se;
-              const power = Math.min(0.999, 1 - (1 - 2 * (1 - Math.exp(-0.717 * zStat - 0.416 * zStat * zStat))) * 
-                            Math.exp(Math.pow(1.96 - zStat, 2) / -2));
-              
-              if (power >= targetPower) bootSuccess++;
-            }
-            
-            bootstrapAssurances.push(bootSuccess / bootSamples);
-          }
-          
-          bootstrapResults.push(bootstrapAssurances);
-        }
-        
-        setProgress(((chunkIdx + chunk.length) / nRange.length) * 100);
-      }
-      
-      // Calculate confidence intervals
-      const confidenceLower = assuranceCurve.map((d, idx) => {
-        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
-        const lower = sorted[Math.floor(0.025 * nBootstrap)] || 0;
-        return { x: d.n, y: Math.max(0, lower) };
-      });
-      
-      const confidenceUpper = assuranceCurve.map((d, idx) => {
-        const sorted = [...bootstrapResults[idx]].sort((a, b) => a - b);
-        const upper = sorted[Math.floor(0.975 * nBootstrap)] || 1;
-        return { x: d.n, y: Math.min(1, upper) };
-      });
-
-      const requiredN = assuranceCurve.find(d => d.assurance >= targetAssurance)?.n || 150;
-      const foldChange = Math.pow(2, log2FCMean);
-
-      setResult({
-        requiredN,
-        assuranceCurve,
-        confidenceRegions: {
-          lower: confidenceLower,
-          upper: confidenceUpper
-        },
-        summary: `To achieve <strong>${(targetPower * 100).toFixed(0)}% power</strong> with <strong>${(targetAssurance * 100).toFixed(0)}% assurance</strong> 
-                 (accounting for uncertainty about the true log2 fold-change of ${log2FCMean.toFixed(1)} ± ${log2FCSD.toFixed(1)}), 
-                 you need <strong>${requiredN} samples per group</strong>. 
-                 This accounts for ${numTests} taxa tested and typical overdispersion (${dispersion}) in microbiome count data.
-                 Expected fold-change: ${foldChange.toFixed(1)}×`
-      });
-
+      setResult(calculateDifferentialAbundanceAssurance({ log2FCMean, log2FCSD, dispersion, baseMean, targetPower, targetAssurance, alpha, numTests }));
+      setProgress(100);
       toast({
-        title: "Simulation complete",
-        description: `${15000} Monte Carlo iterations with ${nBootstrap} bootstrap replicates`,
+        title: "Calculation complete",
+        description: "Assurance calculated exactly over the prior (no simulation noise)",
       });
     } catch (e) {
       toast({
         title: "Error",
-        description: "Simulation failed",
+        description: e instanceof Error ? e.message : "Calculation failed",
         variant: "destructive",
       });
     } finally {
@@ -180,8 +85,8 @@ const BayesianDifferentialAbundanceCalculator = () => {
   const exportToCSV = () => {
     if (!result) return;
     const csv = [
-      ['Sample Size', 'Assurance'],
-      ...result.assuranceCurve.map((d) => [d.n, d.assurance]),
+      ['Sample Size', 'Assurance', 'Expected Power'],
+      ...result.assuranceCurve.map((d) => [d.n, d.assurance, d.expectedPower]),
     ]
       .map((row) => row.join(','))
       .join('\n');
@@ -411,8 +316,7 @@ const BayesianDifferentialAbundanceCalculator = () => {
                 {isCalculating ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    <span>Simulating... {progress.toFixed(0)}%</span>
-                    <span className="text-xs opacity-70">({Math.floor(progress * 300 / 100)} / 300)</span>
+                    <span>Calculating... {progress.toFixed(0)}%</span>
                   </div>
                 ) : (
                   <>
@@ -436,7 +340,7 @@ const BayesianDifferentialAbundanceCalculator = () => {
                   <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
                     <div className="text-sm text-muted-foreground mb-2">Samples Per Group</div>
                     <div className="text-5xl font-bold text-primary mb-2">
-                      {result.requiredN}
+                      {result.reached ? result.requiredN : `>${result.maxSearchN}`}
                     </div>
                   </div>
 
@@ -452,8 +356,9 @@ const BayesianDifferentialAbundanceCalculator = () => {
                   <Alert className="mt-4 bg-blue-50 dark:bg-blue-950/20 border-blue-500">
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Computation:</strong> 30,000 Monte Carlo iterations (1,000 samples × 30 sample sizes) 
-                      + 100 bootstrap replicates for confidence intervals. Shaded region shows 95% confidence bounds.
+                      <strong>Computation:</strong> NB Wald test power (DESeq2/edgeR standard error, Bonferroni
+                      over all taxa) averaged exactly over the log2 fold-change prior; only changes in the direction of the
+                      prior mean count. The shaded region shows how assurance changes if the prior SD is 25% smaller or larger.
                     </AlertDescription>
                   </Alert>
 
@@ -477,7 +382,7 @@ const BayesianDifferentialAbundanceCalculator = () => {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Assurance Curve with Confidence Intervals</CardTitle>
+                    <CardTitle>Assurance Curve with Prior Sensitivity</CardTitle>
                     <FormulaDisplay formula={FORMULAS.DIFFERENTIAL_ABUNDANCE} buttonVariant="ghost" />
                   </div>
                 </CardHeader>
@@ -485,6 +390,8 @@ const BayesianDifferentialAbundanceCalculator = () => {
                   <BayesianAssuranceChart
                     data={result.assuranceCurve.map(d => ({ x: d.n, y: d.assurance }))}
                     confidenceRegions={result.confidenceRegions}
+                    bandLabel="Assurance if the prior SD is 25% smaller or larger"
+                    target={targetAssurance}
                     currentValue={result.requiredN}
                     xLabel="Samples Per Group"
                     title="Assurance vs Sample Size"

@@ -83,6 +83,8 @@ export default function EffectSizeConversionGuide({
   const getConversions = () => {
     const value = parseFloat(converterInput);
     if (isNaN(value) || value < 0) return null;
+    // R² and eta² are proportions of variance and must be below 1
+    if ((converterType === 'r2' || converterType === 'eta2') && value >= 1) return null;
 
     let d = 0, f = 0, r2 = 0, eta2 = 0, correlation = 0;
 
@@ -241,7 +243,7 @@ export default function EffectSizeConversionGuide({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="converter-type">Input Type</Label>
-                      <Select value={converterType} onValueChange={(v) => setConverterType(v as any)}>
+                      <Select value={converterType} onValueChange={(v) => setConverterType(v as 'd' | 'f' | 'r2' | 'eta2')}>
                         <SelectTrigger id="converter-type">
                           <SelectValue />
                         </SelectTrigger>
@@ -254,6 +256,12 @@ export default function EffectSizeConversionGuide({
                       </Select>
                     </div>
                   </div>
+
+                  {!conversions && converterInput.trim() !== '' && (
+                    <p className="text-xs text-destructive">
+                      Enter a value of 0 or more. R² and Eta² are proportions and must be below 1.
+                    </p>
+                  )}
 
                   {conversions && (
                     <div className="space-y-2">

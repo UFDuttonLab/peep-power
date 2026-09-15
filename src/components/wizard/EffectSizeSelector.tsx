@@ -239,6 +239,17 @@ const EffectSizeSelector = ({ testType, numGroups, onSelect, onBack }: EffectSiz
                 <p className="text-xs text-muted-foreground mt-1">
                   Small = 0.2, Medium = 0.5, Large = 0.8
                 </p>
+                {(testType === 'correlation' || testType === 'chisquare') && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Values are converted from Cohen's d to {testType === 'correlation' ? 'r' : 'w'} using
+                    d / √(d² + 4) (e.g., d = 0.5 gives {testType === 'correlation' ? 'r' : 'w'} ≈ 0.24).
+                  </p>
+                )}
+                {(testType === 'oneway' || testType === 'twoway' || testType === 'repeated' || testType === 'lmm-microbiome') && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Values are converted from Cohen's d to Cohen's f using f = d / 2.
+                  </p>
+                )}
               </>
             )}
           </div>

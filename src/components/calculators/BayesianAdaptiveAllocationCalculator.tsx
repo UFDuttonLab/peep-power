@@ -86,7 +86,7 @@ const BayesianAdaptiveAllocationCalculator = () => {
         setResult(res);
         toast({ title: "Success", description: "Adaptive allocation calculated!" });
       } catch (error) {
-        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -189,7 +189,7 @@ const BayesianAdaptiveAllocationCalculator = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label className="text-xs">Expected Effect - Mean: {priors[idx].mean.toFixed(2)}</Label>
+                    <Label className="text-xs">Expected Mean Outcome (SD units): {priors[idx].mean.toFixed(2)}</Label>
                     <Slider
                       value={[priors[idx].mean]}
                       onValueChange={(v) => updatePrior(idx, 'mean', v[0])}
@@ -337,13 +337,13 @@ const BayesianAdaptiveAllocationCalculator = () => {
 
                   <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
                     <p className="font-semibold text-green-900 dark:text-green-100 mb-2">
-                      🎯 Power Gain vs Equal Allocation
+                      🎯 Overall ANOVA Power vs Equal Allocation (relative change)
                     </p>
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                       {result.comparisonToEqual.powerGain > 0 ? '+' : ''}{result.comparisonToEqual.powerGain.toFixed(1)}%
                     </p>
                     <p className="text-sm text-green-800 dark:text-green-200 mt-2">
-                      Expected power: {(result.expectedPower * 100).toFixed(0)}%
+                      Power at the prior means with this allocation: {(result.expectedPower * 100).toFixed(0)}%
                     </p>
                   </div>
                 </CardContent>

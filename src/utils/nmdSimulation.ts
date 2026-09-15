@@ -1,3 +1,5 @@
+import jStat from 'jstat';
+
 // Seeded random number generator for reproducible simulations
 class SeededRandom {
   private seed: number;
@@ -9,7 +11,8 @@ class SeededRandom {
   next(): number {
     // Linear Congruential Generator
     this.seed = (this.seed * 1664525 + 1013904223) % 4294967296;
-    return this.seed / 4294967296;
+    // Offset by half a step so the result is in (0, 1): Box-Muller needs log(u) finite
+    return (this.seed + 0.5) / 4294967296;
   }
 }
 
@@ -30,34 +33,10 @@ export interface EllipseParams {
   groupName: string;
 }
 
-// F-distribution approximation for (2, n-2) degrees of freedom at α=0.05
-const getFCritical = (n: number): number => {
-  if (n < 3) return 10; // Minimum sample size
-  
-  // Simple approximation using lookup table with interpolation
-  const lookupTable = [
-    { n: 3, f: 19.00 },
-    { n: 5, f: 6.94 },
-    { n: 10, f: 4.46 },
-    { n: 15, f: 3.89 },
-    { n: 20, f: 3.55 },
-    { n: 30, f: 3.33 },
-    { n: 50, f: 3.18 },
-    { n: 100, f: 3.09 },
-    { n: 200, f: 3.04 },
-    { n: Infinity, f: 3.00 }
-  ];
-  
-  // Find bracketing values and interpolate
-  for (let i = 0; i < lookupTable.length - 1; i++) {
-    if (n <= lookupTable[i + 1].n) {
-      const lower = lookupTable[i];
-      const upper = lookupTable[i + 1];
-      const t = (n - lower.n) / (upper.n - lower.n);
-      return lower.f + t * (upper.f - lower.f);
-    }
-  }
-  return 3.00; // For very large n
+// Critical value F_{0.05; p, n-p} for the Hotelling T^2 region
+const getFCritical = (n: number, p: number = 2): number => {
+  if (n <= p) return Infinity;
+  return jStat.centralF.inv(0.95, p, n - p);
 };
 
 export const generateNMDSData = (
@@ -143,47 +122,30 @@ export const calculateConfidenceEllipse = (
   // Compute eigenvalues for principal axes
   const trace = covXX + covYY;
   const det = covXX * covYY - covXY * covXY;
-  const lambda1 = trace/2 + Math.sqrt(trace*trace/4 - det);
-  const lambda2 = trace/2 - Math.sqrt(trace*trace/4 - det);
+  // Guard against a tiny negative discriminant from floating-point rounding
+  const disc = Math.sqrt(Math.max(0, trace * trace / 4 - det));
+  const lambda1 = trace / 2 + disc;
+  const lambda2 = Math.max(0, trace / 2 - disc);
   
   // Rotation angle of ellipse
   const rotation = Math.atan2(lambda1 - covXX, covXY) * (180 / Math.PI);
   
-  // ===== CONFIDENCE ELLIPSE CALCULATION USING HOTELLING'S T² DISTRIBUTION =====
-  // 
-  // For a 2D ordination, the confidence ellipse represents the region where the true 
-  // centroid lies with (1-α)×100% confidence (e.g., 95% for α=0.05).
-  //
-  // This is the EXACT Hotelling T² approach, not an approximation.
-  // 
-  // Formula: sqrt((n-1) × p × F_{α,p,n-p} / (n-p))
-  // where:
-  //   n = sample size per group
-  //   p = number of dimensions (2 for 2D NMDS, can be parameterized for 3D)
-  //   F_{α,p,n-p} = critical value from F-distribution with df1=p, df2=n-p
-  //
-  // This method accounts for multivariate uncertainty in ordination space.
-  // See: Anderson & Walsh (2013), "PERMANOVA, ANOSIM, and the Mantel test 
-  // in the face of heterogeneous dispersions"
-  // 
-  // Note: The F-distribution lookup is currently hardcoded for p=2 dimensions.
-  // For 3D NMDS, this should be parameterized to use p=3 and df1=3.
-  // ============================================================================
-  
-  const p = 2; // Number of dimensions (2 for 2D NMDS)
-  const fCritical = getFCritical(n); // F_{0.05, 2, n-2} for α=0.05
-  const scaleFactor = Math.sqrt((n - 1) * p * fCritical / (n - p));
-  
-  // Add visual amplification for small samples to make uncertainty MORE obvious
-  // This is a UX enhancement, not part of the statistical formula
+  // ===== CONFIDENCE REGION FOR THE GROUP CENTROID (HOTELLING T^2) =====
+  // (x_bar - mu)' S^-1 (x_bar - mu) <= p (n-1) / (n (n-p)) * F_{alpha; p, n-p}
+  // so each semi-axis is sqrt(eigenvalue * c). p = 2 for a 2D ordination.
+  const p = 2;
+  const fCritical = getFCritical(n, p);
+  const c = (p * (n - 1) * fCritical) / (n * (n - p));
+
+  // Visual amplification for small samples (UX only, not part of the formula)
   const visualAmplification = n < 10 ? 1.3 : n < 20 ? 1.15 : 1.0;
-  const adjustedScale = scaleFactor * visualAmplification;
-  
+  const safe = (v: number) => (Number.isFinite(v) ? v : 0);
+
   return {
     cx: meanX,
     cy: meanY,
-    rx: Math.sqrt(lambda1 * adjustedScale),
-    ry: Math.sqrt(lambda2 * adjustedScale),
+    rx: safe(Math.sqrt(lambda1 * c) * visualAmplification),
+    ry: safe(Math.sqrt(lambda2 * c) * visualAmplification),
     rotation
   };
 };

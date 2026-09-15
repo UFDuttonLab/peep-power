@@ -49,7 +49,7 @@ const BayesianSequentialCalculator = () => {
         setResult(res);
         toast({ title: "Success", description: "Sequential design calculated!" });
       } catch (error) {
-        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -83,7 +83,7 @@ const BayesianSequentialCalculator = () => {
     if (!result) return;
     const rCode = generateRCode({
       testType: 'bayesian-sequential',
-      parameters: { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha }
+      parameters: { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha, stoppingRule, futilityThreshold, superiorityThreshold }
     });
     downloadRFile(rCode, 'bayesian_sequential_analysis.R');
     toast({ title: "R code exported", description: "Ready to run in RStudio" });
@@ -93,7 +93,7 @@ const BayesianSequentialCalculator = () => {
     if (!result) return;
     const rCode = generateRCode({
       testType: 'bayesian-sequential',
-      parameters: { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha }
+      parameters: { effectMean, effectSD, maxN, interimLooks, testType, groups, alpha, stoppingRule, futilityThreshold, superiorityThreshold }
     });
     const success = await copyToClipboard(rCode);
     if (success) {
@@ -201,7 +201,7 @@ ${result.summary}`;
             </div>
 
             <div className="space-y-2">
-              <Label>Maximum N Per Group: {maxN}</Label>
+              <Label>Maximum N {testType === 'correlation' ? '(Total)' : 'Per Group'}: {maxN}</Label>
               <Slider
                 value={[maxN]}
                 onValueChange={(v) => setMaxN(v[0])}
@@ -212,7 +212,7 @@ ${result.summary}`;
             </div>
 
             <div className="space-y-2">
-              <Label>Number of Interim Looks: {interimLooks}</Label>
+              <Label>Number of Interim Looks (before the final analysis): {interimLooks}</Label>
               <Slider
                 value={[interimLooks]}
                 onValueChange={(v) => setInterimLooks(v[0])}
@@ -239,6 +239,9 @@ ${result.summary}`;
             {(stoppingRule === 'futility' || stoppingRule === 'both') && (
               <div className="space-y-2">
                 <Label>Futility Threshold: {futilityThreshold.toFixed(2)}</Label>
+                <p className="text-xs text-muted-foreground">
+                  Stop for futility when the predictive probability of a significant final result is at or below this value
+                </p>
                 <Slider
                   value={[futilityThreshold]}
                   onValueChange={(v) => setFutilityThreshold(v[0])}
@@ -252,6 +255,9 @@ ${result.summary}`;
             {(stoppingRule === 'superiority' || stoppingRule === 'both') && (
               <div className="space-y-2">
                 <Label>Superiority Threshold: {superiorityThreshold.toFixed(2)}</Label>
+                <p className="text-xs text-muted-foreground">
+                  Stop and declare success when the predictive probability of a significant final result reaches this value
+                </p>
                 <Slider
                   value={[superiorityThreshold]}
                   onValueChange={(v) => setSuperiorityThreshold(v[0])}
@@ -327,6 +333,12 @@ ${result.summary}`;
                       <p className="text-sm text-muted-foreground">Max N (Fixed)</p>
                       <p className="text-2xl font-bold text-muted-foreground">{result.maxN}</p>
                     </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Type I Error (simulated)</p>
+                      <p className={`text-2xl font-bold ${result.operatingCharacteristics.typeIError > alpha * 1.2 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                        {(result.operatingCharacteristics.typeIError * 100).toFixed(1)}%
+                      </p>
+                    </div>
                   </div>
 
                   <Alert>
@@ -354,7 +366,7 @@ ${result.summary}`;
               <Card>
                 <CardHeader>
                   <CardTitle>Stopping Probabilities</CardTitle>
-                  <CardDescription>Probability of stopping at each interim analysis</CardDescription>
+                  <CardDescription>Probability of stopping at each analysis, and of continuing past it (the last point is the final analysis)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -380,11 +392,13 @@ ${result.summary}`;
                     {result.stoppingProbabilities.map((sp: any, idx: number) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div>
-                          <p className="font-semibold">Look {sp.look} (N={sp.n})</p>
+                          <p className="font-semibold">
+                            {idx === result.stoppingProbabilities.length - 1 ? 'Final analysis' : `Look ${sp.look}`} (N={sp.n})
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            Futility: {(sp.stopFutility * 100).toFixed(1)}% | 
-                            Superiority: {(sp.stopSuperiority * 100).toFixed(1)}% | 
-                            Continue: {(sp.continue * 100).toFixed(1)}%
+                            {idx === result.stoppingProbabilities.length - 1
+                              ? `Reaches final analysis and succeeds: ${(sp.stopSuperiority * 100).toFixed(1)}% | fails: ${(sp.stopFutility * 100).toFixed(1)}%`
+                              : `Stop for futility: ${(sp.stopFutility * 100).toFixed(1)}% | Stop for success: ${(sp.stopSuperiority * 100).toFixed(1)}% | Continue: ${(sp.continue * 100).toFixed(1)}%`}
                           </p>
                         </div>
                       </div>
@@ -410,7 +424,7 @@ ${result.summary}`;
         <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
         <AlertDescription className="text-yellow-900 dark:text-yellow-100">
           <strong>Important:</strong> Sequential designs require pre-specification of stopping rules before data collection. 
-          Type I error is controlled through spending functions. Consult a statistician for proper implementation.
+          Stopping early for success can inflate the type I error; the simulated value is shown with the results, and raising the superiority threshold reduces it. Consult a statistician for proper implementation.
         </AlertDescription>
       </Alert>
     </div>

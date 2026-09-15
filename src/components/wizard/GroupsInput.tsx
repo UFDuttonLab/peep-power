@@ -33,8 +33,23 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
           default: 2,
           fixed: true,
         };
-      case 'oneway':
       case 'twoway':
+        return {
+          title: 'How many cells does your design have?',
+          description: 'Multiply the levels of your factors (e.g., 2 temperatures × 3 moisture levels = 6 cells)',
+          prompt: 'Number of cells',
+          default: 4,
+          fixed: false,
+        };
+      case 'chisquare':
+        return {
+          title: 'How many categories are you comparing?',
+          description: 'Enter the number of groups or categories. Degrees of freedom are taken as categories - 1, which fits a 2 × k table or a goodness-of-fit test.',
+          prompt: 'Number of categories',
+          default: 2,
+          fixed: false,
+        };
+      case 'oneway':
         return {
           title: 'How many groups are you comparing?',
           description: 'Enter the total number of independent groups in your study',
@@ -67,6 +82,7 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
           fixed: false,
         };
       case 'repeated-microbiome':
+      case 'lmm-microbiome':
         return {
           title: 'How many timepoints will you measure?',
           description: 'Enter the number of repeated measurements per subject (e.g., 2 for before/after, 4 for quarterly)',
@@ -87,7 +103,31 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
 
   const config = getPromptText();
 
-  // For t-test, auto-submit with 2 groups
+  // Correlation needs no group count; the value passed on is not used by the correlation calculation
+  if (testType === 'correlation') {
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">{config.title}</h2>
+          <p className="text-muted-foreground">
+            A correlation uses one group of paired measurements, so there is nothing to enter here.
+            The next page gives the total number of samples you need.
+          </p>
+        </div>
+
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={onBack} className="flex-1">
+            Back
+          </Button>
+          <Button onClick={() => onSubmit(2)} className="flex-1">
+            Calculate Sample Size
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // For t-test, the number of groups is fixed at 2
   if (config.fixed && config.default === 2) {
     return (
       <div className="space-y-6">
@@ -123,10 +163,10 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          {testType === 'repeated-microbiome' 
+          {testType === 'repeated-microbiome' || testType === 'repeated' || testType === 'lmm-microbiome'
             ? 'For repeated measures, enter the number of times each subject will be measured.'
-            : testType === 'repeated'
-            ? 'For repeated measures, enter the number of times each subject will be measured.'
+            : testType === 'twoway'
+            ? 'For two factors, enter the number of factor-level combinations (cells), e.g. 2 temperatures × 3 moisture levels = 6.'
             : 'This should be the number of independent treatment groups or conditions you\'re comparing. Each group should have multiple replicate samples.'
           }
         </AlertDescription>
@@ -153,7 +193,7 @@ const GroupsInput = ({ testType, onSubmit, onBack }: GroupsInputProps) => {
         <div className="bg-muted/50 rounded-lg p-4">
           <h4 className="font-medium text-sm mb-2">Quick Presets:</h4>
           <div className="flex gap-2 flex-wrap">
-            {testType === 'repeated-microbiome' || testType === 'repeated' ? (
+            {testType === 'repeated-microbiome' || testType === 'repeated' || testType === 'lmm-microbiome' ? (
               <>
                 <Button variant="outline" size="sm" onClick={() => setGroups('2')}>
                   2 Timepoints

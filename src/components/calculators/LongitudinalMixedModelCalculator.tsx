@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import TimelineVisualization from '@/components/TimelineVisualization';
-import { calculateLMMPower, calculateRequiredSampleSizeLMM } from '@/utils/microbiomePowerCalculations';
+import { calculateLMMPower, calculateRequiredSampleSizeLMM, MAX_SEARCH_N } from '@/utils/microbiomePowerCalculations';
 import { AlertCircle, TrendingUp, Clock, Info, Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
@@ -27,11 +27,12 @@ const LongitudinalMixedModelCalculator = () => {
 
   const power = calculateLMMPower(nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha);
   const requiredN = calculateRequiredSampleSizeLMM(0.8, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha);
+  const requiredNLabel = Number.isFinite(requiredN) ? `${requiredN}` : `> ${MAX_SEARCH_N}`;
 
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'lmm-microbiome',
-      parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha }
+      parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha, power }
     });
     downloadRFile(rCode, 'lmm_microbiome_power.R');
     toast({ title: "R code exported", description: "Data downloaded successfully" });
@@ -40,7 +41,7 @@ const LongitudinalMixedModelCalculator = () => {
   const copyRCode = async () => {
     const rCode = generateRCode({
       testType: 'lmm-microbiome',
-      parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha }
+      parameters: { nSubjects, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha, power }
     });
     const success = await copyToClipboard(rCode);
     if (success) {
@@ -261,13 +262,13 @@ const LongitudinalMixedModelCalculator = () => {
 
               <ControlSlider
                 id="dropoutrate"
-                label="Dropout Rate per Timepoint"
+                label="Total Dropout by Final Timepoint"
                 value={dropoutRate}
                 min={0}
                 max={0.3}
                 step={0.05}
                 onChange={setDropoutRate}
-                tooltip="Proportion of subjects lost at each timepoint"
+                tooltip="Proportion of enrolled subjects expected to be lost by the final timepoint. Power is computed on the subjects who complete the study."
               />
 
               <div className="space-y-3">
@@ -320,7 +321,7 @@ const LongitudinalMixedModelCalculator = () => {
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="text-sm text-muted-foreground">For 80% Power</div>
-                  <div className="text-2xl font-bold">{requiredN} subjects</div>
+                  <div className="text-2xl font-bold">{requiredNLabel} subjects</div>
                 </div>
               </div>
 
@@ -337,7 +338,7 @@ const LongitudinalMixedModelCalculator = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Expected final N:</span>
-                    <span className="font-semibold">{Math.round(nSubjects * Math.pow(1 - dropoutRate, nTimepoints - 1))}</span>
+                    <span className="font-semibold">{Math.round(nSubjects * (1 - dropoutRate))}</span>
                   </div>
                 </div>
               </div>
@@ -357,7 +358,7 @@ const LongitudinalMixedModelCalculator = () => {
               <h3 className="font-semibold mb-3">Timeline & Retention</h3>
               <TimelineVisualization
                 nTimepoints={nTimepoints}
-                dropoutRate={dropoutRate}
+                dropoutRate={1 - Math.pow(1 - dropoutRate, 1 / (nTimepoints - 1))}
               />
             </Card>
 

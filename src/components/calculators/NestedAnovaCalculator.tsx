@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
@@ -9,23 +9,67 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
+import type { FormulaInfo } from '@/components/FormulaDisplay';
 
 interface NestedPowerResult {
   powerBetween: number;
-  powerWithin: number;
+  designEffect: number;
+  totalN: number;
+  effectiveTotalN: number;
   summaryBetween: string;
-  summaryWithin: string;
+  summaryDesign: string;
   curveData: Array<{ x: number; y: number }>;
 }
 
-// Import jStat for proper noncentral F distribution
-// @ts-ignore
 import jStat from 'jstat';
-
-// Import noncentralFPower from powerCalculations
 import { noncentralFPower } from '@/utils/powerCalculations';
 
-// Calculate power for nested/hierarchical design
+/**
+ * Power for the treatment effect in a balanced nested (cluster) design.
+ * g treatment groups, c clusters per group, m observations per cluster.
+ * DE = 1 + (m - 1) * ICC, lambda = f^2 * g * c * m / DE,
+ * df1 = g - 1, df2 = g * (c - 1) (clusters are the error units).
+ */
+function nestedPowerAt(
+  m: number,
+  c: number,
+  g: number,
+  f: number,
+  icc: number,
+  alpha: number
+): number {
+  const df1 = g - 1;
+  const df2 = g * (c - 1);
+  if (df1 < 1 || df2 < 1) return 0;
+  const designEffect = 1 + (m - 1) * icc;
+  const lambda = (f * f * g * c * m) / designEffect;
+  const critF = jStat.centralF.inv(1 - alpha, df1, df2);
+  return noncentralFPower(lambda, df1, df2, critF);
+}
+
+// Formula shown in the dialog; kept next to the code that implements it.
+const NESTED_FORMULA: FormulaInfo = {
+  ...FORMULAS.NESTED_ANOVA,
+  formula: `Power = P(F > F_crit | lambda)
+
+Design Effect DE = 1 + (m - 1) x ICC
+lambda = f² x g x c x m / DE
+
+df1 = g - 1
+df2 = g x (c - 1)   (clusters are the error units)`,
+  variables: [
+    { symbol: 'f', description: "Cohen's f for the treatment effect (for 2 groups, f = d/2)" },
+    { symbol: 'g', description: 'Number of treatment groups' },
+    { symbol: 'c', description: 'Clusters per group' },
+    { symbol: 'm', description: 'Observations per cluster' },
+    { symbol: 'ICC', description: 'Intraclass correlation (share of variance between clusters)' },
+  ],
+  notes: [
+    'Total effective sample size = g x c x m / DE',
+    'Higher ICC inflates DE and reduces power; adding clusters helps more than adding observations per cluster',
+  ],
+};
+
 function calculateNestedAnovaPower(
   nPerCluster: number,
   clusters: number,
@@ -34,52 +78,33 @@ function calculateNestedAnovaPower(
   icc: number,
   alpha: number = 0.05
 ): NestedPowerResult {
-  // Design effect reduces effective sample size
   const designEffect = 1 + (nPerCluster - 1) * icc;
-  const effectiveN = (nPerCluster * clusters) / designEffect;
-  
-  // Between-cluster effect (main effect of treatment)
-  const dfBetween1 = groups - 1;
-  const dfBetween2 = groups * (clusters - 1);
-  
-  // CORRECTED: Use proper noncentral F distribution instead of logistic approximation
-  const effectiveClusters = (clusters * nPerCluster) / designEffect;
-  const lambdaBetween = (effectiveClusters * groups * effectSize * effectSize) / 2;
-  
-  // Calculate power using proper noncentral F distribution
-  const critF = jStat.centralF.inv(1 - alpha, dfBetween1, dfBetween2);
-  const powerBetween = noncentralFPower(lambdaBetween, dfBetween1, dfBetween2, critF);
-  
-  // Within-cluster effect (assuming some within-cluster variation)
-  const lambdaWithin = effectiveN * Math.pow(effectSize, 2) / 2;
-  const powerWithin = Math.min(0.99, Math.max(0.05, 1 / (1 + Math.exp(-3 * (lambdaWithin - 3)))));
-  
-  const summaryBetween = `Between-cluster power: ${(powerBetween * 100).toFixed(1)}% with ${clusters} clusters, ${nPerCluster} per cluster, ICC=${icc.toFixed(2)}. ${
+  const totalN = nPerCluster * clusters * groups;
+  const effectiveTotalN = totalN / designEffect;
+  const powerBetween = nestedPowerAt(nPerCluster, clusters, groups, effectSize, icc, alpha);
+
+  const summaryBetween = `Treatment effect power: ${(powerBetween * 100).toFixed(1)}% with ${clusters} clusters per group, ${nPerCluster} per cluster, ICC=${icc.toFixed(2)}, f=${effectSize.toFixed(2)}. ${
     powerBetween < 0.8 ? '⚠️ Power is below 80%.' : '✓ Adequate power.'
   }`;
-  
-  const summaryWithin = `Effective sample size: ${effectiveN.toFixed(0)} (design effect: ${designEffect.toFixed(2)}). ${
+
+  const summaryDesign = `Total effective sample size: ${effectiveTotalN.toFixed(0)} of ${totalN} observations (design effect: ${designEffect.toFixed(2)}). ${
     icc > 0.2 ? '⚠️ High ICC reduces power substantially.' : 'Moderate clustering effect.'
   }`;
-  
-  // Generate power curve by varying number of clusters
-  const curveData = [];
-  for (let c = 2; c <= 100; c += 1) {
-    const designEffectC = 1 + (nPerCluster - 1) * icc;
-    const effectiveClustersC = (c * nPerCluster) / designEffectC;
-    // CORRECTED: Lambda based on effective cluster count, matching displayed power calculation
-    const lambdaC = (effectiveClustersC * groups * effectSize * effectSize) / 2;
-    const dfBetween2C = groups * (c - 1);
-    const critFC = jStat.centralF.inv(1 - alpha, dfBetween1, dfBetween2C);
-    const powerC = noncentralFPower(lambdaC, dfBetween1, dfBetween2C, critFC);
-    curveData.push({ x: c, y: Math.max(0.01, Math.min(1.0, powerC)) });
+
+  // Power curve: vary the number of clusters per group
+  const curveData: Array<{ x: number; y: number }> = [];
+  const maxC = Math.max(100, Math.ceil(clusters * 1.5));
+  for (let c = 2; c <= maxC; c += 1) {
+    curveData.push({ x: c, y: nestedPowerAt(nPerCluster, c, groups, effectSize, icc, alpha) });
   }
-  
+
   return {
     powerBetween,
-    powerWithin,
+    designEffect,
+    totalN,
+    effectiveTotalN,
     summaryBetween,
-    summaryWithin,
+    summaryDesign,
     curveData
   };
 }
@@ -89,15 +114,13 @@ export const NestedAnovaCalculator = () => {
   const [nPerCluster, setNPerCluster] = useState(10);
   const [clusters, setClusters] = useState(6);
   const [groups, setGroups] = useState(2);
-  const [effectSize, setEffectSize] = useState(0.5);
+  const [effectSize, setEffectSize] = useState(0.25);
   const [icc, setIcc] = useState(0.1);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<NestedPowerResult | null>(null);
-
-  useEffect(() => {
-    const newResult = calculateNestedAnovaPower(nPerCluster, clusters, groups, effectSize, icc, alpha);
-    setResult(newResult);
-  }, [nPerCluster, clusters, groups, effectSize, icc, alpha]);
+  const result = useMemo<NestedPowerResult>(
+    () => calculateNestedAnovaPower(nPerCluster, clusters, groups, effectSize, icc, alpha),
+    [nPerCluster, clusters, groups, effectSize, icc, alpha]
+  );
 
   const exportResults = () => {
     if (!result) return;
@@ -116,7 +139,10 @@ export const NestedAnovaCalculator = () => {
       parameters: { 
         sitesPerTreatment: clusters, 
         subplotsPerSite: nPerCluster, 
-        effectSize, 
+        effectSize, // Cohen's f
+        effectSizeType: 'f',
+        icc,
+        groups,
         alpha 
       }
     });
@@ -133,7 +159,10 @@ export const NestedAnovaCalculator = () => {
       parameters: { 
         sitesPerTreatment: clusters, 
         subplotsPerSite: nPerCluster, 
-        effectSize, 
+        effectSize, // Cohen's f
+        effectSizeType: 'f',
+        icc,
+        groups,
         alpha 
       }
     });
@@ -191,12 +220,13 @@ export const NestedAnovaCalculator = () => {
 
             <ControlSlider
               id="nested-effect-size"
-              label="Effect Size (Cohen's d)"
+              label="Effect Size (Cohen's f)"
               value={effectSize}
               onChange={setEffectSize}
-              min={0.1}
-              max={2.0}
-              step={0.1}
+              min={0.05}
+              max={1.0}
+              step={0.01}
+              tooltip="Cohen's f for the treatment effect: SD of the group means divided by the total within-group SD. Small 0.10, medium 0.25, large 0.40. For two groups, f = d/2."
             />
 
             <ControlSlider
@@ -248,12 +278,12 @@ export const NestedAnovaCalculator = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Power Analysis Results</CardTitle>
-              <FormulaDisplay formula={FORMULAS.NESTED_ANOVA} buttonVariant="ghost" />
+              <FormulaDisplay formula={NESTED_FORMULA} buttonVariant="ghost" />
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-primary/5 rounded-lg">
-              <div className="text-sm text-muted-foreground mb-1">Between-Cluster Power</div>
+              <div className="text-sm text-muted-foreground mb-1">Treatment Effect Power</div>
               <div className="text-3xl font-bold text-primary">
                 {(result.powerBetween * 100).toFixed(1)}%
               </div>
@@ -261,15 +291,15 @@ export const NestedAnovaCalculator = () => {
             </div>
 
             <div className="text-sm text-muted-foreground">
-              {result.summaryWithin}
+              {result.summaryDesign}
             </div>
 
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Design Effect Impact</h4>
               <div className="text-xs space-y-1">
-                <div>Design Effect: {(1 + (nPerCluster - 1) * icc).toFixed(2)}</div>
-                <div>Effective Sample Size: {((nPerCluster * clusters * groups) / (1 + (nPerCluster - 1) * icc)).toFixed(0)} 
-                  (vs {nPerCluster * clusters * groups} total observations)</div>
+                <div>Design Effect: {result.designEffect.toFixed(2)}</div>
+                <div>Total Effective Sample Size: {result.effectiveTotalN.toFixed(0)} 
+                  (vs {result.totalN} total observations)</div>
                 <div className="text-muted-foreground mt-1">
                   {icc > 0.2 
                     ? "⚠️ High ICC substantially reduces effective sample size. Consider increasing number of clusters rather than observations per cluster."

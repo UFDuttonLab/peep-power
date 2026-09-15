@@ -7,7 +7,7 @@ import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import BetaDiversityVisualizer from '@/components/BetaDiversityVisualizer';
 import EffectSizeConversionGuide from '@/components/EffectSizeConversionGuide';
-import { calculatePERMANOVAPower, calculateTTestPower } from '@/utils/powerCalculations';
+import { calculatePERMANOVAPower, calculateTTestPower, type PowerResult } from '@/utils/powerCalculations';
 import { MICROBIOME_PILOT_GUIDANCE } from '@/constants/bayesianConstants';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
@@ -18,13 +18,13 @@ const MicrobiomeCalculator = () => {
   const [groups, setGroups] = useState(2);
   const [rSquared, setRSquared] = useState(0.08);
   const [alpha, setAlpha] = useState(0.05);
-  const [permanovaResult, setPermanovaResult] = useState<any>(null);
+  const [permanovaResult, setPermanovaResult] = useState<PowerResult | null>(null);
 
   // Alpha Diversity calculator state
   const [alphaN, setAlphaN] = useState(30);
   const [alphaEffect, setAlphaEffect] = useState(0.5);
   const [alphaAlpha, setAlphaAlpha] = useState(0.05);
-  const [alphaResult, setAlphaResult] = useState<any>(null);
+  const [alphaResult, setAlphaResult] = useState<PowerResult | null>(null);
 
   // Beta Diversity Visualizer state
   const [betaN, setBetaN] = useState(20);

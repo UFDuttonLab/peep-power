@@ -6,7 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
 import DistributionVisualization from '@/components/DistributionVisualization';
-import { calculateNegBinomialPower, calculateRequiredSampleSizeNB, adjustAlphaForBonferroni } from '@/utils/microbiomePowerCalculations';
+import { calculateNegBinomialPower, calculateRequiredSampleSizeNB, adjustAlphaForBonferroni, MAX_SEARCH_N } from '@/utils/microbiomePowerCalculations';
 import { AlertCircle, TrendingUp, Info, Dna, Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
@@ -25,6 +25,7 @@ const DifferentialAbundanceCalculator = () => {
 
   const power = calculateNegBinomialPower(n, log2FC, dispersion, baseMean, alpha, useFDR ? numTests : 1);
   const requiredN = calculateRequiredSampleSizeNB(0.8, log2FC, dispersion, baseMean, alpha, useFDR ? numTests : 1);
+  const requiredNLabel = Number.isFinite(requiredN) ? `${requiredN}` : `> ${MAX_SEARCH_N}`;
   
   const foldChange = Math.pow(2, log2FC);
   const adjustedAlpha = useFDR ? adjustAlphaForBonferroni(alpha, numTests) : alpha;
@@ -314,7 +315,7 @@ const DifferentialAbundanceCalculator = () => {
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="text-sm text-muted-foreground">For 80% Power</div>
-                  <div className="text-2xl font-bold">{requiredN} per group</div>
+                  <div className="text-2xl font-bold">{requiredNLabel} per group</div>
                 </div>
               </div>
 
@@ -322,7 +323,7 @@ const DifferentialAbundanceCalculator = () => {
                 <Alert className="mt-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Consider increasing sample size to {requiredN} per group, or focus on taxa with larger fold-changes or lower dispersion.
+                    Consider increasing sample size to {requiredNLabel} per group, or focus on taxa with larger fold-changes or lower dispersion.
                   </AlertDescription>
                 </Alert>
               )}

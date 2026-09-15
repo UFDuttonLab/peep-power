@@ -25,6 +25,7 @@ const BayesianHierarchicalCalculator = () => {
   const [groups, setGroups] = useState(2);
   const [targetPower, setTargetPower] = useState(0.80);
   const [alpha, setAlpha] = useState(0.05);
+  const targetAssurance = 0.8;
   const [result, setResult] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -42,12 +43,13 @@ const BayesianHierarchicalCalculator = () => {
           testType,
           groups: testType === 'anova' ? groups : undefined,
           targetPower,
-          alpha
+          alpha,
+          targetAssurance
         });
         setResult(res);
         toast({ title: "Success", description: "Hierarchical design calculated!" });
       } catch (error) {
-        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -57,9 +59,9 @@ const BayesianHierarchicalCalculator = () => {
   const exportToCSV = () => {
     if (!result) return;
     const csvData = result.sensitivityToICC.map((row: any) => 
-      `${row.icc},${row.requiredClusters},${row.designEffect}`
+      `${row.icc},${Number.isFinite(row.requiredClusters) ? row.requiredClusters : 'NA'},${row.designEffect}`
     ).join('\n');
-    const blob = new Blob([`ICC,Required Clusters,Design Effect\n${csvData}`], { type: 'text/csv' });
+    const blob = new Blob([`ICC,Required Clusters per Group,Design Effect\n${csvData}`], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -71,7 +73,7 @@ const BayesianHierarchicalCalculator = () => {
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'bayesian-hierarchical',
-      parameters: { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, groups, targetPower, alpha }
+      parameters: { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, groups, targetPower, alpha, targetAssurance }
     });
     downloadRFile(rCode, 'hierarchical_power.R');
     toast({ title: "R code exported", description: "Ready to run in RStudio" });
@@ -80,7 +82,7 @@ const BayesianHierarchicalCalculator = () => {
   const copyRCode = async () => {
     const rCode = generateRCode({
       testType: 'bayesian-hierarchical',
-      parameters: { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, groups, targetPower, alpha }
+      parameters: { effectMean, effectSD, nClusters, nPerCluster, icc, iccUncertainty, testType, groups, targetPower, alpha, targetAssurance }
     });
     const success = await copyToClipboard(rCode);
     if (success) {
@@ -175,7 +177,7 @@ const BayesianHierarchicalCalculator = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Number of Clusters (Sites/Plots): {nClusters}</Label>
+              <Label>Clusters per Group (Sites/Plots): {nClusters}</Label>
               <Slider
                 value={[nClusters]}
                 onValueChange={(v) => setNClusters(v[0])}
@@ -184,7 +186,7 @@ const BayesianHierarchicalCalculator = () => {
                 step={1}
               />
               <p className="text-xs text-muted-foreground">
-                Examples: field sites, experimental plots, individual organisms
+                Clusters in each treatment group. Examples: field sites, experimental plots, individual organisms
               </p>
             </div>
 
@@ -273,19 +275,23 @@ const BayesianHierarchicalCalculator = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Clusters Needed</p>
-                      <p className="text-3xl font-bold text-primary">{result.requiredClusters}</p>
+                      <p className="text-sm text-muted-foreground">Clusters Needed per Group</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {result.reached ? result.requiredClusters : `>${result.maxClusters}`}
+                      </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Per Cluster</p>
                       <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{result.requiredPerCluster}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Total N</p>
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{result.totalN}</p>
+                      <p className="text-sm text-muted-foreground">Total N (all groups)</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {result.reached ? result.totalN : 'Not reached'}
+                      </p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Effective N</p>
+                      <p className="text-sm text-muted-foreground">Effective N per Group (entered design)</p>
                       <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{result.effectiveN}</p>
                     </div>
                   </div>
@@ -314,7 +320,7 @@ const BayesianHierarchicalCalculator = () => {
                     <p className="font-semibold">Design Effect</p>
                     <p className="text-2xl font-bold">{result.designEffect.mean.toFixed(2)}</p>
                     <p className="text-sm text-muted-foreground">
-                      95% CI: [{result.designEffect.ci95[0].toFixed(2)}, {result.designEffect.ci95[1].toFixed(2)}]
+                      95% range from ICC uncertainty: [{result.designEffect.ci95[0].toFixed(2)}, {result.designEffect.ci95[1].toFixed(2)}]
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
                       Design effect = 1 + (n-1) × ICC. Values &gt; 1 indicate clustering inflates required sample size.
@@ -324,10 +330,11 @@ const BayesianHierarchicalCalculator = () => {
                   <div className="p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                     <p className="font-semibold text-yellow-900 dark:text-yellow-100">⚠ Naive Analysis Would Underestimate</p>
                     <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                      Ignoring clustering: N = {result.comparison.naiveN} per group
+                      Ignoring clustering (conventional power at the prior mean): N ={' '}
+                      {Number.isFinite(result.comparison.naiveN) ? `${result.comparison.naiveN} per group` : 'not reachable'}
                     </p>
                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      Inflation factor: {result.comparison.inflationFactor.toFixed(2)}×
+                      Clustering multiplies the observations needed by {result.comparison.inflationFactor.toFixed(2)}× (design effect)
                     </p>
                   </div>
                 </CardContent>
@@ -336,11 +343,16 @@ const BayesianHierarchicalCalculator = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Sensitivity to ICC</CardTitle>
-                  <CardDescription>How required clusters vary with ICC</CardDescription>
+                  <CardDescription>Clusters per group for the target power at the prior mean effect, by ICC</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={result.sensitivityToICC}>
+                    <LineChart
+                      data={result.sensitivityToICC.map((r: { icc: number; requiredClusters: number; designEffect: number }) => ({
+                        ...r,
+                        requiredClusters: Number.isFinite(r.requiredClusters) ? r.requiredClusters : null,
+                      }))}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="icc" 

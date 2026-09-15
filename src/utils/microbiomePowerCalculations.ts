@@ -1,7 +1,32 @@
 import jStat from 'jstat';
+import { noncentralFPower } from './powerCalculations';
+
+/** Upper bound used by the sample-size searches below. */
+export const MAX_SEARCH_N = 500;
+
+/** Two-sided power of a Wald z test with noncentrality `ncp`. */
+const twoSidedZPower = (ncp: number, alpha: number): number => {
+  if (!Number.isFinite(ncp)) return 0;
+  const zCrit = jStat.normal.inv(1 - alpha / 2, 0, 1);
+  const a = Math.abs(ncp);
+  return jStat.normal.cdf(a - zCrit, 0, 1) + jStat.normal.cdf(-zCrit - a, 0, 1);
+};
 
 /**
- * Calculate power for negative binomial differential abundance tests (DESeq2/edgeR)
+ * Standard error of the natural-log fold change estimated by an NB GLM
+ * (DESeq2/edgeR Wald test) with `n` samples in EACH of two groups:
+ * Var(ln FC) = [(phi + 1/mu1) + (phi + 1/mu2)] / n  (Hart et al. 2013; Li et al. 2013).
+ */
+const nbLogFCSE = (n: number, log2FC: number, dispersion: number, baseMean: number): number => {
+  const mu1 = baseMean;
+  const mu2 = baseMean * Math.pow(2, log2FC);
+  return Math.sqrt(((dispersion + 1 / mu1) + (dispersion + 1 / mu2)) / n);
+};
+
+/**
+ * Calculate power for negative binomial differential abundance tests (DESeq2/edgeR).
+ * `n` is the number of samples per group; log2FC is converted to the natural-log
+ * scale (x ln 2) to match the standard error.
  */
 export const calculateNegBinomialPower = (
   n: number,
@@ -11,27 +36,19 @@ export const calculateNegBinomialPower = (
   alpha: number,
   numTests: number = 1
 ): number => {
-  // Standard error of log fold-change
-  const se = Math.sqrt(dispersion / n + 1 / baseMean);
-  
-  // Adjust alpha for multiple testing (Bonferroni)
-  const adjustedAlpha = alpha / numTests;
-  
-  // Z critical value
-  const zCrit = jStat.normal.inv(1 - adjustedAlpha / 2, 0, 1);
-  
-  // Non-centrality parameter
-  const ncp = Math.abs(log2FC) / se;
-  
-  // Power calculation
-  const power = 1 - jStat.normal.cdf(zCrit - ncp, 0, 1) + 
-                jStat.normal.cdf(-zCrit - ncp, 0, 1);
-  
+  if (!(n >= 2) || !(baseMean > 0) || !(dispersion >= 0)) return 0;
+  const se = nbLogFCSE(n, log2FC, dispersion, baseMean);
+  // Bonferroni adjustment for multiple testing
+  const adjustedAlpha = alpha / Math.max(1, numTests);
+  const ncp = (Math.abs(log2FC) * Math.LN2) / se;
+  const power = twoSidedZPower(ncp, adjustedAlpha);
   return Math.max(0, Math.min(0.999, power));
 };
 
 /**
- * Calculate power for zero-inflated negative binomial models
+ * Calculate power for zero-inflated negative binomial models.
+ * `n` is per group; `zeroInflation` is the structural-zero proportion (pi) and
+ * `meanCount` is the mean of the NB count component.
  */
 export const calculateZINBPower = (
   n: number,
@@ -42,32 +59,35 @@ export const calculateZINBPower = (
   alpha: number,
   testType: 'count' | 'zero' | 'both' = 'both'
 ): number => {
-  // Effective sample size (accounts for zeros)
+  if (!(n >= 2)) return 0;
+  // For the joint test, split alpha across the two components (Bonferroni)
+  const componentAlpha = testType === 'both' ? alpha / 2 : alpha;
+
+  // Count component: NB Wald test on the samples that are not structural zeros
   const effectiveN = n * (1 - zeroInflation);
-  
-  // For count component (similar to DESeq2)
-  const countSE = Math.sqrt(dispersion / effectiveN + 1 / meanCount);
-  const countNCP = Math.abs(log2FC) / countSE;
-  const zCrit = jStat.normal.inv(1 - alpha / 2, 0, 1);
-  const countPower = 1 - jStat.normal.cdf(zCrit - countNCP, 0, 1) + 
-                     jStat.normal.cdf(-zCrit - countNCP, 0, 1);
-  
-  // For zero-inflation component
-  const zeroSE = Math.sqrt(zeroInflation * (1 - zeroInflation) / n);
-  const zeroChange = Math.min(0.2, zeroInflation / 2); // 20% change in zero proportion
-  const zeroNCP = zeroChange / zeroSE;
-  const zeroPower = 1 - jStat.normal.cdf(zCrit - zeroNCP, 0, 1) + 
-                    jStat.normal.cdf(-zCrit - zeroNCP, 0, 1);
-  
-  // Combined power (depends on test type)
-  if (testType === 'count') return Math.max(0, Math.min(0.999, countPower));
-  if (testType === 'zero') return Math.max(0, Math.min(0.999, zeroPower));
-  // For both: use likelihood ratio test approximation
-  return Math.max(0, Math.min(0.999, 1 - (1 - countPower) * (1 - zeroPower)));
+  let countPower = 0;
+  if (effectiveN >= 2 && meanCount > 0) {
+    const countSE = nbLogFCSE(effectiveN, log2FC, dispersion, meanCount);
+    countPower = twoSidedZPower((Math.abs(log2FC) * Math.LN2) / countSE, componentAlpha);
+  }
+
+  // Zero component: two-sample test of the structural-zero proportion
+  const p1 = zeroInflation;
+  const zeroChange = Math.min(0.2, zeroInflation / 2);
+  const p2 = p1 - zeroChange;
+  const zeroSE = Math.sqrt((p1 * (1 - p1) + p2 * (1 - p2)) / n);
+  const zeroPower = zeroSE > 0 && zeroChange > 0
+    ? twoSidedZPower(zeroChange / zeroSE, componentAlpha)
+    : 0;
+
+  const clamp = (p: number) => Math.max(0, Math.min(0.999, p));
+  if (testType === 'count') return clamp(countPower);
+  if (testType === 'zero') return clamp(zeroPower);
+  return clamp(1 - (1 - countPower) * (1 - zeroPower));
 };
 
 /**
- * Calculate design effect for longitudinal studies
+ * Calculate design effect for between-subject effects in clustered/longitudinal data
  */
 export const calculateDesignEffect = (
   nTimepoints: number,
@@ -77,7 +97,12 @@ export const calculateDesignEffect = (
 };
 
 /**
- * Calculate power for linear mixed models in longitudinal designs
+ * Power for the time x treatment interaction (2 groups) in a longitudinal LMM
+ * with compound symmetry. The interaction is a within-subject effect, so
+ * lambda = f^2 * N * m / (1 - rho)  (G*Power "within-between interaction").
+ *
+ * @param nSubjects total subjects across both groups
+ * @param dropoutRate total proportion of subjects lost by the final timepoint
  */
 export const calculateLMMPower = (
   nSubjects: number,
@@ -89,48 +114,24 @@ export const calculateLMMPower = (
   dropoutRate: number,
   alpha: number
 ): number => {
-  // Design effect accounts for within-subject correlation
-  const designEffect = calculateDesignEffect(nTimepoints, withinCorr);
-  
-  // Random slopes increase the effective variance of the time effect
-  // This reduces the effective design, similar to increasing correlation
-  const slopeInflationFactor = 1 + (randomSlopeVar * (nTimepoints - 1) / nTimepoints);
-  const adjustedDesignEffect = designEffect * slopeInflationFactor;
-  
-  // Adjust for dropout (assume exponential dropout)
-  const retainedSubjects = nSubjects * Math.pow(1 - dropoutRate, nTimepoints - 1);
-  
-  // Effective sample size accounting for correlation and random slopes
-  const adjustedEffectiveN = (retainedSubjects * nTimepoints) / adjustedDesignEffect;
-  
-  // Degrees of freedom for time × treatment interaction in LMM
-  const df1 = nTimepoints - 1; // Time effect
-  const df2 = Math.max(5, retainedSubjects - nCovariates - 2); // Subject-level df
-  
-  // Non-centrality parameter for 2-group comparison over time
-  const nPerGroup = retainedSubjects / 2;
-  const lambda = (effectSize * effectSize * nPerGroup * nTimepoints) / adjustedDesignEffect;
-  
-  // F critical value
+  if (!(nTimepoints >= 2)) return 0;
+  // Completers only (conservative)
+  const retainedSubjects = nSubjects * (1 - dropoutRate);
+
+  // Heuristic: random slopes add unexplained within-subject variance
+  const slopeInflationFactor = 1 + (randomSlopeVar * (nTimepoints - 1)) / nTimepoints;
+  const rho = Math.min(Math.max(withinCorr, 0), 0.999);
+
+  const lambda =
+    (effectSize * effectSize * retainedSubjects * nTimepoints) /
+    ((1 - rho) * slopeInflationFactor);
+
+  const df1 = nTimepoints - 1; // (groups - 1)(m - 1) with 2 groups
+  const df2 = (retainedSubjects - 2 - nCovariates) * (nTimepoints - 1);
+  if (!(df2 > 0)) return 0;
+
   const fCrit = jStat.centralF.inv(1 - alpha, df1, df2);
-  
-  // Power using noncentral F distribution approximation
-  // NOTE: This is an approximation using normal approximation to noncentral F
-  // For precise power in complex LMM designs, use simulation-based methods
-  // (e.g., simr package in R, as provided in the R code export)
-  // 
-  // Approximation accuracy decreases with:
-  // - Large random slope variance (>0.5)
-  // - High dropout rates (>20%)
-  // - Small sample sizes (<20 subjects)
-  // - Complex covariance structures beyond compound symmetry
-  const noncentralMean = df1 + lambda;
-  const noncentralVar = 2 * df1 + 4 * lambda;
-  const threshold = fCrit * df1;
-  
-  const z = (threshold - noncentralMean) / Math.sqrt(noncentralVar);
-  const power = 1 - jStat.normal.cdf(z, 0, 1);
-  
+  const power = noncentralFPower(lambda, df1, df2, fCrit);
   return Math.max(0, Math.min(0.9999, power));
 };
 
@@ -163,7 +164,8 @@ export const log2FCToCohensD = (log2FC: number): number => {
 };
 
 /**
- * Calculate required sample size for target power in negative binomial test
+ * Smallest per-group n with power >= targetPower, or Infinity if the target is
+ * not reached by MAX_SEARCH_N.
  */
 export const calculateRequiredSampleSizeNB = (
   targetPower: number,
@@ -173,21 +175,17 @@ export const calculateRequiredSampleSizeNB = (
   alpha: number,
   numTests: number = 1
 ): number => {
-  let n = 5;
-  let power = 0;
-  
-  while (power < targetPower && n < 500) {
-    power = calculateNegBinomialPower(n, log2FC, dispersion, baseMean, alpha, numTests);
-    if (power < targetPower) {
-      n += 1;
+  for (let n = 2; n <= MAX_SEARCH_N; n++) {
+    if (calculateNegBinomialPower(n, log2FC, dispersion, baseMean, alpha, numTests) >= targetPower) {
+      return n;
     }
   }
-  
-  return n;
+  return Infinity;
 };
 
 /**
- * Calculate required sample size for target power in LMM
+ * Smallest even total number of subjects with power >= targetPower, or Infinity
+ * if the target is not reached by MAX_SEARCH_N.
  */
 export const calculateRequiredSampleSizeLMM = (
   targetPower: number,
@@ -199,15 +197,9 @@ export const calculateRequiredSampleSizeLMM = (
   dropoutRate: number,
   alpha: number
 ): number => {
-  let n = 10;
-  let power = 0;
-  
-  while (power < targetPower && n < 500) {
-    power = calculateLMMPower(n, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha);
-    if (power < targetPower) {
-      n += 2;
-    }
+  for (let n = 4; n <= MAX_SEARCH_N; n += 2) {
+    const power = calculateLMMPower(n, nTimepoints, effectSize, withinCorr, randomSlopeVar, nCovariates, dropoutRate, alpha);
+    if (power >= targetPower) return n;
   }
-  
-  return n;
+  return Infinity;
 };

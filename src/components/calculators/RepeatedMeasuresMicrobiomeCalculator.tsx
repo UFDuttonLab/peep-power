@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import ControlSlider from '@/components/ControlSlider';
 import SimplePowerChart from '@/components/SimplePowerChart';
-import { calculateRepeatedMeasuresPERMANOVAPower } from '@/utils/powerCalculations';
+import { calculateRepeatedMeasuresPERMANOVAPower, type PowerResult } from '@/utils/powerCalculations';
 import { Button } from '@/components/ui/button';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
@@ -26,7 +26,7 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
   const [rSquared, setRSquared] = useState(0.10);
   const [correlation, setCorrelation] = useState(0.5);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PowerResult | null>(null);
 
   useEffect(() => {
     const res = calculateRepeatedMeasuresPERMANOVAPower(
@@ -66,7 +66,7 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
     if (!result) return;
     const csv = [
       ['Subjects', 'Power'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ...result.curveData.map((d) => [d.x, d.y]),
     ]
       .map((row) => row.join(','))
       .join('\n');

@@ -25,8 +25,11 @@ const ZeroInflatedCalculator = () => {
   const [testType, setTestType] = useState<'count' | 'zero' | 'both'>('both');
 
   const power = calculateZINBPower(n, zeroInflation, meanCount, dispersion, log2FC, alpha, testType);
-  const countPower = calculateZINBPower(n, zeroInflation, meanCount, dispersion, log2FC, alpha, 'count');
-  const zeroPower = calculateZINBPower(n, zeroInflation, meanCount, dispersion, log2FC, alpha, 'zero');
+  // With the joint test, each component is tested at alpha / 2 (Bonferroni), so show them that way
+  const componentAlpha = testType === 'both' ? alpha / 2 : alpha;
+  const countPower = calculateZINBPower(n, zeroInflation, meanCount, dispersion, log2FC, componentAlpha, 'count');
+  const zeroPower = calculateZINBPower(n, zeroInflation, meanCount, dispersion, log2FC, componentAlpha, 'zero');
+  const assumedZeroChange = Math.min(0.2, zeroInflation / 2);
   
   const foldChange = Math.pow(2, log2FC);
 
@@ -195,7 +198,7 @@ const ZeroInflatedCalculator = () => {
                 max={0.95}
                 step={0.05}
                 onChange={setZeroInflation}
-                tooltip="Proportion of samples with zero counts (structural + sampling zeros)"
+                tooltip="Proportion of structural zeros (samples where the taxon is truly absent). Sampling zeros from the count model come on top of this."
               />
 
               <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
@@ -204,20 +207,20 @@ const ZeroInflatedCalculator = () => {
                   <li>0-0.3: Low (prevalent taxon)</li>
                   <li>0.4-0.7: Moderate (typical for many taxa)</li>
                   <li>0.8-0.95: High (rare, sporadic detection)</li>
-                  <li>Current: {(zeroInflation * 100).toFixed(0)}% of samples have zero counts</li>
+                  <li>Current: {(zeroInflation * 100).toFixed(0)}% structural zeros</li>
                 </ul>
               </div>
 
               <ControlSlider
                 id="meancount"
-                label="Mean Count (Non-Zero Samples)"
+                label="Mean Count (Count Component)"
                 value={meanCount}
                 min={5}
                 max={500}
                 step={5}
                 onChange={setMeanCount}
                 decimals={0}
-                tooltip="Average count when taxon is present (non-zero samples only)"
+                tooltip="Mean of the negative binomial count component, i.e. the average count in samples that are not structural zeros (sampling zeros included)"
               />
 
               <ControlSlider
@@ -254,7 +257,7 @@ const ZeroInflatedCalculator = () => {
 
               <div className="pt-4 border-t">
                 <h4 className="text-sm font-semibold mb-3">Test Type</h4>
-                <Select value={testType} onValueChange={(v: any) => setTestType(v)}>
+                <Select value={testType} onValueChange={(v) => setTestType(v as 'count' | 'zero' | 'both')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -293,14 +296,14 @@ const ZeroInflatedCalculator = () => {
                   <div className="text-sm text-muted-foreground">Count Model Power</div>
                   <div className="text-2xl font-bold">{(countPower * 100).toFixed(1)}%</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Detecting abundance differences
+                    Detecting abundance differences{testType === 'both' ? ' (at α/2)' : ''}
                   </div>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="text-sm text-muted-foreground">Zero Model Power</div>
                   <div className="text-2xl font-bold">{(zeroPower * 100).toFixed(1)}%</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Detecting prevalence differences
+                    Detecting a {(assumedZeroChange * 100).toFixed(0)}-point drop in structural zeros{testType === 'both' ? ' (at α/2)' : ''}
                   </div>
                 </div>
               </div>
@@ -357,7 +360,7 @@ const ZeroInflatedCalculator = () => {
                 </div>
                 <div className="p-3 bg-background rounded">
                   <div className="flex justify-between">
-                    <span className="text-sm">Expected non-zero samples</span>
+                    <span className="text-sm">Expected samples in count model</span>
                     <span className="font-semibold">{Math.round(n * (1 - zeroInflation))}</span>
                   </div>
                 </div>

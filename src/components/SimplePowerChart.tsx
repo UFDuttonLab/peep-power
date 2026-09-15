@@ -6,9 +6,19 @@ interface SimplePowerChartProps {
 }
 
 const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 'Power Curve' }: SimplePowerChartProps) => {
-  if (!data || data.length === 0) return <div className="text-muted-foreground">No data to display</div>;
+  if (!data || data.length === 0 || !(Math.max(...data.map(d => d.x)) > 0)) return <div className="text-muted-foreground">No data to display</div>;
 
   const maxX = Math.max(...data.map(d => d.x));
+  const minX = Math.min(...data.map(d => d.x));
+  const inRange = Number.isFinite(currentValue) && currentValue >= minX && currentValue <= maxX;
+  const toSvgX = (x: number) => 50 + (x / maxX) * 700;
+
+  // Round tick values to a "nice" step
+  const rawStep = maxX / 5;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const niceStep = [1, 2, 2.5, 5, 10].map(m => m * magnitude).find(v => v >= rawStep) ?? rawStep;
+  const xTicks: number[] = [];
+  if (niceStep > 0) for (let t = 0; t <= maxX + 1e-9; t += niceStep) xTicks.push(Math.round(t * 1000) / 1000);
   
   // Find or interpolate the current point
   let currentY = 0;
@@ -38,7 +48,7 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
     <div className="w-full h-[500px] flex flex-col">
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <div className="flex-1 relative bg-card border rounded-lg p-6">
-        <svg className="w-full h-full" viewBox="-40 0 860 420">
+        <svg className="w-full h-full" viewBox="-40 0 860 425">
           {/* Grid lines */}
           {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map((y) => (
             <line
@@ -71,11 +81,21 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
             </text>
           ))}
           
+          {/* X-axis ticks */}
+          {xTicks.map((t) => (
+            <g key={`xt-${t}`}>
+              <line x1={toSvgX(t)} y1="350" x2={toSvgX(t)} y2="358" stroke="hsl(var(--foreground))" strokeWidth="2" />
+              <text x={toSvgX(t)} y="380" fontSize="20" fill="hsl(var(--foreground))" textAnchor="middle">
+                {t}
+              </text>
+            </g>
+          ))}
+
           {/* Power curve */}
           <polyline
             points={data
               .map((d) => {
-                const x = 50 + (d.x / maxX) * 700;
+                const x = toSvgX(d.x);
                 const y = 350 - d.y * 300;
                 return `${x},${y}`;
               })
@@ -86,17 +106,23 @@ const SimplePowerChart = ({ data, currentValue, xLabel = 'Sample Size', title = 
           />
           
           {/* Current point marker */}
-          <circle
-            cx={50 + (currentValue / maxX) * 700}
-            cy={350 - currentY * 300}
-            r="6"
-            fill="hsl(var(--accent))"
-            stroke="hsl(var(--primary))"
-            strokeWidth="2"
-          />
+          {inRange ? (
+            <circle
+              cx={toSvgX(currentValue)}
+              cy={350 - currentY * 300}
+              r="6"
+              fill="hsl(var(--accent))"
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+            />
+          ) : (
+            <text x="400" y="35" fontSize="20" fill="hsl(var(--muted-foreground))" textAnchor="middle">
+              Current value ({currentValue}) is outside the plotted range ({minX} to {maxX})
+            </text>
+          )}
           
           {/* Axis labels */}
-          <text x="400" y="395" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
+          <text x="400" y="412" fontSize="26" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600">
             {xLabel}
           </text>
           <text x="-20" y="210" fontSize="28" fill="hsl(var(--foreground))" textAnchor="middle" fontWeight="600" transform="rotate(-90 -20 210)">

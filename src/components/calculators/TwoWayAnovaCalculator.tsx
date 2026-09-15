@@ -21,7 +21,7 @@ const TwoWayAnovaCalculator = () => {
   const [effectB, setEffectB] = useState(0.20);
   const [effectInteraction, setEffectInteraction] = useState(0.15);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ReturnType<typeof calculateTwoWayAnovaPower> | null>(null);
 
   useEffect(() => {
     const res = calculateTwoWayAnovaPower(n, factorA, factorB, effectA, effectB, effectInteraction, alpha);
@@ -49,9 +49,10 @@ const TwoWayAnovaCalculator = () => {
   };
 
   const exportResults = () => {
+    if (!result) return;
     const csv = [
-      ['n per Cell', 'Power (Interaction)'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ['Total Sample Size (N)', 'Power (Interaction)'],
+      ...result.curveData.map((d: { x: number; y: number }) => [d.x, d.y]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -199,7 +200,7 @@ const TwoWayAnovaCalculator = () => {
               <SelectContent>
                 <SelectItem value="0.01">0.01</SelectItem>
                 <SelectItem value="0.05">0.05</SelectItem>
-                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="0.1">0.10</SelectItem>
               </SelectContent>
             </Select>
           </div>

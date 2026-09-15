@@ -18,6 +18,8 @@ const BayesianCalibrationCalculator = () => {
   const [effectUncertainty, setEffectUncertainty] = useState(0.2);
   const [nPerGroup, setNPerGroup] = useState(64);
   const [alpha, setAlpha] = useState(0.05);
+  const testType = 'ttest' as const;
+  const groups = 2;
   const [result, setResult] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -25,11 +27,11 @@ const BayesianCalibrationCalculator = () => {
     setIsCalculating(true);
     setTimeout(() => {
       try {
-        const res = calibrateFrequentistToBayesian({ frequentistPower, effectSize, effectUncertainty, nPerGroup, testType: 'ttest', alpha });
+        const res = calibrateFrequentistToBayesian({ frequentistPower, effectSize, effectUncertainty, nPerGroup, testType, groups, alpha });
         setResult(res);
         toast({ title: "Success", description: "Calibration complete!" });
       } catch (error) {
-        toast({ title: "Error", description: "Calculation failed.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -38,7 +40,7 @@ const BayesianCalibrationCalculator = () => {
 
   const exportToCSV = () => {
     if (!result) return;
-    const csvData = `Frequentist Power,Bayesian Assurance,Assurance Loss\n${frequentistPower},${result.bayesianAssurance},${result.assuranceLoss}`;
+    const csvData = `Target,Power at Point Effect,Bayesian Assurance (Expected Power),Shortfall Percent,Recommended N\n${frequentistPower},${result.pointPower},${result.bayesianAssurance},${result.assuranceLoss},${result.recommendedN}`;
     const blob = new Blob([csvData], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -51,7 +53,7 @@ const BayesianCalibrationCalculator = () => {
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'bayesian-calibration',
-      parameters: { frequentistPower, effectSize, effectUncertainty, nPerGroup, alpha }
+      parameters: { frequentistPower, effectSize, effectUncertainty, nPerGroup, alpha, testType, groups }
     });
     downloadRFile(rCode, 'bayesian_calibration.R');
     toast({ title: "R code exported", description: "Ready to run in RStudio" });
@@ -60,7 +62,7 @@ const BayesianCalibrationCalculator = () => {
   const copyRCode = async () => {
     const rCode = generateRCode({
       testType: 'bayesian-calibration',
-      parameters: { frequentistPower, effectSize, effectUncertainty, nPerGroup, alpha }
+      parameters: { frequentistPower, effectSize, effectUncertainty, nPerGroup, alpha, testType, groups }
     });
     const success = await copyToClipboard(rCode);
     if (success) {
@@ -79,7 +81,7 @@ const BayesianCalibrationCalculator = () => {
       <Alert>
         <Gauge className="h-4 w-4" />
         <AlertDescription>
-          <strong>What is Calibration?</strong> Shows how much "power" you lose when accounting for uncertainty in effect size.
+          <strong>What is Calibration?</strong> Compares power at a single assumed effect size with the expected power (assurance) averaged over your uncertainty about that effect size. The target below is used for both.
         </AlertDescription>
       </Alert>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -89,7 +91,7 @@ const BayesianCalibrationCalculator = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Frequentist Power: {(frequentistPower * 100).toFixed(0)}%</Label>
+              <Label>Target Power / Assurance: {(frequentistPower * 100).toFixed(0)}%</Label>
               <Slider value={[frequentistPower * 100]} onValueChange={(v) => setFrequentistPower(v[0] / 100)} min={70} max={95} step={1} />
             </div>
             <div className="space-y-2">
@@ -122,11 +124,11 @@ const BayesianCalibrationCalculator = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Bayesian Assurance</p>
+                    <p className="text-sm text-muted-foreground mb-1">Bayesian Assurance (expected power)</p>
                     <p className="text-3xl font-bold text-primary">{(result.bayesianAssurance * 100).toFixed(0)}%</p>
                   </div>
                   <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-1">Assurance Loss</p>
+                    <p className="text-sm text-muted-foreground mb-1">Shortfall vs Target</p>
                     <p className="text-3xl font-bold text-red-600 dark:text-red-400">{result.assuranceLoss.toFixed(0)}%</p>
                   </div>
                 </div>
@@ -146,7 +148,9 @@ const BayesianCalibrationCalculator = () => {
                     ) : (
                       <>
                         <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                        <p className="font-semibold text-yellow-900 dark:text-yellow-100">Increase Sample Size</p>
+                        <p className="font-semibold text-yellow-900 dark:text-yellow-100">
+                          {Number.isFinite(result.recommendedN) ? 'Increase Sample Size' : 'Target Not Reachable'}
+                        </p>
                       </>
                     )}
                   </div>
@@ -157,7 +161,9 @@ const BayesianCalibrationCalculator = () => {
                   }`}>
                     {result.recommendedN === nPerGroup 
                       ? `Current N=${nPerGroup} is adequate for ${(frequentistPower * 100).toFixed(0)}% assurance`
-                      : `Increase from N=${nPerGroup} to N=${result.recommendedN} per group`
+                      : Number.isFinite(result.recommendedN)
+                        ? `Increase from N=${nPerGroup} to N=${result.recommendedN} per group`
+                        : `No sample size reaches ${(frequentistPower * 100).toFixed(0)}% assurance with this much uncertainty`
                     }
                   </p>
                 </div>

@@ -7,6 +7,10 @@ interface BayesianAssuranceChartProps {
   currentValue: number;
   xLabel?: string;
   title?: string;
+  /** Target assurance drawn as a horizontal line (0 to 1) */
+  target?: number;
+  /** Legend text for the shaded band */
+  bandLabel?: string;
 }
 
 const BayesianAssuranceChart = ({ 
@@ -14,7 +18,9 @@ const BayesianAssuranceChart = ({
   confidenceRegions,
   currentValue, 
   xLabel = 'Sample Size', 
-  title = 'Assurance Curve' 
+  title = 'Assurance Curve',
+  target = 0.8,
+  bandLabel = '95% confidence region',
 }: BayesianAssuranceChartProps) => {
   if (!data || data.length === 0) return <div className="text-muted-foreground">No data to display</div>;
 
@@ -134,12 +140,12 @@ const BayesianAssuranceChart = ({
             strokeWidth="3"
           />
           
-          {/* Target assurance line (0.8) */}
+          {/* Target assurance line */}
           <line
             x1="50"
-            y1={350 - 0.8 * 300}
+            y1={350 - target * 300}
             x2="750"
-            y2={350 - 0.8 * 300}
+            y2={350 - target * 300}
             stroke="hsl(var(--destructive))"
             strokeWidth="2"
             strokeDasharray="5,5"
@@ -147,7 +153,7 @@ const BayesianAssuranceChart = ({
           />
           <text
             x="755"
-            y={350 - 0.8 * 300 + 5}
+            y={350 - target * 300 + 5}
             fontSize="22"
             fill="hsl(var(--destructive))"
             fontWeight="600"
@@ -183,7 +189,7 @@ const BayesianAssuranceChart = ({
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-3 bg-primary/20 border border-primary/30 border-dashed"></div>
-              <span>95% confidence region</span>
+              <span>{bandLabel}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-0.5 bg-destructive border-dashed" style={{ borderTop: '2px dashed' }}></div>

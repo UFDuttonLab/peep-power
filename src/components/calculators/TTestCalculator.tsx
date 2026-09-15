@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
 import EffectSizeGuidance from '../EffectSizeGuidance';
-import { calculateTTestPower } from '@/utils/powerCalculations';
+import { calculateTTestPower, type PowerResult } from '@/utils/powerCalculations';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { Download, AlertTriangle, Dna, Code2, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,7 +18,7 @@ const TTestCalculator = () => {
   const [n, setN] = useState(50);
   const [effectSize, setEffectSize] = useState(0.5);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PowerResult | null>(null);
 
   useEffect(() => {
     const res = calculateTTestPower(n, effectSize, alpha);
@@ -38,9 +38,10 @@ const TTestCalculator = () => {
   };
 
   const exportResults = () => {
+    if (!result) return;
     const csv = [
       ['Sample Size', 'Power'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ...result.curveData.map((d: { x: number; y: number }) => [d.x, d.y]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -110,7 +111,7 @@ const TTestCalculator = () => {
               max={2.0}
               step={0.05}
               onChange={setEffectSize}
-              tooltip="Standardized mean difference between groups. Small (0.2) ≈ 10% change, Medium (0.5) ≈ 25% change, Large (0.8) ≈ 40% change."
+              tooltip="Standardized mean difference: the difference between group means divided by the pooled SD. Small (0.2), Medium (0.5), Large (0.8). The corresponding percent change depends on how variable your response is (its coefficient of variation), so convert from your own means and SD."
             />
             <Select onValueChange={(v) => v !== 'custom' && setEffectSize(parseFloat(v))}>
               <SelectTrigger>
@@ -144,7 +145,7 @@ const TTestCalculator = () => {
               <SelectContent>
                 <SelectItem value="0.01">0.01</SelectItem>
                 <SelectItem value="0.05">0.05</SelectItem>
-                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="0.1">0.10</SelectItem>
               </SelectContent>
             </Select>
           </div>

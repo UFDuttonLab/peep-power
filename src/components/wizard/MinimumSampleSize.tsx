@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, AlertTriangle, TrendingUp, RotateCcw, ArrowRight } from 'lucide-react';
 import { TestType } from './wizardConfig';
-import { calculateRequiredSampleSize, calculatePERMANOVAPower } from '@/utils/powerCalculations';
-import { 
-  calculateLMMPower,
+import { calculateRequiredSampleSize } from '@/utils/powerCalculations';
+import {
+  MAX_SEARCH_N,
   calculateRequiredSampleSizeNB,
   calculateRequiredSampleSizeLMM,
   calculateZINBPower,
@@ -21,6 +21,23 @@ interface MinimumSampleSizeProps {
   onGoToCalculator: () => void;
   onRestart: () => void;
 }
+
+/** Upper bound of calculateRequiredSampleSize's search. */
+const GENERAL_SEARCH_CAP = 100000;
+
+/** Display a required sample size; Infinity means the target was not reached within `cap`. */
+const formatN = (n: number, cap: number): string => {
+  if (Number.isNaN(n)) return 'N/A';
+  if (!Number.isFinite(n)) return `> ${cap.toLocaleString()}`;
+  return n.toLocaleString();
+};
+
+/** Display n multiplied by a design factor without multiplying Infinity/NaN into a number. */
+const formatTotal = (n: number, multiplier: number, cap: number): string => {
+  if (Number.isNaN(n)) return 'N/A';
+  if (!Number.isFinite(n)) return `> ${(cap * multiplier).toLocaleString()}`;
+  return (n * multiplier).toLocaleString();
+};
 
 const testNames: Record<TestType, string> = {
   ttest: 'Two-Sample T-Test',
@@ -50,6 +67,7 @@ const MinimumSampleSize = ({
   
   // Helper function for size categorization
   const getSizeCategory = (n: number) => {
+    if (!Number.isFinite(n)) return { level: 'large', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/20' };
     if (n <= 20) return { level: 'small', color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950/20' };
     if (n <= 50) return { level: 'moderate', color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-950/20' };
     return { level: 'large', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/20' };
@@ -84,7 +102,7 @@ const MinimumSampleSize = ({
               <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{requiredN}</div>
+              <div className="text-5xl font-bold mb-2">{formatN(requiredN, MAX_SEARCH_N)}</div>
               <p className="text-lg font-medium">samples per group</p>
               <p className="text-sm text-muted-foreground mt-2">
                 For log₂FC = {log2FC.toFixed(2)} with {numTests} taxa tested
@@ -93,7 +111,7 @@ const MinimumSampleSize = ({
             <Alert className="text-left bg-background/80">
               <AlertDescription>
                 This gives you <strong>80% power</strong> to detect a <strong>{Math.pow(2, Math.abs(log2FC)).toFixed(2)}-fold change</strong>
-                {' '}in abundance at FDR-adjusted α = {(alpha / numTests).toFixed(4)} (Bonferroni).
+                {' '}in abundance at Bonferroni-adjusted α = {(alpha / numTests).toFixed(4)}.
               </AlertDescription>
             </Alert>
           </div>
@@ -111,10 +129,10 @@ const MinimumSampleSize = ({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">{scenario.n}</p>
+                  <p className="text-2xl font-bold">{formatN(scenario.n, MAX_SEARCH_N)}</p>
                   <p className="text-sm text-muted-foreground">per group</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Total: {scenario.n * groups}
+                    Total: {formatTotal(scenario.n, groups, MAX_SEARCH_N)}
                   </p>
                 </div>
               </div>
@@ -140,7 +158,7 @@ const MinimumSampleSize = ({
             </div>
             <div>
               <p className="text-muted-foreground">Total Samples</p>
-              <p className="font-medium">{requiredN * groups}</p>
+              <p className="font-medium">{formatTotal(requiredN, groups, MAX_SEARCH_N)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Effect Size (log₂FC)</p>
@@ -178,17 +196,14 @@ const MinimumSampleSize = ({
     const { dispersion = 0.5, baseMean = 100, zeroInflation = 0.5, numTests = 100 } = microbiomeParams || {};
     const log2FC = cohensDToLog2FC(effectSize);
     
-    const calculateZINBN = (targetPower: number): number => {
-      let low = 5, high = 500;
-      for (let iter = 0; iter < 50; iter++) {
-        const mid = Math.floor((low + high) / 2);
-        const power = calculateZINBPower(mid, zeroInflation, baseMean, dispersion, log2FC, alpha / numTests, 'both');
-        
-        if (Math.abs(power - targetPower) < 0.02) return mid;
-        if (power < targetPower) low = mid + 1;
-        else high = mid - 1;
+    // Smallest n per group with power >= target (linear scan; Infinity if not reached by the cap)
+    const calculateZINBN = (target: number): number => {
+      for (let n = 2; n <= MAX_SEARCH_N; n++) {
+        if (calculateZINBPower(n, zeroInflation, baseMean, dispersion, log2FC, alpha / numTests, 'both') >= target) {
+          return n;
+        }
       }
-      return low;
+      return Infinity;
     };
     
     const budgetScenarios = [
@@ -215,7 +230,7 @@ const MinimumSampleSize = ({
               <CheckCircle2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{requiredN}</div>
+              <div className="text-5xl font-bold mb-2">{formatN(requiredN, MAX_SEARCH_N)}</div>
               <p className="text-lg font-medium">samples per group</p>
               <p className="text-sm text-muted-foreground mt-2">
                 For log₂FC = {log2FC.toFixed(2)} with {(zeroInflation * 100).toFixed(0)}% zero-inflation
@@ -242,10 +257,10 @@ const MinimumSampleSize = ({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">{scenario.n}</p>
+                  <p className="text-2xl font-bold">{formatN(scenario.n, MAX_SEARCH_N)}</p>
                   <p className="text-sm text-muted-foreground">per group</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Total: {scenario.n * groups}
+                    Total: {formatTotal(scenario.n, groups, MAX_SEARCH_N)}
                   </p>
                 </div>
               </div>
@@ -271,7 +286,7 @@ const MinimumSampleSize = ({
             </div>
             <div>
               <p className="text-muted-foreground">Total Samples</p>
-              <p className="font-medium">{requiredN * groups}</p>
+              <p className="font-medium">{formatTotal(requiredN, groups, MAX_SEARCH_N)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Zero-Inflation</p>
@@ -302,10 +317,8 @@ const MinimumSampleSize = ({
     const nTimepoints = groups;
     const nCovariates = 1;
     
-    let cohensF = effectSize;
-    if (effectSize < 0.1) {
-      cohensF = Math.sqrt(effectSize / (1 - effectSize));
-    }
+    // effectSize arrives as Cohen's f (converted in HoldMyHandCalculator)
+    const cohensF = effectSize;
     
     const budgetScenarios = [
       { label: 'Tight Budget', targetPower: 0.65, color: 'bg-yellow-50 dark:bg-yellow-950/20' },
@@ -331,10 +344,10 @@ const MinimumSampleSize = ({
               <CheckCircle2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{requiredN}</div>
-              <p className="text-lg font-medium">subjects needed</p>
+              <div className="text-5xl font-bold mb-2">{formatN(requiredN, MAX_SEARCH_N)}</div>
+              <p className="text-lg font-medium">subjects needed (total, 2 groups)</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Measured at {nTimepoints} timepoints (total: {requiredN * nTimepoints} samples)
+                Measured at {nTimepoints} timepoints (total: {formatTotal(requiredN, nTimepoints, MAX_SEARCH_N)} samples)
               </p>
             </div>
             <Alert className="text-left bg-background/80">
@@ -359,10 +372,10 @@ const MinimumSampleSize = ({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">{scenario.n}</p>
+                  <p className="text-2xl font-bold">{formatN(scenario.n, MAX_SEARCH_N)}</p>
                   <p className="text-sm text-muted-foreground">subjects</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Total samples: {scenario.n * nTimepoints}
+                    Total samples: {formatTotal(scenario.n, nTimepoints, MAX_SEARCH_N)}
                   </p>
                 </div>
               </div>
@@ -373,9 +386,9 @@ const MinimumSampleSize = ({
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Dropout considerations:</strong> With {(dropoutRate * 100).toFixed(0)}% expected dropout,
-            consider recruiting {Math.ceil(requiredN * 1.1)} subjects initially to maintain target power.
-            Use intention-to-treat analysis and multiple imputation for missing data.
+            <strong>Dropout considerations:</strong> The subject numbers above are enrollment targets. They already
+            assume {(dropoutRate * 100).toFixed(0)}% of subjects are lost by the final timepoint, so no further
+            inflation is needed. Use intention-to-treat analysis and multiple imputation for missing data.
           </AlertDescription>
         </Alert>
 
@@ -388,7 +401,7 @@ const MinimumSampleSize = ({
             </div>
             <div>
               <p className="text-muted-foreground">Subjects Needed</p>
-              <p className="font-medium">{requiredN}</p>
+              <p className="font-medium">{formatN(requiredN, MAX_SEARCH_N)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Number of Timepoints</p>
@@ -396,7 +409,7 @@ const MinimumSampleSize = ({
             </div>
             <div>
               <p className="text-muted-foreground">Total Measurements</p>
-              <p className="font-medium">{requiredN * nTimepoints}</p>
+              <p className="font-medium">{formatTotal(requiredN, nTimepoints, MAX_SEARCH_N)}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Within-Subject Correlation</p>
@@ -423,39 +436,16 @@ const MinimumSampleSize = ({
   
   // Special handling for repeated-microbiome using LMM power calculation
   if (testType === 'repeated-microbiome') {
-    const timepoints = groups; // For repeated-microbiome, "groups" is actually timepoints
-    const correlation = 0.5; // Default within-subject correlation assumption
-    const randomSlopeVar = 0.1; // Conservative assumption for random slopes
-    const nCovariates = 1; // Treatment effect
-    const dropoutRate = 0.1; // 10% dropout assumption
-    
-    // Convert R² to Cohen's f: f = √(R²/(1-R²))
-    const cohensF = Math.sqrt(effectSize / (1 - effectSize));
-    
-    // Binary search for required subjects using proper LMM calculation
-    let low = 5, high = 500;
-    let minSubjects = 10;
-    
-    for (let iter = 0; iter < 50; iter++) {
-      const mid = Math.floor((low + high) / 2);
-      
-      // Calculate LMM power using the corrected function from microbiomePowerCalculations.ts
-      const power = calculateLMMPower(
-        mid, timepoints, cohensF, correlation, 
-        randomSlopeVar, nCovariates, dropoutRate, alpha
-      );
-      
-      if (Math.abs(power - targetPower) < 0.02) {
-        minSubjects = mid;
-        break;
-      }
-      if (power < targetPower) low = mid + 1;
-      else high = mid - 1;
-    }
-    minSubjects = low;
-    
+    const timepoints = groups; // For repeated-microbiome, "groups" is the number of timepoints
+    const correlation = 0.5; // Assumed within-subject correlation (compound symmetry)
+
+    // Same model as the Repeated Measures PERMANOVA calculator: lambda = f² · N · m / (1 − ρ), f² = R²/(1 − R²)
+    const minSubjects = calculateRequiredSampleSize(
+      effectSize, targetPower, alpha, 'repeated-permanova', undefined, { timepoints, correlation }
+    );
+
     const sizeInfo = getSizeCategory(minSubjects);
-    const totalMeasurements = minSubjects * timepoints;
+    const totalMeasurementsText = formatTotal(minSubjects, timepoints, GENERAL_SEARCH_CAP);
     
     return (
       <div className="space-y-6">
@@ -470,19 +460,21 @@ const MinimumSampleSize = ({
               <CheckCircle2 className={`h-8 w-8 ${sizeInfo.color}`} />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{minSubjects}</div>
+              <div className="text-5xl font-bold mb-2">{formatN(minSubjects, GENERAL_SEARCH_CAP)}</div>
               <p className="text-lg font-medium">independent subjects</p>
               <p className="text-sm text-muted-foreground mt-2">
                 Measured at {timepoints} timepoint{timepoints > 1 ? 's' : ''} each
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Total measurements: {totalMeasurements}
+                Total measurements: {totalMeasurementsText}
               </p>
             </div>
             <Alert className="text-left">
               <AlertDescription>
-                This gives you <strong>80% power</strong> to detect R²={effectSize.toFixed(2)} variance explained 
-                with {timepoints} repeated measurements (assuming within-subject correlation r={correlation}).
+                This gives you <strong>80% power</strong> (α = 0.05) to detect R²={effectSize.toFixed(2)} variance explained
+                across {timepoints} repeated measurements. Assumptions: within-subject correlation ρ = {correlation},
+                compound symmetry (sphericity), no dropout, and a PERMANOVA pseudo-F that behaves like a parametric F test.
+                Add extra subjects to cover expected dropout.
               </AlertDescription>
             </Alert>
           </div>
@@ -493,7 +485,7 @@ const MinimumSampleSize = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Independent Subjects</p>
-              <p className="text-xl font-bold">{minSubjects}</p>
+              <p className="text-xl font-bold">{formatN(minSubjects, GENERAL_SEARCH_CAP)}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Timepoints per Subject</p>
@@ -501,7 +493,7 @@ const MinimumSampleSize = ({
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Total Measurements</p>
-              <p className="text-xl font-bold">{totalMeasurements}</p>
+              <p className="text-xl font-bold">{totalMeasurementsText}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Expected Effect (R²)</p>
@@ -512,8 +504,9 @@ const MinimumSampleSize = ({
 
         <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
           <AlertDescription>
-            <strong>Important:</strong> Your sample size is {minSubjects} <strong>subjects</strong>, not {totalMeasurements} samples. 
-            Each subject is measured {timepoints} times. This accounts for within-subject correlation (assumed r={correlation}).
+            <strong>Important:</strong> Your sample size is {formatN(minSubjects, GENERAL_SEARCH_CAP)} <strong>subjects</strong>, not {totalMeasurementsText} samples.
+            Each subject is measured {timepoints} times. This accounts for within-subject correlation (assumed ρ = {correlation}).
+            If your correlation is lower than {correlation}, you will need more subjects.
           </AlertDescription>
         </Alert>
 
@@ -531,65 +524,7 @@ const MinimumSampleSize = ({
   
   // Special handling for microbiome (PERMANOVA) - uses correct PERMANOVA power calculation
   if (testType === 'microbiome') {
-    // Binary search for sample size that achieves target power using CORRECT power function
-    let low = 5;
-    let high = 500;
-    let requiredNPerGroup = 5;
-    
-    for (let iter = 0; iter < 50; iter++) {
-      const mid = Math.floor((low + high) / 2);
-      
-      // Use the CORRECT calculatePERMANOVAPower function
-      const result = calculatePERMANOVAPower(mid, groups, effectSize, alpha);
-      
-      if (Math.abs(result.power - targetPower) < 0.01) {
-        requiredNPerGroup = mid;
-        break;
-      }
-      
-      if (result.power < targetPower) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-    
-    requiredNPerGroup = low;
-    const requiredN = requiredNPerGroup;
-    
-    // Calculate budget scenarios using the CORRECT power function
-    const budgetScenarios = [
-      { label: 'Tight Budget', targetPower: 0.65 },
-      { label: 'Recommended', targetPower: 0.80 },
-      { label: 'Well-Funded', targetPower: 0.90 },
-    ].map(scenario => {
-      let scenarioLow = 5, scenarioHigh = 500;
-      let scenarioN = scenarioLow;
-      
-      for (let iter = 0; iter < 50; iter++) {
-        const mid = Math.floor((scenarioLow + scenarioHigh) / 2);
-        const result = calculatePERMANOVAPower(mid, groups, effectSize, alpha);
-        
-        if (Math.abs(result.power - scenario.targetPower) < 0.01) {
-          scenarioN = mid;
-          break;
-        }
-        
-        if (result.power < scenario.targetPower) {
-          scenarioLow = mid + 1;
-        } else {
-          scenarioHigh = mid - 1;
-        }
-      }
-      
-      scenarioN = scenarioLow;
-      
-      return {
-        label: scenario.label,
-        n: scenarioN,
-        note: `${(scenario.targetPower * 100).toFixed(0)}% power to detect your effect`
-      };
-    });
+    const requiredN = calculateRequiredSampleSize(effectSize, targetPower, alpha, 'permanova', groups);
 
     const sizeInfo = getSizeCategory(requiredN);
 
@@ -606,7 +541,7 @@ const MinimumSampleSize = ({
               <CheckCircle2 className={`h-8 w-8 ${sizeInfo.color}`} />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{requiredN}</div>
+              <div className="text-5xl font-bold mb-2">{formatN(requiredN, GENERAL_SEARCH_CAP)}</div>
               <p className="text-lg font-medium">samples per group</p>
               <p className="text-sm text-muted-foreground mt-2">
                 For R²={effectSize.toFixed(2)} with {groups} groups
@@ -614,7 +549,7 @@ const MinimumSampleSize = ({
             </div>
             <Alert className="text-left">
               <AlertDescription>
-                This gives you <strong>~80% power</strong> to detect R²={effectSize.toFixed(2)} variance explained 
+                This gives you <strong>at least 80% power</strong> to detect R²={effectSize.toFixed(2)} variance explained 
                 with PERMANOVA at α = 0.05.
               </AlertDescription>
             </Alert>
@@ -634,11 +569,11 @@ const MinimumSampleSize = ({
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Total Sample Size</p>
-              <p className="text-xl font-bold">{requiredN * groups}</p>
+              <p className="text-xl font-bold">{formatTotal(requiredN, groups, GENERAL_SEARCH_CAP)}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Statistical Power</p>
-              <p className="text-xl font-bold">~80%</p>
+              <p className="text-xl font-bold">80%</p>
             </div>
           </div>
         </Card>
@@ -693,7 +628,7 @@ const MinimumSampleSize = ({
               <CheckCircle2 className={`h-8 w-8 ${sizeInfo.color}`} />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{totalN}</div>
+              <div className="text-5xl font-bold mb-2">{formatN(totalN, GENERAL_SEARCH_CAP)}</div>
               <p className="text-lg font-medium">total samples needed</p>
               <p className="text-sm text-muted-foreground mt-2">
                 To detect correlation ρ={effectSize.toFixed(2)}
@@ -711,7 +646,7 @@ const MinimumSampleSize = ({
           <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Large correlation (r={effectSize}):</strong> Correlations above 0.7 are rare in ecology and biological sciences. 
+              <strong>Large correlation (r={effectSize.toFixed(2)}):</strong> Correlations above 0.7 are rare in ecology and biological sciences. 
               Verify this effect size is realistic for your study.
             </AlertDescription>
           </Alert>
@@ -747,7 +682,7 @@ const MinimumSampleSize = ({
               <CheckCircle2 className={`h-8 w-8 ${sizeInfo.color}`} />
             </div>
             <div>
-              <div className="text-5xl font-bold mb-2">{totalN}</div>
+              <div className="text-5xl font-bold mb-2">{formatN(totalN, GENERAL_SEARCH_CAP)}</div>
               <p className="text-lg font-medium">total samples needed</p>
               <p className="text-sm text-muted-foreground mt-2">
                 For effect size w={effectSize.toFixed(2)}
@@ -755,8 +690,8 @@ const MinimumSampleSize = ({
             </div>
             <Alert className="text-left">
               <AlertDescription>
-                This gives you <strong>80% power</strong> to detect an effect size of w={effectSize.toFixed(2)} 
-                with {groups} categories/groups at α = 0.05.
+                This gives you <strong>80% power</strong> to detect an effect size of w={effectSize.toFixed(2)}{' '}
+                with {groups} categories (df = {groups - 1}) at α = 0.05.
               </AlertDescription>
             </Alert>
           </div>
@@ -791,52 +726,35 @@ const MinimumSampleSize = ({
     );
   }
 
-  const testTypeMapping: Record<TestType, 'ttest' | 'anova' | 'correlation' | 'chisquare'> = {
-    ttest: 'ttest',
-    oneway: 'anova',
-    twoway: 'anova',
-    repeated: 'anova',
-    chisquare: 'chisquare',
-    correlation: 'correlation', // This won't be reached due to special handling above
-    microbiome: 'anova', // This won't be reached due to special handling above
-    'repeated-microbiome': 'anova', // This won't be reached due to special handling above
-    deseq: 'anova', // Approximate as ANOVA for basic calculation
-    zinb: 'anova', // Approximate as ANOVA for basic calculation
-    'lmm-microbiome': 'anova', // Approximate as ANOVA for basic calculation
+  // Remaining designs: ttest (d, n per group), oneway (f, n per group),
+  // twoway (f, one-way omnibus across all cells, n per cell), repeated (f, subjects)
+  const isRepeated = testType === 'repeated';
+  const isTwoWay = testType === 'twoway';
+  const rmCorrelation = 0.5; // Assumed within-subject correlation for repeated measures
+
+  const nFor = (target: number): number => {
+    if (isRepeated) {
+      return calculateRequiredSampleSize(
+        effectSize, target, alpha, 'repeated-measures', undefined,
+        { timepoints: groups, correlation: rmCorrelation }
+      );
+    }
+    if (testType === 'ttest') {
+      return calculateRequiredSampleSize(effectSize, target, alpha, 'ttest');
+    }
+    // oneway, twoway (cells treated as groups); other test types never reach this point
+    return calculateRequiredSampleSize(effectSize, target, alpha, 'anova', groups);
   };
 
-  const mappedTestType = testTypeMapping[testType];
-  let requiredN = calculateRequiredSampleSize(
-    effectSize,
-    targetPower,
-    alpha,
-    mappedTestType,
-    groups
-  );
-  
-
-  // Calculate actual N for each power target instead of using multipliers
-  const budgetScenarios = [
-    { label: 'Tight Budget', targetPower: 0.65 },
-    { label: 'Recommended', targetPower: 0.80 },
-    { label: 'Well-Funded', targetPower: 0.90 },
-  ].map(scenario => {
-    const scenarioN = calculateRequiredSampleSize(
-      effectSize,
-      scenario.targetPower,
-      alpha,
-      mappedTestType,
-      groups
-    );
-    
-    return {
-      label: scenario.label,
-      n: scenarioN,
-      note: `${(scenario.targetPower * 100).toFixed(0)}% power to detect your effect`
-    };
-  });
+  const requiredN = nFor(targetPower);
+  const requiredNText = formatN(requiredN, GENERAL_SEARCH_CAP);
+  const totalText = formatTotal(requiredN, groups, GENERAL_SEARCH_CAP);
+  const unitLabel = isRepeated ? 'subjects' : isTwoWay ? 'samples per cell' : 'samples per group';
+  const groupLabel = isRepeated ? 'timepoints' : isTwoWay ? 'cells (factor-level combinations)' : 'groups';
 
   const sizeInfo = getSizeCategory(requiredN);
+  const isLarge = !Number.isFinite(requiredN) ||
+    (isRepeated ? requiredN > 100 : (requiredN * groups > 100 || requiredN > 50));
 
   return (
     <div className="space-y-6">
@@ -851,42 +769,50 @@ const MinimumSampleSize = ({
             <CheckCircle2 className={`h-8 w-8 ${sizeInfo.color}`} />
           </div>
           <div>
-            <div className="text-5xl font-bold mb-2">{requiredN}</div>
-            <p className="text-lg font-medium">samples per group</p>
+            <div className="text-5xl font-bold mb-2">{requiredNText}</div>
+            <p className="text-lg font-medium">{unitLabel}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              For effect size {
-                testType === 'ttest' ? `d=${effectSize.toFixed(2)}` :
-                (testType === 'oneway' || testType === 'twoway') ? `f=${effectSize.toFixed(2)}` :
-                testType === 'repeated' ? `f=${effectSize.toFixed(2)}` :
-                effectSize.toFixed(2)
-              } with {groups} {testType === 'repeated' ? 'timepoints' : 'groups'}
+              For effect size {testType === 'ttest' ? `d=${effectSize.toFixed(2)}` : `f=${effectSize.toFixed(2)}`} with {groups} {groupLabel}
             </p>
           </div>
           <Alert className="text-left">
             <AlertDescription>
-              This gives you <strong>80% power</strong> to detect your expected effect at the standard 
+              This gives you <strong>80% power</strong> to detect your expected effect at the standard
               significance level (α = 0.05).
+              {isRepeated && (
+                <>
+                  {' '}Each subject is measured at all {groups} timepoints. Assumptions: within-subject
+                  correlation ρ = {rmCorrelation}, sphericity, and no dropout. Lower correlation requires more subjects.
+                </>
+              )}
+              {isTwoWay && (
+                <>
+                  {' '}For two factors this treats every factor-level combination as one of {groups} groups and
+                  plans for the omnibus test across cells. Power for a specific main effect or the interaction
+                  can differ; use the Two-Way ANOVA calculator for those.
+                </>
+              )}
             </AlertDescription>
           </Alert>
         </div>
       </Card>
 
-      {(testType === 'oneway' || testType === 'twoway' || testType === 'repeated') && requiredN < 20 && (
+      {(testType === 'oneway' || testType === 'twoway') && Number.isFinite(requiredN) && requiredN < 15 && (
         <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Note:</strong> While {requiredN} samples per group may provide 80% statistical power, 
-            ANOVA results are most reliable with ≥15 samples per group due to assumptions about normality 
+            <strong>Note:</strong> While {requiredNText} samples per {isTwoWay ? 'cell' : 'group'} may provide 80% statistical power,
+            ANOVA results are most reliable with at least 15 samples per group due to assumptions about normality
             and homogeneity of variance. Consider increasing your sample size if possible.
           </AlertDescription>
         </Alert>
       )}
-      
-      {(testType === 'oneway' || testType === 'twoway') && effectSize > 0.8 && (
+
+      {(testType === 'oneway' || testType === 'twoway' || isRepeated) && effectSize > 0.8 && (
         <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Large effect size (f={effectSize}):</strong> This is unusually large for an ANOVA. 
+            <strong>Large effect size (f={effectSize.toFixed(2)}):</strong> This is unusually large for an ANOVA.
             Typical values are 0.1 (small), 0.25 (medium), 0.4 (large). Verify this is appropriate for your study.
           </AlertDescription>
         </Alert>
@@ -897,17 +823,19 @@ const MinimumSampleSize = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="p-3 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              {testType === 'repeated' ? 'Number of Timepoints' : 'Number of Groups'}
+              {isRepeated ? 'Number of Timepoints' : isTwoWay ? 'Number of Cells' : 'Number of Groups'}
             </p>
             <p className="text-xl font-bold">{groups}</p>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">Expected Effect Size</p>
-            <p className="text-xl font-bold">{effectSize}</p>
+            <p className="text-xl font-bold">{effectSize.toFixed(2)}</p>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">Total Sample Size</p>
-            <p className="text-xl font-bold">{requiredN * groups}</p>
+            <p className="text-sm text-muted-foreground">
+              {isRepeated ? 'Total Measurements' : 'Total Sample Size'}
+            </p>
+            <p className="text-xl font-bold">{totalText}</p>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">Statistical Power</p>
@@ -916,11 +844,11 @@ const MinimumSampleSize = ({
         </div>
       </Card>
 
-      {(requiredN * groups > 100 || (testType !== 'repeated' && requiredN > 50)) && (
+      {isLarge && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Note:</strong> Large sample sizes ({testType === 'repeated' ? `${requiredN * groups} total measurements` : `${requiredN} per group`}) may be logistically challenging. Consider if a smaller 
+            <strong>Note:</strong> Large sample sizes ({isRepeated ? `${requiredNText} subjects, ${totalText} total measurements` : `${requiredNText} ${unitLabel}`}) may be logistically challenging. Consider if a smaller
             effect size would still be biologically meaningful, or explore alternative designs.
           </AlertDescription>
         </Alert>

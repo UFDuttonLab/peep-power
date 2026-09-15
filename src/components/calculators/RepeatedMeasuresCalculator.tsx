@@ -4,12 +4,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import ControlSlider from '../ControlSlider';
 import PowerChart from '../SimplePowerChart';
-import { calculateRepeatedMeasuresPower } from '@/utils/powerCalculations';
+import { calculateRepeatedMeasuresPower, type PowerResult } from '@/utils/powerCalculations';
 import { generateRCode, downloadRFile, copyToClipboard } from '@/utils/rCodeExport';
 import { Download, Code2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import FormulaDisplay from '@/components/FormulaDisplay';
 import { FORMULAS } from '@/constants/formulaDefinitions';
+import type { FormulaInfo } from '@/components/FormulaDisplay';
+
+// Formula shown in the dialog; kept next to the calculator that uses it.
+const RM_FORMULA: FormulaInfo = {
+  ...FORMULAS.REPEATED_MEASURES,
+  formula: `Power = P(F > F_crit | lambda)
+
+lambda = f² x n x k / (1 - rho)
+
+df1 = (k - 1) x epsilon
+df2 = (n - 1)(k - 1) x epsilon`,
+  notes: [
+    'Within-subject test under compound symmetry: higher correlation removes more between-subject noise and increases power',
+    'Apply Greenhouse-Geisser correction if sphericity is violated (epsilon < 1 lowers power)',
+  ],
+};
 
 const RepeatedMeasuresCalculator = () => {
   const { toast } = useToast();
@@ -18,7 +34,7 @@ const RepeatedMeasuresCalculator = () => {
   const [effectSize, setEffectSize] = useState(0.25);
   const [correlation, setCorrelation] = useState(0.5);
   const [alpha, setAlpha] = useState(0.05);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PowerResult | null>(null);
 
   useEffect(() => {
     const res = calculateRepeatedMeasuresPower(subjects, timepoints, effectSize, correlation, alpha);
@@ -42,9 +58,10 @@ const RepeatedMeasuresCalculator = () => {
   };
 
   const exportResults = () => {
+    if (!result) return;
     const csv = [
       ['Number of Subjects', 'Power'],
-      ...result.curveData.map((d: any) => [d.x, d.y]),
+      ...result.curveData.map((d: { x: number; y: number }) => [d.x, d.y]),
     ]
       .map(row => row.join(','))
       .join('\n');
@@ -165,7 +182,7 @@ const RepeatedMeasuresCalculator = () => {
               <SelectContent>
                 <SelectItem value="0.01">0.01</SelectItem>
                 <SelectItem value="0.05">0.05</SelectItem>
-                <SelectItem value="0.10">0.10</SelectItem>
+                <SelectItem value="0.1">0.10</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -189,7 +206,7 @@ const RepeatedMeasuresCalculator = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Results</h2>
-          <FormulaDisplay formula={FORMULAS.REPEATED_MEASURES} />
+          <FormulaDisplay formula={RM_FORMULA} />
         </div>
         
         {result && (

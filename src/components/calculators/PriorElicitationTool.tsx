@@ -26,14 +26,23 @@ export const PriorElicitationTool = () => {
   const [optimistic, setOptimistic] = useState(0.8);
   
   const [prior, setPrior] = useState<PriorElicitationResult | null>(null);
+  const [priorMethod, setPriorMethod] = useState<'quantile' | 'literature' | 'bounds'>('quantile');
+
+  const runElicitation = (input: Parameters<typeof elicitPrior>[0]) => {
+    try {
+      setPrior(elicitPrior(input));
+      setPriorMethod(input.method);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not calculate the prior from these inputs');
+    }
+  };
   
   const calculatePriorFromQuantiles = () => {
-    const result = elicitPrior({
+    runElicitation({
       method: 'quantile',
       lowerQuantile: { value: lowerValue, percentile: lowerPercentile },
       upperQuantile: { value: upperValue, percentile: upperPercentile }
     });
-    setPrior(result);
   };
   
   const calculatePriorFromLiterature = () => {
@@ -43,26 +52,24 @@ export const PriorElicitationTool = () => {
       .map(s => parseFloat(s.trim()))
       .filter(n => !isNaN(n) && n > 0);
     
-    if (effects.length === 0) {
-      alert('Please enter valid effect sizes (comma or newline separated)');
+    if (effects.length < 2) {
+      alert('Please enter at least two valid effect sizes (comma or newline separated)');
       return;
     }
     
-    const result = elicitPrior({
+    runElicitation({
       method: 'literature',
       publishedEffects: effects
     });
-    setPrior(result);
   };
   
   const calculatePriorFromBounds = () => {
-    const result = elicitPrior({
+    runElicitation({
       method: 'bounds',
       pessimisticEffect: pessimistic,
       mostLikely: mostLikely,
       optimisticEffect: optimistic
     });
-    setPrior(result);
   };
   
   return (
@@ -241,7 +248,7 @@ export const PriorElicitationTool = () => {
               <CardContent>
                 <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary mb-4">
                   <div className="text-lg font-semibold mb-2">
-                    {prior.distribution === 'normal' && 'mean' in prior.parameters && `Normal(μ=${prior.parameters.mean.toFixed(2)}, σ=${prior.parameters.sd.toFixed(2)})`}
+                    {prior.distribution === 'normal' && 'mean' in prior.parameters && (priorMethod === 'bounds' ? 'PERT distribution, Normal approximation: ' : '') + `Normal(μ=${prior.parameters.mean.toFixed(2)}, σ=${prior.parameters.sd.toFixed(2)})`}
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     <div><strong>Median:</strong> {prior.summaryStats.median.toFixed(2)}</div>

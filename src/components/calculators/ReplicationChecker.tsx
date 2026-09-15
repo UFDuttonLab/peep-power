@@ -23,6 +23,8 @@ const ReplicationChecker = () => {
     
     if (independence === 'no') {
       resultText = '⚠️ PSEUDOREPLICATION DETECTED: Your experimental units are not independent. You need to either: (1) Use mixed-effects models that account for non-independence, or (2) Average subsamples within each true replicate and use that as your sample size (n).';
+    } else if (independence === 'unsure') {
+      resultText = '⚠️ UNCLEAR: You are not sure your experimental units are independent. Review the independence criteria (shared conditions, physical connections, repeated measurement of the same unit) or consult a statistician before deciding on your sample size (n).';
     } else if (hasSubsamples) {
       resultText = '✓ PROPER DESIGN with subsamples: Your true sample size (n) is the number of independent experimental units, NOT the total number of subsamples. Average measurements within each unit before analysis.';
     } else if (sampleType === 'plots' || sampleType === 'tanks' || sampleType === 'individuals') {
@@ -154,7 +156,7 @@ const ReplicationChecker = () => {
             )}
 
             <div className="flex gap-4">
-              {step < 3 && answers.sampleType && (
+              {step < 3 && (step === 1 ? answers.sampleType : answers.independence) && (
                 <Button onClick={() => setStep(step + 1)}>
                   Next Question
                 </Button>

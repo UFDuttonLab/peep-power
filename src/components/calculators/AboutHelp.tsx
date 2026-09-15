@@ -1,6 +1,10 @@
 import { Card } from '@/components/ui/card';
 import { BookOpen, GraduationCap, FlaskConical, Github, AlertTriangle, CheckCircle2, Dna } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { EFFECT_SIZE_INTERPRETATIONS } from '@/constants/effectSizeConstants';
+
+const R2 = EFFECT_SIZE_INTERPRETATIONS.rSquared.benchmarks;
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 const AboutHelp = () => {
   return (
@@ -387,10 +391,13 @@ const AboutHelp = () => {
                         <strong>What it measures:</strong> Proportion of variance in community composition explained by treatment
                       </p>
                       <ul className="text-sm mt-2 ml-4 space-y-1 text-muted-foreground">
-                        <li>• <strong>Small effect:</strong> R² = 0.02 (2% variance explained)</li>
-                        <li>• <strong>Medium effect:</strong> R² = 0.08 (8% variance explained)</li>
-                        <li>• <strong>Large effect:</strong> R² = 0.15-0.25 (15-25% variance explained)</li>
+                        <li>• <strong>Small effect:</strong> R² = {R2.small.value} ({pct(R2.small.value)} variance explained)</li>
+                        <li>• <strong>Medium effect:</strong> R² = {R2.medium.value} ({pct(R2.medium.value)} variance explained)</li>
+                        <li>• <strong>Large effect:</strong> R² = {R2.large.value} ({pct(R2.large.value)} variance explained)</li>
                       </ul>
+                      <p className="text-xs mt-2 text-muted-foreground">
+                        These are Cohen's general benchmarks for variance explained. In microbiome studies, treatment R² values of 0.05 to 0.15 are common and meaningful.
+                      </p>
                       <p className="text-xs mt-2 text-muted-foreground">
                         Note: Microbiome effect sizes are often smaller than traditional ecological studies due to high natural variability
                       </p>
@@ -420,7 +427,6 @@ const AboutHelp = () => {
                       <p className="font-semibold">R Packages:</p>
                       <ul className="text-sm space-y-1 mt-1 text-muted-foreground">
                         <li>• <code className="bg-muted px-1 rounded">micropower</code> - PERMANOVA-based power analysis for microbiome studies</li>
-                        <li>• <code className="bg-muted px-1 rounded">pwr2ppl</code> - Power analysis for complex designs including PERMANOVA</li>
                         <li>• <code className="bg-muted px-1 rounded">vegan::adonis2()</code> - PERMANOVA to calculate R² from pilot data</li>
                       </ul>
                     </Card>

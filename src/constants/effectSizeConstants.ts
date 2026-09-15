@@ -8,9 +8,9 @@ export const EFFECT_SIZE_INTERPRETATIONS = {
     name: "Cohen's d",
     description: "Standardized mean difference between two groups",
     benchmarks: {
-      small: { value: 0.2, description: "Small effect: subtle difference, ~10% non-overlap" },
-      medium: { value: 0.5, description: "Medium effect: noticeable difference, ~33% non-overlap" },
-      large: { value: 0.8, description: "Large effect: substantial difference, ~50% non-overlap" }
+      small: { value: 0.2, description: "Small effect: subtle difference, ~15% non-overlap (Cohen's U1)" },
+      medium: { value: 0.5, description: "Medium effect: noticeable difference, ~33% non-overlap (Cohen's U1)" },
+      large: { value: 0.8, description: "Large effect: substantial difference, ~47% non-overlap (Cohen's U1)" }
     },
     formula: "d = (μ₁ - μ₂) / σ",
     example: "d=0.5 means groups differ by half a standard deviation"
@@ -58,7 +58,7 @@ export const EFFECT_SIZE_INTERPRETATIONS = {
       large: { value: 0.5, description: "Large effect: substantial deviation from expected" }
     },
     formula: "w = √(Σ(Pᵢ - P₀ᵢ)² / P₀ᵢ)",
-    example: "w=0.3 for 2×2 table means odds ratio ≈ 2.5"
+    example: "For a 2×2 table w equals |φ|; w=0.3 with equal row and column totals corresponds to proportions of 0.65 vs 0.35 (the odds ratio depends on the margins)"
   }
 };
 

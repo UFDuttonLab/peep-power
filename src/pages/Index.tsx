@@ -37,9 +37,23 @@ import peepImage from '@/assets/peep.gif';
 
 const Index = () => {
   const [categoryTab, setCategoryTab] = useState('start');
-  const [activeTab, setActiveTab] = useState('wizard');
+  const [activeTab, setActiveTab] = useState('ttest');
 
-  const handleNavigateToCalculator = (testType: TestType) => {
+  // Each category's sub-tabs share activeTab, so pick a valid default when the category changes
+  const defaultTabForCategory: Record<string, string> = {
+    stats: 'ttest',
+    microbiome: 'microbiome',
+    tools: 'mde',
+    bayesian: 'bayesian-assurance',
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setCategoryTab(category);
+    const fallback = defaultTabForCategory[category];
+    if (fallback) setActiveTab(fallback);
+  };
+
+  const handleNavigateToCalculator = (testType: TestType | 'bayesian-assurance') => {
     // Map test types to their categories
     const categoryMap: Record<string, string> = {
       'ttest': 'stats',
@@ -54,6 +68,7 @@ const Index = () => {
       'deseq': 'microbiome',
       'zinb': 'microbiome',
       'lmm-microbiome': 'microbiome',
+      'bayesian-assurance': 'bayesian',
     };
     
     const category = categoryMap[testType];
@@ -85,7 +100,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Category Level Tabs */}
-        <Tabs value={categoryTab} onValueChange={setCategoryTab} className="w-full">
+        <Tabs value={categoryTab} onValueChange={handleCategoryChange} className="w-full">
           <TabsList className="flex flex-wrap gap-2 w-full bg-secondary p-3 mb-4 justify-center">
             <TabsTrigger 
               value="start" 
@@ -284,7 +299,7 @@ const Index = () => {
                 <TabsTrigger value="bayesian-assurance" className="data-[state=active]:bg-background">Assurance</TabsTrigger>
                 <TabsTrigger value="prior-elicitation" className="data-[state=active]:bg-background">Prior Elicitation</TabsTrigger>
                 <TabsTrigger value="sequential" className="data-[state=active]:bg-background">Sequential</TabsTrigger>
-                <TabsTrigger value="replication" className="data-[state=active]:bg-background">Replication</TabsTrigger>
+                <TabsTrigger value="bayesian-replication" className="data-[state=active]:bg-background">Replication</TabsTrigger>
                 <TabsTrigger value="information" className="data-[state=active]:bg-background">Information Design</TabsTrigger>
                 <TabsTrigger value="hierarchical" className="data-[state=active]:bg-background">Hierarchical</TabsTrigger>
                 <TabsTrigger value="adaptive" className="data-[state=active]:bg-background">Adaptive</TabsTrigger>
@@ -302,7 +317,7 @@ const Index = () => {
               <TabsContent value="sequential" className="mt-6">
                 <BayesianSequentialCalculator />
               </TabsContent>
-              <TabsContent value="replication" className="mt-6">
+              <TabsContent value="bayesian-replication" className="mt-6">
                 <BayesianReplicationCalculator />
               </TabsContent>
               <TabsContent value="information" className="mt-6">

@@ -19,6 +19,7 @@ const BayesianEquivalenceCalculator = () => {
   const [priorMean, setPriorMean] = useState(0.1);
   const [priorSD, setPriorSD] = useState(0.2);
   const [targetProbability, setTargetProbability] = useState(0.95);
+  const [targetAssurance, setTargetAssurance] = useState(0.6);
   const [testType, setTestType] = useState<'ttest' | 'correlation'>('ttest');
   const [alpha, setAlpha] = useState(0.05);
   const [result, setResult] = useState<any>(null);
@@ -33,13 +34,14 @@ const BayesianEquivalenceCalculator = () => {
           equivalenceMargin,
           priorEffect: { mean: priorMean, sd: priorSD },
           targetProbability,
+          targetAssurance,
           testType,
           alpha
         });
         setResult(res);
         toast({ title: "Success", description: "Equivalence analysis complete!" });
       } catch (error) {
-        toast({ title: "Error", description: "Calculation failed. Please check your parameters.", variant: "destructive" });
+        toast({ title: "Error", description: error instanceof Error ? error.message : "Calculation failed. Please check your parameters.", variant: "destructive" });
       } finally {
         setIsCalculating(false);
       }
@@ -61,7 +63,7 @@ const BayesianEquivalenceCalculator = () => {
   const exportToR = () => {
     const rCode = generateRCode({
       testType: 'bayesian-equivalence',
-      parameters: { equivalenceMargin, priorMean, priorSD, targetProbability, testType, alpha }
+      parameters: { equivalenceMargin, priorMean, priorSD, targetProbability, targetAssurance, testType, alpha }
     });
     downloadRFile(rCode, 'equivalence_testing.R');
     toast({ title: "R code exported", description: "Ready to run in RStudio" });
@@ -70,7 +72,7 @@ const BayesianEquivalenceCalculator = () => {
   const copyRCode = async () => {
     const rCode = generateRCode({
       testType: 'bayesian-equivalence',
-      parameters: { equivalenceMargin, priorMean, priorSD, targetProbability, testType, alpha }
+      parameters: { equivalenceMargin, priorMean, priorSD, targetProbability, targetAssurance, testType, alpha }
     });
     const success = await copyToClipboard(rCode);
     if (success) {
@@ -178,7 +180,22 @@ const BayesianEquivalenceCalculator = () => {
                 step={1}
               />
               <p className="text-xs text-muted-foreground">
-                Pr(effect is within ROPE) ≥ this threshold
+                Declare equivalence when the posterior Pr(effect is within ROPE) ≥ this threshold
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Target Chance of Success: {(targetAssurance * 100).toFixed(0)}%</Label>
+              <Slider
+                value={[targetAssurance * 100]}
+                onValueChange={(v) => setTargetAssurance(v[0] / 100)}
+                min={50}
+                max={95}
+                step={5}
+              />
+              <p className="text-xs text-muted-foreground">
+                Required probability, before the study, that it ends by declaring equivalence. It cannot exceed
+                the prior probability that the effect is inside the ROPE.
               </p>
             </div>
 
@@ -213,8 +230,10 @@ const BayesianEquivalenceCalculator = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center p-6 bg-primary/10 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">N Per Group</p>
-                    <p className="text-5xl font-bold text-primary">{result.requiredN}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{testType === 'ttest' ? 'N Per Group' : 'Total N'}</p>
+                    <p className="text-5xl font-bold text-primary">
+                      {result.reached ? result.requiredN : `>${result.maxSearchN}`}
+                    </p>
                   </div>
 
                   <Alert>
@@ -238,7 +257,7 @@ const BayesianEquivalenceCalculator = () => {
                   </div>
 
                   <div className="p-4 bg-muted rounded-lg space-y-3">
-                    <p className="font-semibold">ROPE Analysis</p>
+                    <p className="font-semibold">ROPE Analysis (prior)</p>
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div>
                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -270,15 +289,17 @@ const BayesianEquivalenceCalculator = () => {
                     </p>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-blue-800 dark:text-blue-200">TOST requires</p>
+                        <p className="text-sm text-blue-800 dark:text-blue-200">TOST (80% power at the prior mean) requires</p>
                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                          N = {result.comparisonToTOST.tostN}
+                          {Number.isFinite(result.comparisonToTOST.tostN) ? `N = ${result.comparisonToTOST.tostN}` : 'Not reachable'}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-blue-800 dark:text-blue-200">Difference</p>
                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                          {result.comparisonToTOST.difference > 0 ? '+' : ''}{result.comparisonToTOST.difference}
+                          {result.reached && Number.isFinite(result.comparisonToTOST.difference)
+                            ? `${result.comparisonToTOST.difference > 0 ? '+' : ''}${result.comparisonToTOST.difference}`
+                            : 'n/a'}
                         </p>
                       </div>
                     </div>
@@ -289,7 +310,7 @@ const BayesianEquivalenceCalculator = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Equivalence Probability Curve</CardTitle>
-                  <CardDescription>How probability changes with sample size</CardDescription>
+                  <CardDescription>Chance that the study declares equivalence, by sample size</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -303,7 +324,7 @@ const BayesianEquivalenceCalculator = () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="n" 
-                        label={{ value: 'Sample Size Per Group', position: 'insideBottom', offset: -5 }} 
+                        label={{ value: testType === 'ttest' ? 'Sample Size Per Group' : 'Total Sample Size', position: 'insideBottom', offset: -5 }} 
                       />
                       <YAxis label={{ value: 'Pr(Equivalent)', angle: -90, position: 'insideLeft' }} />
                       <Tooltip />
@@ -313,15 +334,15 @@ const BayesianEquivalenceCalculator = () => {
                         dataKey="probEquivalent" 
                         stroke="hsl(var(--chart-1))"
                         fill="url(#equivGradient)"
-                        name="Probability of Equivalence"
+                        name="Chance of Declaring Equivalence"
                       />
                       <Line 
                         type="monotone" 
-                        dataKey={() => targetProbability}
+                        dataKey={() => targetAssurance}
                         stroke="hsl(var(--destructive))"
                         strokeDasharray="5 5"
                         strokeWidth={2}
-                        name="Target Probability"
+                        name="Target Chance of Success"
                         dot={false}
                       />
                     </AreaChart>

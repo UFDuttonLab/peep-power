@@ -149,13 +149,13 @@ export const MicrobiomeParameters = ({ testType, numGroups, onComplete, onBack }
               />
               <ControlSlider
                 id="dropoutRate"
-                label="Expected Dropout Rate"
+                label="Total Dropout by Final Timepoint"
                 value={params.dropoutRate!}
                 onChange={(v) => setParams({ ...params, dropoutRate: v })}
                 min={0.0}
                 max={0.4}
                 step={0.05}
-                tooltip="Proportion of subjects expected to drop out by final timepoint. Typical clinical studies: 0.1-0.2. Long studies (>1 year): 0.3+"
+                tooltip="Proportion of enrolled subjects expected to be lost by the final timepoint (not per timepoint). Power is computed on completers. Typical clinical studies: 0.1-0.2. Long studies (>1 year): 0.3+"
                 decimals={2}
               />
             </div>

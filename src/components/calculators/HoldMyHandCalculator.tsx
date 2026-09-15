@@ -13,7 +13,8 @@ import ProgressIndicator from '@/components/wizard/ProgressIndicator';
 import { WizardState, initialState, DataType, TestType } from '@/components/wizard/wizardConfig';
 
 interface HoldMyHandCalculatorProps {
-  onNavigateToCalculator?: (testType: TestType) => void;
+  /** Accepts a wizard TestType or any calculator tab id (e.g. 'bayesian-assurance'). */
+  onNavigateToCalculator?: (tabId: TestType | 'bayesian-assurance') => void;
 }
 
 const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorProps) => {
@@ -24,17 +25,36 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
 
   const steps = ['Welcome', 'Data Type', 'Questions', 'Effect Size', 'Groups', 'Sample Size'];
 
+  const needsMicrobiomeParams = (t: TestType | null) =>
+    t === 'deseq' || t === 'zinb' || t === 'lmm-microbiome';
+
   const handleNext = () => {
     setState((prev) => ({ ...prev, step: prev.step + 1 }));
   };
 
   const handleBack = () => {
-    setState((prev) => ({ ...prev, step: Math.max(0, prev.step - 1) }));
+    setState((prev) => {
+      let step: number;
+      if (prev.step === 4.5) step = 4;
+      else if (prev.step === 5 && needsMicrobiomeParams(prev.selectedTest)) step = 4.5;
+      else if (prev.step === 3 && prev.dataType === 'correlation') step = 1; // correlation has no question step
+      else step = Math.max(0, prev.step - 1);
+      return { ...prev, step };
+    });
   };
 
   const handleDataTypeSelect = (dataType: DataType) => {
-    setState((prev) => ({ ...prev, dataType }));
-    handleNext();
+    // Reset everything downstream so nothing from a previous path leaks into the calculation
+    setState((prev) => ({
+      ...prev,
+      dataType,
+      selectedTest: dataType === 'correlation' ? 'correlation' : null,
+      selectedEffectSize: null,
+      numGroups: null,
+      microbiomeParams: undefined,
+      parameters: { ...initialState.parameters },
+      step: dataType === 'correlation' ? 3 : prev.step + 1,
+    }));
   };
 
   const handleTestSelected = (test: TestType) => {
@@ -42,53 +62,50 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
     handleNext();
   };
 
+  /**
+   * Convert the selected effect size to the metric each downstream calculation expects:
+   * d (ttest, deseq, zinb), f (ANOVA-type and LMM), r (correlation), w (chi-square), R² (PERMANOVA).
+   */
   const handleEffectSizeSelect = (effectSize: number, effectType: string) => {
+    const t = state.selectedTest;
+    const isD = effectType === "Cohen's d";
+    const isF = effectType === "Cohen's f";
+    const isR2 = effectType === 'R² (PERMANOVA)';
+    // For two groups, f = d/2 exactly; for k > 2 groups d/2 is the minimum-variability approximation
+    const toD = (v: number) => (isF ? 2 * v : isR2 ? 2 * Math.sqrt(v / (1 - v)) : v);
+    const toF = (v: number) => (isD ? v / 2 : isR2 ? Math.sqrt(v / (1 - v)) : v);
+    // Point-biserial r (equal group sizes); also used as w (= phi) for a 2x2 table
+    const dToR = (d: number) => d / Math.sqrt(d * d + 4);
+
     let convertedEffect = effectSize;
-    
-    // Convert effect sizes based on test type if needed
-    if ((state.selectedTest === 'microbiome' || state.selectedTest === 'repeated-microbiome') && 
-        (effectType === "Cohen's d" || effectType === "Cohen's f")) {
-      // Only convert for 2-group comparisons
-      if (state.numGroups === 2) {
-        const f = effectType === "Cohen's d" ? effectSize / 2 : effectSize;
+    if (t === 'microbiome' || t === 'repeated-microbiome') {
+      if (isR2) {
+        convertedEffect = effectSize;
+      } else {
+        const f = toF(effectSize);
         convertedEffect = (f * f) / (1 + f * f);
-        console.warn(`Converted ${effectType}=${effectSize.toFixed(2)} to R²=${convertedEffect.toFixed(3)} for 2-group PERMANOVA`);
-      } else {
-        // For multi-group, this conversion is inappropriate - should not happen now
-        console.error(`Cannot convert ${effectType} to R² for ${state.numGroups}-group PERMANOVA. Use R² directly.`);
-        return; // Don't proceed
       }
-    } else if ((state.selectedTest === 'oneway' || state.selectedTest === 'twoway') && 
-               effectType === "Cohen's d") {
-      // Convert Cohen's d to Cohen's f for ANOVA: f = d/2 (for 2 groups)
-      convertedEffect = effectSize / 2;
-      if (state.numGroups && state.numGroups > 2) {
-        console.warn(`Cohen's d to f conversion (f=d/2) is only exact for 2 groups. For ${state.numGroups} groups, this is an approximation assuming all pairs have similar effect sizes.`);
-      } else {
-        console.warn(`Converted Cohen's d=${effectSize.toFixed(2)} to Cohen's f=${convertedEffect.toFixed(3)} for ANOVA`);
-      }
-    } else if ((state.selectedTest === 'oneway' || state.selectedTest === 'twoway') && 
-               effectType === 'R² (PERMANOVA)') {
-      // Convert R² to Cohen's f: f = √(R²/(1-R²))
-      convertedEffect = Math.sqrt(effectSize / (1 - effectSize));
-      console.warn(`Converted R²=${effectSize.toFixed(3)} to Cohen's f=${convertedEffect.toFixed(3)} for ANOVA`);
-    } else if ((state.selectedTest === 'microbiome' || state.selectedTest === 'repeated-microbiome') && 
-               effectType === 'R² (PERMANOVA)') {
-      // R² is already correct for PERMANOVA - no conversion needed
-      convertedEffect = effectSize;
+    } else if (t === 'oneway' || t === 'twoway' || t === 'repeated' || t === 'lmm-microbiome') {
+      convertedEffect = toF(effectSize);
+    } else if (t === 'ttest' || t === 'deseq' || t === 'zinb') {
+      convertedEffect = toD(effectSize);
+    } else if (t === 'correlation' || t === 'chisquare') {
+      convertedEffect = dToR(toD(effectSize));
     }
-    
-    setState((prev) => ({ 
-      ...prev, 
+
+    if (!(convertedEffect > 0) || !Number.isFinite(convertedEffect)) return;
+
+    setState((prev) => ({
+      ...prev,
       selectedEffectSize: convertedEffect,
-      parameters: { ...prev.parameters, effectSize: convertedEffect }
+      parameters: { ...prev.parameters, effectSize: convertedEffect },
+      step: prev.step + 1,
     }));
-    handleNext();
   };
 
   const handleGroupsSubmit = (groups: number) => {
     // Check if this test type needs microbiome-specific parameters
-    if (state.selectedTest === 'deseq' || state.selectedTest === 'zinb' || state.selectedTest === 'lmm-microbiome') {
+    if (needsMicrobiomeParams(state.selectedTest)) {
       setState((prev) => ({ 
         ...prev, 
         numGroups: groups,
@@ -193,7 +210,7 @@ const HoldMyHandCalculator = ({ onNavigateToCalculator }: HoldMyHandCalculatorPr
               <Button 
                 variant="link" 
                 className="px-1 h-auto py-0 text-purple-700 dark:text-purple-300 underline font-semibold"
-                onClick={() => onNavigateToCalculator && onNavigateToCalculator('ttest' as TestType)}
+                onClick={() => onNavigateToCalculator && onNavigateToCalculator('bayesian-assurance')}
               >
                 Bayesian Assurance Calculator
               </Button> 
