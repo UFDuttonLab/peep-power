@@ -2,6 +2,10 @@ import { Card } from '@/components/ui/card';
 import { BookOpen, GraduationCap, FlaskConical, Github, AlertTriangle, CheckCircle2, Dna } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EFFECT_SIZE_INTERPRETATIONS } from '@/constants/effectSizeConstants';
+import { EFFECT_SIZE_LIBRARY } from '@/data/effectSizeLibrary';
+
+const MICROBIOME_R2 = EFFECT_SIZE_LIBRARY.filter((e) => e.effectType === 'R² (PERMANOVA)' && e.basis !== 'Correlational' && !e.wizard)
+  .sort((x, y) => x.effectSize - y.effectSize);
 
 const R2 = EFFECT_SIZE_INTERPRETATIONS.rSquared.benchmarks;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -445,7 +449,7 @@ const AboutHelp = () => {
                       <p className="font-semibold">Literature-Based Estimates:</p>
                       <p className="text-sm mt-1 text-muted-foreground">
                         If pilot data isn't available, consult published meta-analyses in your field. The Effect Size Library 
-                        tab includes several microbiome studies with R² values you can reference.
+                        tab lists the published microbiome PERMANOVA R² values below with their sample sizes.
                       </p>
                     </Card>
                   </div>
@@ -457,47 +461,23 @@ const AboutHelp = () => {
                     <table className="w-full text-sm border-collapse">
                       <thead>
                         <tr className="border-b-2 border-border">
-                          <th className="text-left p-2">Study Type</th>
                           <th className="text-left p-2">Comparison</th>
+                          <th className="text-left p-2">Community</th>
                           <th className="text-left p-2">R² (PERMANOVA)</th>
+                          <th className="text-left p-2">Source</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Human Gut</td>
-                          <td className="p-2">Healthy vs. IBD</td>
-                          <td className="p-2">0.08-0.25</td>
-                        </tr>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Human Gut</td>
-                          <td className="p-2">Diet intervention</td>
-                          <td className="p-2">0.05-0.15</td>
-                        </tr>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Soil</td>
-                          <td className="p-2">Land use (forest vs. agriculture)</td>
-                          <td className="p-2">0.15-0.30</td>
-                        </tr>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Soil</td>
-                          <td className="p-2">Fertilizer treatment</td>
-                          <td className="p-2">0.08-0.18</td>
-                        </tr>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Marine</td>
-                          <td className="p-2">Body site (human skin vs. mouth)</td>
-                          <td className="p-2">0.30-0.50</td>
-                        </tr>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Rhizosphere</td>
-                          <td className="p-2">Plant species</td>
-                          <td className="p-2">0.10-0.22</td>
-                        </tr>
-                        <tr className="border-b border-border">
-                          <td className="p-2">Coral</td>
-                          <td className="p-2">Bleached vs. healthy</td>
-                          <td className="p-2">0.12-0.28</td>
-                        </tr>
+                        {MICROBIOME_R2.map((e) => (
+                          <tr key={e.id} className="border-b border-border">
+                            <td className="p-2">{e.studyType}</td>
+                            <td className="p-2">{e.taxonomicGroup}</td>
+                            <td className="p-2">{e.effectSize}</td>
+                            <td className="p-2">
+                              <a href={`https://doi.org/${e.doi}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{e.shortRef}</a>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -506,8 +486,7 @@ const AboutHelp = () => {
                 <Card className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-yellow-500">
                   <p className="font-semibold mb-2">⚠️ Key Considerations:</p>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Microbiome effect sizes are typically SMALLER than traditional ecology due to high inter-individual variation</li>
-                    <li>• R² values above 0.20 are considered large in microbiome studies</li>
+                    <li>• Values in the table above range from R² = {Math.min(...MICROBIOME_R2.map((e) => e.effectSize))} to {Math.max(...MICROBIOME_R2.map((e) => e.effectSize))}; see the Effect Size Library for sample sizes and limits of each value</li>
                     <li>• Sample size requirements are often higher (30-50+ per group for R²=0.08)</li>
                     <li>• Sequencing depth, rarefaction method, and distance metric choice all impact statistical power</li>
                     <li>• Consider blocking by batch/plate if using multiple sequencing runs</li>
