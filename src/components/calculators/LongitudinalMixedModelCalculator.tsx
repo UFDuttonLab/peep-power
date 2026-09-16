@@ -472,7 +472,9 @@ const LongitudinalMixedModelCalculator = () => {
                 <AlertDescription>
                   <strong>Why approximations?</strong> Exact power for LMM with random slopes,
                   unequal spacing, and dropout requires simulation. This calculator provides
-                  a <em>rough estimate</em> using a design effect approach.
+                  an <em>analytical estimate</em>: exact noncentral F power for the time × treatment
+                  interaction under compound symmetry, with a heuristic inflation for random slopes
+                  and completers-only handling of dropout.
                 </AlertDescription>
               </Alert>
               

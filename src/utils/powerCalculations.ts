@@ -64,7 +64,7 @@ export function nonCentralTCDF(t: number, df: number, delta: number): number {
   if (!Number.isFinite(t)) return t > 0 ? 1 : 0;
   if (delta === 0) return jStat.studentt.cdf(t, df);
   // Far tails: series underflows; the normal limit is accurate there.
-  if (Math.abs(delta) > 37) {
+  if (Math.abs(delta) > 37 && df > 3) {
     const z = (t * (1 - 1 / (4 * df)) - delta) / Math.sqrt(1 + (t * t) / (2 * df));
     return jStat.normal.cdf(z, 0, 1);
   }
@@ -120,6 +120,7 @@ export function tTestPowerExact(ncp: number, df: number, alpha: number): number 
 /** Upper-tail power of an F test (critical value supplied). */
 export function noncentralFPower(lambda: number, df1: number, df2: number, criticalValue: number): number {
   if (!(df1 > 0) || !(df2 > 0) || !Number.isFinite(criticalValue)) return 0;
+  if (Number.isNaN(lambda)) return 0;
   if (!Number.isFinite(lambda)) return clampPower(1);
   return clampPower(1 - nonCentralFCDF(criticalValue, df1, df2, Math.max(0, lambda)));
 }
@@ -475,8 +476,14 @@ export function calculateMinimumDetectableEffect(
   if (Number.isNaN(power(0.1))) return NaN;
   const bounded = testType === 'correlation' || testType === 'permanova' || testType === 'repeated-permanova';
   let low = 0;
-  let high = bounded ? 0.999 : 10;
-  if (!(power(high) >= targetPower)) return Infinity;
+  const cap = bounded ? 0.999 : 10;
+  // grow the upper bound from below so huge noncentralities are never evaluated
+  let high = Math.min(cap, 0.25);
+  while (!(power(high) >= targetPower)) {
+    if (high >= cap) return Infinity;
+    low = high;
+    high = Math.min(cap, high * 2);
+  }
   for (let i = 0; i < 60; i++) {
     const mid = (low + high) / 2;
     if (power(mid) >= targetPower) high = mid; else low = mid;
@@ -502,8 +509,8 @@ export function calculateRequiredSampleSize(
   if (power(low) >= targetPower) return low;
   let high = low;
   do {
-    high *= 2;
-    if (high > 100000) return Infinity;
+    if (high >= 100000) return Infinity;
+    high = Math.min(high * 2, 100000);
   } while (!(power(high) >= targetPower));
   // invariant: power(low) < target <= power(high)
   while (high - low > 1) {

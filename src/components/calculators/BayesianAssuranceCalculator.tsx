@@ -418,7 +418,7 @@ export const BayesianAssuranceCalculator = () => {
                       {/* Prior distribution curve */}
                       {result.priorDistribution.length > 0 && (
                         <path
-                          d={`M ${result.priorDistribution.map((d, i) => {
+                          d={`${result.priorDistribution.map((d, i) => {
                             const x = 40 + (i / result.priorDistribution.length) * 300;
                             const y = 140 - (d.density / Math.max(...result.priorDistribution.map(p => p.density))) * 120;
                             return `${i === 0 ? 'M' : 'L'} ${x},${y}`;

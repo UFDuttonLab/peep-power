@@ -132,7 +132,7 @@ export const calculateLMMPower = (
 
   const fCrit = jStat.centralF.inv(1 - alpha, df1, df2);
   const power = noncentralFPower(lambda, df1, df2, fCrit);
-  return Math.max(0, Math.min(0.9999, power));
+  return Math.max(0, Math.min(0.999, power));
 };
 
 /**

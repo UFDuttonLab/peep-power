@@ -849,7 +849,7 @@ const generateBayesianRCode = (params: any): string => {
 #   prior: effect (${label}) ~ Normal(mean, sd) truncated to its valid range
 #   assurance(n) = P(power(effect, n) >= target power) = P(effect >= MDE(n))
 #   expected power(n) = E[power(effect, n)] over the prior
-#   power counts rejections in the hypothesised direction${test === 'permanova' ? '\n#   PERMANOVA power: lambda = n * k * R2 / (1 - R2), df1 = k - 1, df2 = k(n - 1)' : ''}
+#   power counts rejections in the direction of the prior mean${test === 'permanova' ? '\n#   PERMANOVA power: lambda = n * k * R2 / (1 - R2), df1 = k - 1, df2 = k(n - 1)' : ''}
 
 ${R_BAYES_HELPERS}
 # Parameters
@@ -860,6 +860,13 @@ target_power <- ${targetPower}
 target_assurance <- ${targetAssurance}
 alpha <- ${alpha}
 num_groups <- ${groups}
+
+# Success means significance in the direction of the prior mean: a negative prior mean
+# for a t-test or correlation is mirrored (the problem is symmetric).
+if (test_type %in% c("ttest", "correlation") && prior_mean < 0) {
+  cat("Negative prior mean: analysing the mirrored problem (effect in the negative direction)\\n")
+  prior_mean <- -prior_mean
+}
 
 support <- effect_support(test_type)
 n_min <- if (test_type == "correlation") 4 else 2
@@ -1475,7 +1482,9 @@ const generateSequentialRCode = (params: any): string => {
 #    ANOVA: I = n per group, (k-1)-dimensional motion with drift norm f * sqrt(k)).
 #   The effect-size prior generates the trials. At each interim look the predictive
 #   probability (PP) that the final two-sided level-alpha analysis at max_n is significant
-#   is computed under a non-informative analysis prior.
+#   is computed under a non-informative analysis prior. t-test and correlation declare
+#   success in the positive direction (nominal type I error alpha / 2); ANOVA uses
+#   |S|^2 / I > (k - 1) * F_crit (nominal alpha).
 #   Stop for success if PP >= superiority threshold, for futility if PP <= futility threshold.
 # Stopping-rule settings below use PEEP's defaults unless they were exported with the design.
 
@@ -1509,6 +1518,13 @@ for (i in seq_len(interim_looks)) {
 looks <- c(looks, max_n)
 T_max <- info_at(max_n)
 
+# Success is significance in the direction of the prior mean: a negative prior mean
+# for a t-test or correlation is mirrored.
+if (test_type != "anova" && prior_mean < 0) {
+  cat("Negative prior mean: analysing the mirrored problem (effect in the negative direction)\\n")
+  prior_mean <- -prior_mean
+}
+
 # Design prior for the drift on the information scale
 if (test_type == "ttest") {
   m0 <- prior_mean
@@ -1531,14 +1547,18 @@ crit <- if (test_type == "ttest") {
   (num_groups - 1) * qf(1 - alpha, num_groups - 1, max_n * num_groups - num_groups)
 }
 
-gh_nodes <- c(-2.856970013872806, -1.355626179974266, 0, 1.355626179974266, 2.856970013872806)
-gh_weights <- c(0.011257411327720691, 0.2220759220056126, 0.5333333333333333,
-                0.2220759220056126, 0.011257411327720691)
+# ANOVA (any k, including k = 2) uses the chi-square scale |S|^2 / I > (k - 1) * F_crit;
+# t-test and correlation declare success in the positive direction only.
+directional <- test_type != "anova"
+
+# 3-node Gauss-Hermite rule for E[g(Z)], Z ~ N(0, 1)
+gh_nodes <- c(-sqrt(3), 0, sqrt(3))
+gh_weights <- c(1 / 6, 2 / 3, 1 / 6)
 
 predictive_prob <- function(S, I) {
   R <- T_max - I
   if (R <= 0) return(0)
-  if (dim_s == 1) {
+  if (directional) {
     m <- S[1] / I
     sd_pred <- sqrt(R + R^2 / I)
     return(1 - pnorm((crit * sqrt(T_max) - S[1] - m * R) / sd_pred))
@@ -1547,7 +1567,11 @@ predictive_prob <- function(S, I) {
   d_hat <- sqrt(max(0, norm2 - dim_s * I)) / I
   delta <- pmax(0, d_hat + sqrt(1 / I) * gh_nodes)
   ncp <- (sqrt(norm2) + delta * R)^2 / R
-  min(1, max(0, sum(gh_weights * pchisq(crit * T_max / R, dim_s, ncp = ncp, lower.tail = FALSE))))
+  x <- crit * T_max / R
+  gap <- sqrt(ncp) - sqrt(x)
+  tail <- ifelse(gap > 10, 1, ifelse(gap < -10, 0,
+                 pchisq(x, dim_s, ncp = ncp, lower.tail = FALSE)))
+  min(1, max(0, sum(gh_weights * tail)))
 }
 
 simulate_trials <- function(draw_drift, nsim) {
@@ -1566,7 +1590,7 @@ simulate_trials <- function(draw_drift, nsim) {
       S <- S + rnorm(dim_s, 0, sqrt(dI))
       S[1] <- S[1] + d * dI
       if (j == length(looks)) {
-        success <- if (dim_s == 1) S[1] / sqrt(I) > crit else sum(S^2) / I > crit
+        success <- if (directional) S[1] / sqrt(I) > crit else sum(S^2) / I > crit
         if (success) {
           sup[j] <- sup[j] + 1
           successes <- successes + 1
@@ -1603,7 +1627,7 @@ draw_prior <- function() {
   0
 }
 
-nsim <- if (test_type == "anova") 1000 else 2000
+nsim <- if (test_type == "anova") 800 else 2000
 cat("Analysis sample sizes (${unit}):", looks, "\\n")
 cat("Running", nsim, "simulated trials under the prior and under no effect...\\n")
 set.seed(123)
@@ -1618,7 +1642,10 @@ cat("\\n=== Results ===\\n")
 cat("Expected sample size (${unit}):", round(under_prior$expected_n, 1), "\\n")
 cat("Saving versus fixed design:", round((1 - under_prior$expected_n / max_n) * 100, 1), "%\\n")
 cat("Probability of declaring success under the prior:", round(under_prior$power, 3), "\\n")
-cat("Simulated type I error (no effect):", round(under_null$power, 3), " nominal:", alpha, "\\n")
+# The fixed design's type I error with the same one-directional success rule is alpha / 2
+nominal_type1 <- if (directional) alpha / 2 else alpha
+cat("Simulated type I error (no effect):", round(under_null$power, 3),
+    " nominal:", nominal_type1, if (directional) "(one-directional)" else "", "\\n")
 
 # Optional: classical O'Brien-Fleming boundaries for the same looks (two-sided alpha)
 if (requireNamespace("rpact", quietly = TRUE) && length(looks) > 1) {
@@ -2002,12 +2029,18 @@ const generateEquivalenceRCode = (params: any): string => {
 
   return `# Bayesian Equivalence Testing (ROPE)
 # Generated from PEEP
-# Same method as PEEP: for each simulated study, theta ~ prior,
-# estimate ~ N(theta, se^2(n)), conjugate normal posterior, and equivalence is declared
-# if P(|theta| < margin | data) >= target probability.
+# Same method as PEEP (exact, no simulation):
+#   The user's prior generates the true effect theta; the estimate is N(theta, se^2).
+#   The decision uses a flat analysis prior, so the posterior is N(estimate, se^2) and
+#   equivalence is declared if P(|theta| < M | data) >= target probability.
+#   That probability falls as |estimate| grows, so equivalence is declared exactly when
+#   |estimate| <= c(n), where c(n) is found by bisection. Marginally
+#   estimate ~ N(m0, s0^2 + se^2), so
+#   P(declare) = pnorm((c - m0) / sqrt(s0^2 + se^2)) - pnorm((-c - m0) / sqrt(s0^2 + se^2))
 #   t-test: se^2 = 2 / n (standardised difference, n per group)
 #   correlation: Fisher z scale, se^2 = 1 / (n - 3), margin atanh(margin)
-# Required n: smallest n with P(declare equivalence) >= target assurance.
+# Required n: smallest n (every n from the minimum to 500 is checked) with
+# P(declare) >= target assurance.
 
 ${R_SMALLEST_N}
 # Parameters
@@ -2035,20 +2068,18 @@ if (test_type == "ttest") {
 }
 n_max <- 500
 
-set.seed(123)
-nsim <- 2000
-theta <- m0 + s0 * rnorm(nsim)
-noise <- rnorm(nsim)
-prior_prec <- 1 / s0^2
-
 prob_equivalent_at <- function(n) {
-  v <- se2(n)
-  post_prec <- prior_prec + 1 / v
-  post_sd <- sqrt(1 / post_prec)
-  est <- theta + sqrt(v) * noise
-  post_mean <- (prior_prec * m0 + est / v) / post_prec
-  p_in <- pnorm(M, post_mean, post_sd) - pnorm(-M, post_mean, post_sd)
-  mean(p_in >= target_probability)
+  se <- sqrt(se2(n))
+  g <- function(cc) pnorm((M - cc) / se) - pnorm((-M - cc) / se)
+  if (g(0) < target_probability) return(0)
+  lo <- 0
+  hi <- M + 10 * se
+  for (i in 1:60) {
+    mid <- (lo + hi) / 2
+    if (g(mid) >= target_probability) lo <- mid else hi <- mid
+  }
+  sd_est <- sqrt(s0^2 + se^2)
+  min(1, max(0, pnorm((lo - m0) / sd_est) - pnorm((-lo - m0) / sd_est)))
 }
 
 cat("=== Bayesian Equivalence Testing ===\\n")
@@ -2057,33 +2088,24 @@ cat("Prior: N(", prior_mean, ",", prior_sd, ")\\n")
 cat("Declare equivalence if P(in ROPE) >=", target_probability,
     "; target assurance", target_assurance, "\\n\\n")
 
-chart_n <- seq(10, n_max, by = 10)
-chart_p <- numeric(length(chart_n))
+# P(declare) is not guaranteed to be monotone in n, so every n is checked
 required <- NA
-prev_n <- n_min - 1
-for (i in seq_along(chart_n)) {
-  chart_p[i] <- prob_equivalent_at(chart_n[i])
-  if (is.na(required) && chart_p[i] >= target_assurance) {
-    required <- chart_n[i]
-    if (chart_n[i] - 1 >= max(prev_n + 1, n_min)) {
-      for (m in max(prev_n + 1, n_min):(chart_n[i] - 1)) {
-        if (prob_equivalent_at(m) >= target_assurance) {
-          required <- m
-          break
-        }
-      }
-    }
+for (n in n_min:n_max) {
+  if (prob_equivalent_at(n) >= target_assurance) {
+    required <- n
+    break
   }
-  prev_n <- chart_n[i]
 }
+chart_n <- seq(10, n_max, by = 10)
+chart_p <- sapply(chart_n, prob_equivalent_at)
 
 if (is.na(required)) {
   cat("Target not reached by n =", n_max, "(${unit}); probability there:",
-      round(prob_equivalent_at(n_max), 3), "\\n")
+      round(prob_equivalent_at(n_max), 4), "\\n")
   required <- n_max
 } else {
   cat("Required n (${unit}):", required, "\\n")
-  cat("P(declare equivalence) at that n:", round(prob_equivalent_at(required), 3), "\\n")
+  cat("P(declare equivalence) at that n:", round(prob_equivalent_at(required), 4), "\\n")
 }
 cat("Prior probability inside the ROPE:", round(pnorm(M, m0, s0) - pnorm(-M, m0, s0), 3), "\\n\\n")
 
@@ -2149,7 +2171,7 @@ prior_prob <- prior_prob / sum(prior_prob)
 log_prior <- log(prior_prob)
 
 set.seed(123)
-nsim <- 1000
+nsim <- 2000
 true_model <- sample.int(M, nsim, replace = TRUE, prob = prior_prob)
 z_theta <- rnorm(nsim)
 z_noise <- rnorm(nsim)

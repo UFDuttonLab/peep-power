@@ -288,6 +288,13 @@ const ZeroInflatedCalculator = () => {
                 <div>
                   <h3 className="text-2xl font-bold">Statistical Power: {(power * 100).toFixed(1)}%</h3>
                   <p className={`text-sm ${interpretation.color}`}>{interpretation.message}</p>
+                  {testType !== 'count' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {assumedZeroChange > 0
+                        ? `Zero component assumes a fixed drop in structural zeros of ${(assumedZeroChange * 100).toFixed(0)} percentage points (${(zeroInflation * 100).toFixed(0)}% to ${((zeroInflation - assumedZeroChange) * 100).toFixed(0)}%), independent of the log2 fold-change.`
+                        : 'Zero component not tested: zero-inflation is 0.'}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -303,7 +310,9 @@ const ZeroInflatedCalculator = () => {
                   <div className="text-sm text-muted-foreground">Zero Model Power</div>
                   <div className="text-2xl font-bold">{(zeroPower * 100).toFixed(1)}%</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Detecting a {(assumedZeroChange * 100).toFixed(0)}-point drop in structural zeros{testType === 'both' ? ' (at α/2)' : ''}
+                    {assumedZeroChange > 0
+                      ? `Assumes structural zeros drop from ${(zeroInflation * 100).toFixed(0)}% to ${((zeroInflation - assumedZeroChange) * 100).toFixed(0)}% (fixed at min(20 points, half of π))${testType === 'both' ? ', tested at α/2' : ''}`
+                      : 'Not tested: no structural zeros (π = 0)'}
                   </div>
                 </div>
               </div>

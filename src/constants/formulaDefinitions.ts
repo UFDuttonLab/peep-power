@@ -358,7 +358,7 @@ Required n = smallest n with Assurance(n) >= target assurance`,
     ],
     notes: [
       'Accounts for effect size uncertainty',
-      'Power counts rejections in the hypothesised (positive) direction',
+      'For t-tests and correlations, power counts rejections in the direction of the prior mean (a negative prior mean is mirrored)',
       'Both probabilities are computed exactly (no Monte Carlo noise)',
     ],
     limitations: [
@@ -378,6 +378,11 @@ PP_i = P(final test significant at n_max | data so far)
 Stop for futility if: PP_i <= threshold_low
 Stop for success if:  PP_i >= threshold_high
 
+Final success rule:
+  t-test, correlation: S/sqrt(I) > crit  (direction of the prior mean;
+                       a negative prior mean is mirrored)
+  ANOVA (any k):       |S|²/I > (k-1) × F_crit
+
 Expected N = Sum n_i × P(stop at i)
 Power and type I error estimated by simulating trials
 (effect drawn from the prior, or zero for type I error)`,
@@ -393,7 +398,7 @@ Power and type I error estimated by simulating trials
       'Information scale: n/2 (t-test), n - 3 (correlation), n per group (ANOVA)',
     ],
     limitations: [
-      'Early success stopping can inflate the type I error; check the simulated value',
+      'Early success stopping can inflate the type I error; compare the simulated value with the nominal rate (alpha/2 for the one-directional t-test and correlation rules, alpha for ANOVA)',
     ],
     references: [
       { text: 'Berry et al. (2010). Bayesian Adaptive Methods' },
@@ -453,10 +458,16 @@ P(rep) = Integral Power_rep(theta) × p(theta|data) dtheta`,
     formula: `P(equivalence) = P(theta in ROPE | data)
 ROPE = [-delta, delta]
 
-Declare equivalence if P(theta in ROPE | data) >= threshold
-Assurance(n) = P(declare equivalence), simulated from the prior
+Design: theta ~ prior N(m0, s0²), estimate ~ N(theta, se²)
+Analysis (flat prior): theta | data ~ N(estimate, se²)
+  se² = 2/n per group (t-test), 1/(n-3) on the Fisher z scale (correlation)
 
-Required N: smallest n with Assurance(n) >= target assurance`,
+Declare equivalence if P(theta in ROPE | data) >= threshold,
+  i.e. if |estimate| <= c(n)  (c(n) found by bisection)
+Assurance(n) = P(declare equivalence)
+  = Phi((c - m0)/sqrt(s0² + se²)) - Phi((-c - m0)/sqrt(s0² + se²))
+
+Required N: smallest n with Assurance(n) >= target assurance (every n checked; computed exactly)`,
     variables: [
       { symbol: 'ROPE', description: 'Region of Practical Equivalence' },
       { symbol: 'delta', description: 'Equivalence margin' },

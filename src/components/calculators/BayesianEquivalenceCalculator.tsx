@@ -19,7 +19,7 @@ const BayesianEquivalenceCalculator = () => {
   const [priorMean, setPriorMean] = useState(0.1);
   const [priorSD, setPriorSD] = useState(0.2);
   const [targetProbability, setTargetProbability] = useState(0.95);
-  const [targetAssurance, setTargetAssurance] = useState(0.6);
+  const [targetAssurance, setTargetAssurance] = useState(0.55);
   const [testType, setTestType] = useState<'ttest' | 'correlation'>('ttest');
   const [alpha, setAlpha] = useState(0.05);
   const [result, setResult] = useState<any>(null);

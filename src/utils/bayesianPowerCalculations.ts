@@ -89,9 +89,9 @@ const fCrit = (df1: number, df2: number, alpha: number) =>
   cachedCrit(`f|${df1}|${df2}|${alpha}`, () => jStat.centralF.inv(1 - alpha, df1, df2));
 const zCrit = (alpha: number) => cachedCrit(`z|${alpha}`, () => jStat.normal.inv(1 - alpha / 2, 0, 1));
 
-// Probabilists' Gauss-Hermite rule (5 nodes) for E[g(Z)], Z ~ N(0, 1)
-const GH_NODES = [-2.856970013872806, -1.355626179974266, 0, 1.355626179974266, 2.856970013872806];
-const GH_WEIGHTS = [0.011257411327720691, 0.2220759220056126, 0.5333333333333333, 0.2220759220056126, 0.011257411327720691];
+// Probabilists' Gauss-Hermite rule (3 nodes, exact for polynomials up to degree 5) for E[g(Z)], Z ~ N(0, 1)
+const GH_NODES = [-Math.sqrt(3), 0, Math.sqrt(3)];
+const GH_WEIGHTS = [1 / 6, 2 / 3, 1 / 6];
 
 type EffectTest = 'ttest' | 'anova' | 'correlation' | 'permanova';
 
@@ -202,13 +202,21 @@ const expectedPowerOver = (powerFn: (x: number) => number, nodes: Node[], monoto
 };
 
 /** Smallest effect with power >= target (Infinity if unreachable within the support). */
-const minDetectableEffect = (powerFn: (x: number) => number, target: number, test: EffectTest): number => {
+const minDetectableEffect = (powerFn: (x: number) => number, target: number, test: EffectTest): number =>
+  mdeInRange(powerFn, target, test === 'correlation' ? 0.9999 : test === 'permanova' ? 0.999 : 20);
+
+/** Smallest effect in [0, hi0] with power >= target (Infinity if none), for power increasing in the effect. */
+const mdeInRange = (powerFn: (x: number) => number, target: number, hi0: number): number => {
   const lo0 = 0;
-  const hi0 = test === 'correlation' ? 0.9999 : test === 'permanova' ? 0.999 : 20;
-  if (powerFn(hi0) < target) return Infinity;
   if (powerFn(lo0) >= target) return lo0;
+  // Bracket the root by doubling from a small effect: large effects are slow to evaluate exactly
   let lo = lo0;
-  let hi = hi0;
+  let hi = Math.min(0.25, hi0);
+  while (powerFn(hi) < target) {
+    if (hi >= hi0) return Infinity;
+    lo = hi;
+    hi = Math.min(hi * 2, hi0);
+  }
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
     if (powerFn(mid) >= target) hi = mid;
@@ -279,8 +287,12 @@ export interface BayesianAssuranceResult {
 export const calculateBayesianAssurance = (
   params: BayesianAssuranceInput
 ): BayesianAssuranceResult => {
-  const { effectSizeMean: mean, effectSizeSD: sd, targetPower, targetAssurance, testType: test, alpha } = params;
+  const { effectSizeMean: rawMean, effectSizeSD: sd, targetPower, targetAssurance, testType: test, alpha } = params;
   validateCommon(alpha);
+  // Signed effects: success means significance in the direction of the prior mean. The problem is
+  // symmetric, so a negative prior mean is handled by mirroring it.
+  const flip = (test === 'ttest' || test === 'correlation') && rawMean < 0 ? -1 : 1;
+  const mean = rawMean * flip;
   if (!(sd >= 0)) throw new Error('Prior SD cannot be negative');
   if (!(targetPower > alpha && targetPower < 1)) throw new Error('Target power must be between alpha and 1');
   if (!(targetAssurance > 0 && targetAssurance < 1)) throw new Error('Target assurance must be between 0 and 1');
@@ -336,6 +348,10 @@ export const calculateBayesianAssurance = (
   } else {
     priorDistribution.push({ effectSize: mean, density: 1 });
   }
+  if (flip < 0) {
+    priorDistribution.reverse();
+    priorDistribution.forEach((d) => { d.effectSize = -d.effectSize; });
+  }
 
   let frequentistN = NaN;
   try {
@@ -347,7 +363,7 @@ export const calculateBayesianAssurance = (
   const unit = test === 'correlation' ? 'in total' : 'per group';
   const label = test === 'permanova' ? 'R²' : test === 'correlation' ? 'r' : test === 'anova' ? 'f' : 'd';
   const digits = test === 'permanova' ? 3 : 2;
-  const priorText = `${label}: mean=${mean.toFixed(digits)}, SD=${sd.toFixed(digits)}`;
+  const priorText = `${label}: mean=${rawMean.toFixed(digits)}, SD=${sd.toFixed(digits)}`;
   let summary: string;
   if (reached) {
     summary = `With uncertainty in effect size (${priorText}), you need ${requiredN} ${unit} for a ${pct(targetAssurance)} probability that power is at least ${pct(targetPower)}. Expected power at this sample size, averaged over the prior, is ${pct(expectedPowerAtN)}.`;
@@ -418,8 +434,8 @@ const gridCurve = (lo: number, hi: number, f: (x: number) => number, points = 10
 
 const normalPriorResult = (mean: number, sd: number): PriorElicitationResult => {
   const hi = mean + 4 * sd;
-  // Effect sizes are usually positive: start the plot at zero unless the prior lies mostly below it
-  const lo = Math.max(0, mean - 4 * sd) < hi ? Math.max(0, mean - 4 * sd) : mean - 4 * sd;
+  // Positive priors are plotted from zero (effect sizes are usually positive); others are not clipped
+  const lo = mean > 0 ? Math.max(0, mean - 4 * sd) : mean - 4 * sd;
   return {
     distribution: 'normal',
     parameters: { mean, sd },
@@ -531,6 +547,8 @@ export interface BayesianSequentialResult {
     powerUnderPrior: number;
     averageN: number;
     typeIError: number;
+    /** Type I error of the fixed design with the same success rule (alpha/2 for one-directional tests) */
+    nominalTypeIError: number;
   };
   chart: Array<{ n: number; stopProb: number; continueProb: number }>;
   summary: string;
@@ -582,7 +600,10 @@ export const calculateBayesianSequential = (
   const T = info(maxN);
 
   // Design prior for the drift on the information scale
-  const { mean, sd } = params.effectSizePrior;
+  // Signed effects: success is significance in the direction of the prior mean (mirrored if negative)
+  const sign = test !== 'anova' && params.effectSizePrior.mean < 0 ? -1 : 1;
+  const mean = params.effectSizePrior.mean * sign;
+  const sd = params.effectSizePrior.sd;
   let m0: number;
   let s0: number;
   if (test === 'ttest') {
@@ -601,12 +622,14 @@ export const calculateBayesianSequential = (
   let crit: number;
   if (test === 'ttest') crit = tCrit(2 * maxN - 2, alpha);
   else if (test === 'correlation') crit = zCrit(alpha);
-  else crit = (k - 1) * fCrit(k - 1, maxN * k - k, alpha); // chi-square scale, |S|^2 / I > crit
+  // ANOVA: chi-square scale, |S|^2 / I > (k - 1) * F_crit (with 2 groups this is the two-sided t test)
+  else crit = (k - 1) * fCrit(k - 1, maxN * k - k, alpha);
+  const directional = test !== 'anova';
 
   const predictiveProb = (S: number[], I: number): number => {
     const R = T - I;
     if (R <= 0) return 0;
-    if (dim === 1) {
+    if (directional) {
       const v = 1 / I;
       const m = S[0] / I;
       const sdPred = Math.sqrt(R + R * R * v);
@@ -624,7 +647,11 @@ export const calculateBayesianSequential = (
     for (let q = 0; q < GH_NODES.length; q++) {
       const delta = Math.max(0, m + sdPost * GH_NODES[q]);
       const ncp = (norm + delta * R) ** 2 / R;
-      pp += GH_WEIGHTS[q] * (1 - nonCentralChiSquareCDF((crit * T) / R, dim, ncp));
+      const x = (crit * T) / R;
+      // Far tails: the series is slow for huge noncentralities and the answer is 0 or 1 to many digits
+      const gap = Math.sqrt(ncp) - Math.sqrt(x);
+      const tail = gap > 10 ? 1 : gap < -10 ? 0 : 1 - nonCentralChiSquareCDF(x, dim, ncp);
+      pp += GH_WEIGHTS[q] * tail;
     }
     return clamp01(pp);
   };
@@ -651,7 +678,7 @@ export const calculateBayesianSequential = (
         for (let c = 1; c < dim; c++) S[c] += rng.normal(0, sdI);
         if (j === lastLook) {
           const success =
-            dim === 1 ? S[0] / Math.sqrt(I) > crit : S.reduce((a, x) => a + x * x, 0) / I > crit;
+            directional ? S[0] / Math.sqrt(I) > crit : S.reduce((a, x) => a + x * x, 0) / I > crit;
           if (success) {
             sup[j]++;
             successes++;
@@ -678,7 +705,7 @@ export const calculateBayesianSequential = (
     return { fut, sup, expectedN: totalN / nSims, power: successes / nSims };
   };
 
-  const nSims = test === 'anova' ? 1000 : 2000;
+  const nSims = test === 'anova' ? 800 : 2000;
   const rngPrior = createRng(params, 'sequential-prior');
   const drawPrior = (): number => {
     if (!(s0 > 0)) return m0;
@@ -714,10 +741,12 @@ export const calculateBayesianSequential = (
   }));
 
   const expectedN = underPrior.expectedN;
+  // t-test and correlation declare success in the positive direction only, so the fixed-design rate is alpha/2
+  const nominalTypeI = directional ? alpha / 2 : alpha;
   const percentReduction = ((maxN - expectedN) / maxN) * 100;
   const unit = test === 'correlation' ? 'in total' : 'per group';
 
-  const summary = `Sequential design with ${looks.length - 1} interim ${looks.length - 1 === 1 ? 'analysis' : 'analyses'} plus a final analysis at n=${maxN}: expected sample size ${Math.round(expectedN)} ${unit}, a saving of about ${Math.round(percentReduction)}% versus the fixed design. Probability of declaring success under the prior: ${pct(underPrior.power, 1)}. Simulated type I error (no true effect): ${pct(underNull.power, 1)} (nominal ${pct(alpha, 1)}${underNull.power > alpha * 1.2 ? '; early success stopping inflates it, so raise the superiority threshold' : ''}).`;
+  const summary = `Sequential design with ${looks.length - 1} interim ${looks.length - 1 === 1 ? 'analysis' : 'analyses'} plus a final analysis at n=${maxN}: expected sample size ${Math.round(expectedN)} ${unit}, a saving of about ${Math.round(percentReduction)}% versus the fixed design. Probability of declaring success under the prior: ${pct(underPrior.power, 1)}. Simulated type I error (no true effect): ${pct(underNull.power, 1)} (nominal ${pct(nominalTypeI, 1)}${nominalTypeI !== alpha ? ', one-directional' : ''}${underNull.power > nominalTypeI * 1.2 ? '; early success stopping inflates it, so raise the superiority threshold' : ''}).`;
 
   return {
     expectedN: Math.round(expectedN),
@@ -732,6 +761,7 @@ export const calculateBayesianSequential = (
       powerUnderPrior: underPrior.power,
       averageN: expectedN,
       typeIError: underNull.power,
+      nominalTypeIError: nominalTypeI,
     },
     chart,
     summary,
@@ -1341,8 +1371,9 @@ export interface EquivalenceTestingResult {
 
 /**
  * Sample size for Bayesian equivalence (ROPE) decisions.
- * For each simulated study: theta ~ prior, estimate ~ N(theta, se^2(n)), conjugate normal posterior,
- * declare equivalence if P(|theta| < margin | data) >= targetProbability.
+ * The prior is the design prior: theta ~ prior, estimate ~ N(theta, se^2(n)). With a flat analysis prior
+ * the posterior is N(estimate, se^2(n)); equivalence is declared if P(|theta| < margin | data) >=
+ * targetProbability. The probability of declaring equivalence is computed exactly (no simulation).
  * t-test: se^2 = 2/n (standardised difference, n per group). Correlation: Fisher z scale, se^2 = 1/(n-3).
  */
 export const calculateEquivalenceN = (
@@ -1378,46 +1409,38 @@ export const calculateEquivalenceN = (
   const nMin = test === 'ttest' ? 2 : 4;
   const nMax = 500;
 
-  const nSims = 2000;
-  const rng = createRng(params, 'equivalence');
-  const z1 = Array.from({ length: nSims }, () => rng.normal());
-  const z2 = Array.from({ length: nSims }, () => rng.normal());
-  const priorPrec = 1 / (s0 * s0);
-
+  // Exact calculation. With a flat analysis prior the posterior is Normal(est, se^2), and
+  // P(|theta| < M | est) = Phi((M - est)/se) - Phi((-M - est)/se) decreases in |est|, so equivalence is
+  // declared exactly when |est| <= c(n). Marginally est ~ Normal(m0, s0^2 + se^2).
+  const Phi = (x: number) => jStat.normal.cdf(x, 0, 1);
   const probEquivalentAt = (n: number): number => {
-    const v = se2(n);
-    const postPrec = priorPrec + 1 / v;
-    const postSD = Math.sqrt(1 / postPrec);
-    let count = 0;
-    for (let i = 0; i < nSims; i++) {
-      const theta = m0 + s0 * z1[i];
-      const est = theta + Math.sqrt(v) * z2[i];
-      const postMean = (priorPrec * m0 + est / v) / postPrec;
-      const pIn = jStat.normal.cdf(M, postMean, postSD) - jStat.normal.cdf(-M, postMean, postSD);
-      if (pIn >= targetProbability) count++;
+    const se = Math.sqrt(se2(n));
+    const g = (c: number) => Phi((M - c) / se) - Phi((-M - c) / se);
+    if (g(0) < targetProbability) return 0;
+    let lo = 0;
+    let hi = M + 10 * se;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (g(mid) >= targetProbability) lo = mid;
+      else hi = mid;
     }
-    return count / nSims;
+    const c = lo;
+    const sdEst = Math.sqrt(s0 * s0 + se * se);
+    return clamp01(Phi((c - m0) / sdEst) - Phi((-c - m0) / sdEst));
   };
 
-  const chart: Array<{ n: number; probEquivalent: number }> = [];
+  // P(declare) is not guaranteed to be monotone in n, so every n is scanned
   let requiredN = nMax;
   let reached = false;
-  let prevN = nMin - 1;
-  for (let n = 10; n <= nMax; n += 10) {
-    const p = probEquivalentAt(n);
-    chart.push({ n, probEquivalent: p });
-    if (!reached && p >= targetAssurance) {
-      reached = true;
+  for (let n = nMin; n <= nMax; n++) {
+    if (probEquivalentAt(n) >= targetAssurance) {
       requiredN = n;
-      for (let m = prevN + 1; m < n; m++) {
-        if (m >= nMin && probEquivalentAt(m) >= targetAssurance) {
-          requiredN = m;
-          break;
-        }
-      }
+      reached = true;
+      break;
     }
-    prevN = n;
   }
+  const chart: Array<{ n: number; probEquivalent: number }> = [];
+  for (let n = 10; n <= nMax; n += 10) chart.push({ n, probEquivalent: probEquivalentAt(n) });
   const posteriorProbEquivalent = probEquivalentAt(requiredN);
 
   // Prior mass inside, below and above the ROPE (exact)
@@ -1549,8 +1572,9 @@ export const calculateModelComparisonN = (
   const targetProbability = params.targetProbability ?? 0.8;
   const logTarget = Math.log(params.targetBayesFactor);
 
-  const nSims = 1000;
-  const rng = createRng(params, 'model-comparison');
+  const nSims = 2000;
+  // Seed only from the inputs that affect the simulated studies, so unrelated settings do not reshuffle them
+  const rng = createRng(models.map((m) => [m.prior.mean, m.prior.sd, m.priorProbability]), 'model-comparison');
   const cumulative: number[] = [];
   models.reduce((acc, m, i) => (cumulative[i] = acc + m.priorProbability / totalPriorProb), 0);
   const trueModel: number[] = [];
@@ -1837,22 +1861,14 @@ interface AssuranceEngineInput {
 
 const assuranceEngine = (p: AssuranceEngineInput) => {
   const nodes = priorNodes(p.mean, p.sd, p.support, 41);
+  const mdeCache = new Map<number, number>();
   const probAt = (n: number, sd = p.sd): number => {
     const f = (x: number) => p.powerAt(n, x);
     if (p.monotone) {
-      let mde: number;
-      if (f(p.mdeUpper) < p.targetPower) mde = Infinity;
-      else if (f(Math.max(0, p.support.lower)) >= p.targetPower) mde = Math.max(0, p.support.lower);
-      else {
-        let a = Math.max(0, p.support.lower);
-        let b = p.mdeUpper;
-        for (let i = 0; i < 40; i++) {
-          const m = (a + b) / 2;
-          if (f(m) >= p.targetPower) b = m;
-          else a = m;
-        }
-        mde = b;
-      }
+      let mde = mdeCache.get(n);
+      if (mde !== undefined) return truncNormalSurvival(mde, p.mean, sd, p.support);
+      mde = mdeInRange(f, p.targetPower, p.mdeUpper);
+      mdeCache.set(n, mde);
       return truncNormalSurvival(mde, p.mean, sd, p.support);
     }
     return probPowerAtLeast(f, p.targetPower, p.mean, sd, p.support);

@@ -393,27 +393,28 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
             </p>
             <div className="space-y-2">
               <div className="bg-muted p-3 rounded-lg">
-                <span className="font-mono font-bold">r = 0.3</span> — <strong>Low correlation</strong>
+                <span className="font-mono font-bold">r = 0.3</span>: <strong>Low correlation</strong>
                 <p className="text-xs text-muted-foreground mt-1">
                   Highly variable individuals. Samples from the same person are barely more similar than samples from different people.
                 </p>
               </div>
               <div className="bg-muted p-3 rounded-lg">
-                <span className="font-mono font-bold">r = 0.5</span> — <strong>Moderate correlation</strong> (default)
+                <span className="font-mono font-bold">r = 0.5</span>: <strong>Moderate correlation</strong> (default)
                 <p className="text-xs text-muted-foreground mt-1">
                   Typical for microbiome studies. Individuals have recognizable baseline patterns but some variability.
                 </p>
               </div>
               <div className="bg-muted p-3 rounded-lg">
-                <span className="font-mono font-bold">r = 0.7</span> — <strong>High correlation</strong>
+                <span className="font-mono font-bold">r = 0.7</span>: <strong>High correlation</strong>
                 <p className="text-xs text-muted-foreground mt-1">
                   Very stable communities. Each person has a distinct, consistent microbial signature over time.
                 </p>
               </div>
             </div>
             <p className="text-xs">
-              <strong>Impact on power:</strong> Higher correlation = more power with fewer subjects. Going from r=0.3 to r=0.7 
-              can reduce required subjects by 30-40%.
+              <strong>Impact on power:</strong> Higher correlation = more power with fewer subjects. Noncentrality scales with 1/(1 - r), so going from r=0.3 to r=0.7 
+              multiplies it by about 2.3 and typically cuts the subjects needed for 80% power by about 45-55% 
+              (e.g. 38 to 17 subjects for R²=0.05 with 4 timepoints).
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -471,7 +472,7 @@ const RepeatedMeasuresMicrobiomeCalculator = () => {
             <Alert variant="destructive">
               <AlertTitle className="text-sm">❌ WRONG: Pseudoreplication</AlertTitle>
               <AlertDescription className="text-xs">
-                "I have 20 subjects × 3 timepoints = 60 samples, so n=60" — <strong>NO!</strong> Your true sample 
+                "I have 20 subjects × 3 timepoints = 60 samples, so n=60" (<strong>NO!</strong>) Your true sample 
                 size is 20 subjects. Repeated measures are not independent samples.
               </AlertDescription>
             </Alert>

@@ -631,12 +631,12 @@ const MinimumSampleSize = ({
               <div className="text-5xl font-bold mb-2">{formatN(totalN, GENERAL_SEARCH_CAP)}</div>
               <p className="text-lg font-medium">total samples needed</p>
               <p className="text-sm text-muted-foreground mt-2">
-                To detect correlation ρ={effectSize.toFixed(2)}
+                To detect correlation ρ={effectSize.toFixed(3)}
               </p>
             </div>
             <Alert className="text-left">
               <AlertDescription>
-                This gives you <strong>80% power</strong> to detect a correlation of <strong>ρ={effectSize.toFixed(2)}</strong> at α = 0.05.
+                This gives you <strong>80% power</strong> to detect a correlation of <strong>ρ={effectSize.toFixed(3)}</strong> at α = 0.05.
               </AlertDescription>
             </Alert>
           </div>
@@ -646,7 +646,7 @@ const MinimumSampleSize = ({
           <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Large correlation (r={effectSize.toFixed(2)}):</strong> Correlations above 0.7 are rare in ecology and biological sciences. 
+              <strong>Large correlation (r={effectSize.toFixed(3)}):</strong> Correlations above 0.7 are rare in ecology and biological sciences. 
               Verify this effect size is realistic for your study.
             </AlertDescription>
           </Alert>
@@ -685,12 +685,12 @@ const MinimumSampleSize = ({
               <div className="text-5xl font-bold mb-2">{formatN(totalN, GENERAL_SEARCH_CAP)}</div>
               <p className="text-lg font-medium">total samples needed</p>
               <p className="text-sm text-muted-foreground mt-2">
-                For effect size w={effectSize.toFixed(2)}
+                For effect size w={effectSize.toFixed(3)}
               </p>
             </div>
             <Alert className="text-left">
               <AlertDescription>
-                This gives you <strong>80% power</strong> to detect an effect size of w={effectSize.toFixed(2)}{' '}
+                This gives you <strong>80% power</strong> to detect an effect size of w={effectSize.toFixed(3)}{' '}
                 with {groups} categories (df = {groups - 1}) at α = 0.05.
               </AlertDescription>
             </Alert>
@@ -708,7 +708,7 @@ const MinimumSampleSize = ({
           <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-200">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Large effect size (w={effectSize.toFixed(2)}):</strong> Cohen's w values above 0.5 are very large. 
+              <strong>Large effect size (w={effectSize.toFixed(3)}):</strong> Cohen's w values above 0.5 are very large. 
               Typical values are 0.1 (small), 0.3 (medium), 0.5 (large). Verify this is appropriate for your study.
             </AlertDescription>
           </Alert>
@@ -772,7 +772,7 @@ const MinimumSampleSize = ({
             <div className="text-5xl font-bold mb-2">{requiredNText}</div>
             <p className="text-lg font-medium">{unitLabel}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              For effect size {testType === 'ttest' ? `d=${effectSize.toFixed(2)}` : `f=${effectSize.toFixed(2)}`} with {groups} {groupLabel}
+              For effect size {testType === 'ttest' ? `d=${effectSize.toFixed(3)}` : `f=${effectSize.toFixed(3)}`} with {groups} {groupLabel}
             </p>
           </div>
           <Alert className="text-left">

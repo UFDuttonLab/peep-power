@@ -362,13 +362,13 @@ const BayesianAdaptiveAllocationCalculator = () => {
                       <YAxis label={{ value: 'Cumulative Samples', angle: -90, position: 'insideLeft' }} />
                       <Tooltip />
                       <Legend />
-                      {treatments.map((treatment, idx) => (
+                      {Object.keys(result.allocationCurve[0]?.allocations ?? {}).map((key, idx) => (
                         <Bar 
-                          key={treatment}
-                          dataKey={`allocations.${treatment}`}
+                          key={key}
+                          dataKey={(d: { allocations: Record<string, number> }) => d.allocations[key]}
                           stackId="a"
                           fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                          name={treatment}
+                          name={key}
                         />
                       ))}
                     </BarChart>

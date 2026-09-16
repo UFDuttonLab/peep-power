@@ -335,8 +335,11 @@ ${result.summary}`;
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Type I Error (simulated)</p>
-                      <p className={`text-2xl font-bold ${result.operatingCharacteristics.typeIError > alpha * 1.2 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                      <p className={`text-2xl font-bold ${result.operatingCharacteristics.typeIError > (result.operatingCharacteristics.nominalTypeIError ?? alpha) * 1.2 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                         {(result.operatingCharacteristics.typeIError * 100).toFixed(1)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Fixed-design reference: {((result.operatingCharacteristics.nominalTypeIError ?? alpha) * 100).toFixed(1)}%
                       </p>
                     </div>
                   </div>
